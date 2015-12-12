@@ -197,94 +197,93 @@ int _tmain(int argc, _TCHAR* argv[])
   delete[] pLercBlob;
   pLercBlob = 0;
 
+
 #ifdef TestLegacyData
 
-  // Sample 3: decode old Lerc2 blob, float
-  Byte* pBuffer = new Byte[2 * 1024 * 1024];
-  string fn1 = "D:/tmaurer/Code/LercOpenSource/testData/testuv_w1922_h1083_float.lerc2";
-  int nBytes = 1628068;
+  Byte* pLercBuffer = new Byte[4 * 2048 * 2048];
+  Byte* pDstArr     = new Byte[4 * 2048 * 2048];
+
+  vector<string> fnVec;
+  string path = "D:/GitHub/LercOpenSource/testData/";
+
+  fnVec.push_back("amazon3.lerc1");
+  fnVec.push_back("tuna.lerc1");
+  fnVec.push_back("tuna_0_to_1_w1920_h925.lerc1");
+
+  fnVec.push_back("testbytes.lerc2");
+  fnVec.push_back("testHuffman_w30_h20_uchar0.lerc2");
+  fnVec.push_back("testHuffman_w30_h20_ucharx.lerc2");
+  fnVec.push_back("testHuffman_w1922_h1083_uchar.lerc2");
+
+  fnVec.push_back("testall_w30_h20_char.lerc2");
+  fnVec.push_back("testall_w30_h20_byte.lerc2");
+  fnVec.push_back("testall_w30_h20_short.lerc2");
+  fnVec.push_back("testall_w30_h20_ushort.lerc2");
+  fnVec.push_back("testall_w30_h20_long.lerc2");
+  fnVec.push_back("testall_w30_h20_ulong.lerc2");
+  fnVec.push_back("testall_w30_h20_float.lerc2");
+
+  fnVec.push_back("testall_w1922_h1083_char.lerc2");
+  fnVec.push_back("testall_w1922_h1083_byte.lerc2");
+  fnVec.push_back("testall_w1922_h1083_short.lerc2");
+  fnVec.push_back("testall_w1922_h1083_ushort.lerc2");
+  fnVec.push_back("testall_w1922_h1083_long.lerc2");
+  fnVec.push_back("testall_w1922_h1083_ulong.lerc2");
+  fnVec.push_back("testall_w1922_h1083_float.lerc2");
+
+  fnVec.push_back("testuv_w30_h20_char.lerc2");
+  fnVec.push_back("testuv_w30_h20_byte.lerc2");
+  fnVec.push_back("testuv_w30_h20_short.lerc2");
+  fnVec.push_back("testuv_w30_h20_ushort.lerc2");
+  fnVec.push_back("testuv_w30_h20_long.lerc2");
+  fnVec.push_back("testuv_w30_h20_ulong.lerc2");
+  fnVec.push_back("testuv_w30_h20_float.lerc2");
+
+  fnVec.push_back("testuv_w1922_h1083_char.lerc2");
+  fnVec.push_back("testuv_w1922_h1083_byte.lerc2");
+  fnVec.push_back("testuv_w1922_h1083_short.lerc2");
+  fnVec.push_back("testuv_w1922_h1083_ushort.lerc2");
+  fnVec.push_back("testuv_w1922_h1083_long.lerc2");
+  fnVec.push_back("testuv_w1922_h1083_ulong.lerc2");
+  fnVec.push_back("testuv_w1922_h1083_float.lerc2");
+
+  for (size_t n = 0; n < fnVec.size(); n++)
   {
+    string fn = path;
+    fn += fnVec[n];
+
     FILE* fp = 0;
-    fopen_s(&fp, fn1.c_str(), "rb");
-    fread(pBuffer, 1, nBytes, fp);
+    fopen_s(&fp, fn.c_str(), "rb");
+    fseek(fp, 0, SEEK_END);
+    size_t fileSize = ftell(fp);    // get the file size
     fclose(fp);
-  }
+    fp = 0;
 
-  if (!lerc.GetLercInfo(pBuffer, nBytes, lercInfo))
-    cout << "get header info failed" << endl;
-
-  w = lercInfo.nCols;
-  h = lercInfo.nRows;
-  int nBands = lercInfo.nBands;
-  Lerc::DataType dt = lercInfo.dt;
-
-  float* pArr = new float[w * h * nBands];
-
-  if (!lerc.Decode(pBuffer, nBytes, 0, w, h, nBands, dt, (void*)pArr))
-    cout << "decode failed" << endl;
-  else
-    cout << "decode succeeded" << endl;
-
-  delete[] pArr;
-
-
-  // Sample 4: decode old Lerc2 blob, ushort
-  string fn2 = "D:/tmaurer/Code/LercOpenSource/testData/testuv_w1922_h1083_ushort.lerc2";
-  nBytes = 1272601;
-  {
-    FILE* fp = 0;
-    fopen_s(&fp, fn2.c_str(), "rb");
-    fread(pBuffer, 1, nBytes, fp);
+    fopen_s(&fp, fn.c_str(), "rb");
+    fread(pLercBuffer, 1, fileSize, fp);    // read Lerc blob into buffer
     fclose(fp);
+    fp = 0;
+
+    if (!lerc.GetLercInfo(pLercBuffer, fileSize, lercInfo))
+      cout << "get header info failed" << endl;
+    else
+    {
+      int w = lercInfo.nCols;
+      int h = lercInfo.nRows;
+      int nBands = lercInfo.nBands;
+      Lerc::DataType dt = lercInfo.dt;
+
+      printf("w = %4d, h = %4d, nBands = %2d, dt = %2d :  %s ...  ", w, h, nBands, (int)dt, fnVec[n].c_str());
+
+      BitMask bitMask;
+      if (!lerc.Decode(pLercBuffer, fileSize, &bitMask, w, h, nBands, dt, (void*)pDstArr))
+        printf("failed !!!\n");
+      else
+        printf("succeeded.\n");
+    }
   }
-
-  if (!lerc.GetLercInfo(pBuffer, nBytes, lercInfo))
-    cout << "get header info failed" << endl;
-
-  w = lercInfo.nCols;
-  h = lercInfo.nRows;
-  nBands = lercInfo.nBands;
-  dt = lercInfo.dt;
-
-  unsigned short* pArr2 = new unsigned short[w * h * nBands];
-
-  if (!lerc.Decode(pBuffer, nBytes, 0, w, h, nBands, dt, (void*)pArr2))
-    cout << "decode failed" << endl;
-  else
-    cout << "decode succeeded" << endl;
-
-  delete[] pArr2;
-
-
-  // Sample 5: decode old Lerc1 blob
-  string fn3 = "D:/tmaurer/Code/LercOpenSource/testData/amazon3.lerc1";
-  nBytes = 121311;
-  {
-    FILE* fp = 0;
-    fopen_s(&fp, fn3.c_str(), "rb");
-    fread(pBuffer, 1, nBytes, fp);
-    fclose(fp);
-  }
-
-  if (!lerc.GetLercInfo(pBuffer, nBytes, lercInfo))
-    cout << "get header info failed" << endl;
-
-  w = lercInfo.nCols;
-  h = lercInfo.nRows;
-  nBands = lercInfo.nBands;
-  dt = lercInfo.dt;
-
-  float* pArr3 = new float[w * h * nBands];
-
-  if (!lerc.Decode(pBuffer, nBytes, 0, w, h, nBands, dt, (void*)pArr3))
-    cout << "decode failed" << endl;
-  else
-    cout << "decode succeeded" << endl;
-
-  delete[] pArr3;
 
 #endif
-
 
   printf("\npress ENTER\n");
   getchar();

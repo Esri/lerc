@@ -113,6 +113,9 @@ bool Lerc::GetLercInfo(const Byte* pLercBlob, size_t numBytesBlob, struct LercIn
     lercInfo.zMax = lerc2Info.zMax;
     lercInfo.maxZError = lerc2Info.maxZError;
 
+    if (lercInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
+      return false;
+
     while (lercInfo.blobSize + numBytesHeader < numBytesBlob)    // means there could be another band
     {
       struct Lerc2::HeaderInfo hdInfo;
@@ -128,8 +131,12 @@ bool Lerc::GetLercInfo(const Byte* pLercBlob, size_t numBytesBlob, struct LercIn
         return false;
       }
 
-      lercInfo.nBands++;
       lercInfo.blobSize += hdInfo.blobSize;
+
+      if (lercInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
+        return false;
+
+      lercInfo.nBands++;
       lercInfo.zMin = min(lercInfo.zMin, hdInfo.zMin);
       lercInfo.zMax = max(lercInfo.zMax, hdInfo.zMax);
     }
@@ -142,10 +149,10 @@ bool Lerc::GetLercInfo(const Byte* pLercBlob, size_t numBytesBlob, struct LercIn
   Byte* pByte = const_cast<Byte*>(pLercBlob);
 
   CntZImage cntZImg;
-  if (cntZImg.read(&pByte, 1e12, true))    // read just the header
+  if (numBytesHeader <= numBytesBlob && cntZImg.read(&pByte, 1e12, true))    // read just the header
   {
-    int nBytesRead = (int)(pByte - pLercBlob);
-    int nBytesNeeded = 10 + 4 * sizeof(int) + 1 * sizeof(double);
+    size_t nBytesRead = pByte - pLercBlob;
+    size_t nBytesNeeded = 10 + 4 * sizeof(int) + 1 * sizeof(double);
 
     if (nBytesRead < nBytesNeeded)
       return false;
@@ -155,7 +162,7 @@ bool Lerc::GetLercInfo(const Byte* pLercBlob, size_t numBytesBlob, struct LercIn
 
     int height = *((const int*)ptr);  ptr += sizeof(int);
     int width  = *((const int*)ptr);  ptr += sizeof(int);
-    double maxZErrorInFile = *((const double*)ptr);  ptr += sizeof(double);
+    double maxZErrorInFile = *((const double*)ptr);
 
     if (height > 20000 || width > 20000)    // guard against bogus numbers
       return false;
@@ -308,13 +315,13 @@ bool Lerc::EncodeTempl(const T* pData,    // raw image data, row by row, band by
   for (int iBand = 0; iBand < nBands; iBand++)
   {
     bool encMsk = (iBand == 0);    // store bit mask with first band only
-    const T* arr = pData + (nCols * nRows * iBand);
+    const T* arr = pData + nCols * nRows * iBand;
 
     unsigned int nBytes = lerc2.ComputeNumBytesNeededToWrite(arr, maxZError, encMsk);
-    if (nBytes <= 0)
+    if (nBytes == 0)
       return false;
 
-    size_t nBytesAlloc = (size_t)(nBytes + Lerc2::NumExtraBytesToAllocate());
+    unsigned int nBytesAlloc = nBytes + Lerc2::NumExtraBytesToAllocate();
 
     if ((pByte - pBuffer) + nBytesAlloc > numBytesBuffer)    // check we have enough space left
       return false;
@@ -362,10 +369,10 @@ bool Lerc::EncodeTempl(const T* pData,    // raw image data, row by row, band by
   for (int iBand = 0; iBand < nBands; iBand++)
   {
     bool encMsk = (iBand == 0);    // store bit mask with first band only
-    const T* arr = pData + (nCols * nRows * iBand);
+    const T* arr = pData + nCols * nRows * iBand;
 
     unsigned int nBytes = lerc2.ComputeNumBytesNeededToWrite(arr, maxZError, encMsk);
-    if (nBytes <= 0)
+    if (nBytes == 0)
     {
       FreeBuffer(bufferPerBandVec);
       return false;
@@ -381,7 +388,7 @@ bool Lerc::EncodeTempl(const T* pData,    // raw image data, row by row, band by
       return false;
     }
 
-    numBytesPerBandVec[iBand] = pByte - bufferPerBandVec[iBand];    // numBytes really used
+    numBytesPerBandVec[iBand] = pByte - bufferPerBandVec[iBand];    // num bytes really used
     numBytesAllBands += numBytesPerBandVec[iBand];
   }
 
@@ -426,30 +433,35 @@ bool Lerc::DecodeTempl(T* pData,    // outgoing data bands
   Lerc2 lerc2;
   CntZImage zImg;
 
-  for (long iBand = 0; iBand < nBands; iBand++)
+  for (int iBand = 0; iBand < nBands; iBand++)
   {
     // first try Lerc2
+    unsigned int numBytesHeader = lerc2.ComputeNumBytesHeader();
     Lerc2::HeaderInfo hdInfo;
-    if (lerc2.GetHeaderInfo(pByte, hdInfo))
+    if ((pByte - pLercBlob) + numBytesHeader <= numBytesBlob && lerc2.GetHeaderInfo(pByte, hdInfo))
     {
       if (hdInfo.nCols != nCols || hdInfo.nRows != nRows)
         return false;
 
-      // check current pos + blob size < numBytesBlob
-      if ((size_t)(pByte - pLercBlob) + hdInfo.blobSize > numBytesBlob)
+      if ((pByte - pLercBlob) + (size_t)hdInfo.blobSize > numBytesBlob)
         return false;
 
       // init bitMask
       if (pBitMask && iBand == 0)
-        pBitMask->SetSize(hdInfo.nCols, hdInfo.nRows);
+        pBitMask->SetSize(nCols, nRows);
 
-      T* arr = pData + hdInfo.nCols * hdInfo.nRows * iBand;
+      T* arr = pData + nCols * nRows * iBand;
 
       if (!lerc2.Decode(&pByte, arr, (pBitMask && iBand == 0) ? pBitMask->Bits() : 0))
         return false;
     }
     else    // then try Lerc1
     {
+      unsigned int numBytesHeader = CntZImage::computeNumBytesNeededToReadHeader();
+
+      if ((pByte - pLercBlob) + numBytesHeader > numBytesBlob)
+        return false;
+
       bool onlyZPart = iBand > 0;
       if (!zImg.read(&pByte1, 1e12, false, onlyZPart))
         return false;
@@ -490,8 +502,8 @@ bool Lerc::Convert(const CntZImage& zImg, T* arr, BitMask* pBitMask) const
 
   const bool fltPnt = (typeid(*arr) == typeid(double)) || (typeid(*arr) == typeid(float));
 
-  long h = zImg.getHeight();
-  long w = zImg.getWidth();
+  int h = zImg.getHeight();
+  int w = zImg.getWidth();
 
   if (pBitMask)
   {
@@ -501,8 +513,8 @@ bool Lerc::Convert(const CntZImage& zImg, T* arr, BitMask* pBitMask) const
 
   const CntZ* srcPtr = zImg.getData();
   T* dstPtr = arr;
-  long num = w * h;
-  for (long k = 0; k < num; k++)
+  int num = w * h;
+  for (int k = 0; k < num; k++)
   {
     if (srcPtr->cnt > 0)
       *dstPtr = fltPnt ? (T)srcPtr->z : (T)floor(srcPtr->z + 0.5);
