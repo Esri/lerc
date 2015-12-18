@@ -63,6 +63,7 @@ if you would use png instead, or gzip, then you may want to try out Lerc.
   stack bands together into a single Lerc blob. This can be useful 
   if the bands are always used together anyway. 
 
+- you can find more information [here](https://github.com/Esri/lerc/tree/master/doc).
 
 ## The Main Principle of Lerc
 
