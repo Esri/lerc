@@ -64,6 +64,46 @@ if you would use png instead, or gzip, then you may want to try out Lerc.
   if the bands are always used together anyway. 
 
 
+## The Main Principle of Lerc
+
+This section demonstrates how the same block of 4x4 pixels with floating point values gets Lerc encoded using two different values for MaxZError, the user specified coding error tolerance. The following is taken from the Lerc patent. The Lerc patent is available in the doc folder. 
+
+![Lerc encoding sample](doc/LercEncodingSample.png)
+
+#### Example of LERC Encoding For One Block Using MaxZError = 0.01 m
+
+In some embodiments, LERC encoding can be performed using four simplified basic steps including, but not limited to, (1) calculating the basic statistics for a data block; (2) determining how to encode the block using a user defined MaxZError value, (3) determining the number of bits needed and bit stuffing the non-negative integers; and (4) writing the block header.  FIG. 9A depicts sample block data 910 for a 4 x 4 block of pixels, according to an embodiment of the invention.   It should be noted that blocks are typically 8 x 8 pixels or larger, but are shown here as 4 x 4 pixels for simplicity of description.  At step 1, the LERC method includes determining the basic statistics for the data block of FIG. 9A. The minimum value is 1222.2943 and the maximum value is 1280.8725. The number of valid pixels (i.e., non-void pixels) is 12 of 16.  The number of invalid pixels (i.e., void pixels) is 4 of 16. At step 2, the LERC method includes determining whether the pixel block should be encoded uncompressed or with a user-input MaxZError of 0.01 m. By using equation (1) above: 
+
+(Max-Min) / (2 x MaxZError) => (1280.8725-1222.2943) / (2 x 0.01) = 2,928.91. 
+
+Since this value is less than 2^28, we can quantize the pixel values in data block 910 and expect an acceptable compression ratio. The block is quantized using equation (2) above, where each new pixel value is calculated by: 
+
+n(i) = (unsigned int)((x(i) - Min) / (2 x MaxZError) + 0.5), 
+
+resulting in the new pixel block 920 shown in FIG. 9B. At step (3), the method further includes determining the number of bits needed and bit stuffing these non-negative integers. The number of bits needed can be determined by equation (3): 
+ 
+NumBits = ceil(log2(2929)) = 12
+
+To represent the number of bits needed another way, 2^11 < 2929 < 2^12. In this case, 12 bits per number are needed to encode all numbers of block 910 lossless. There are 12 valid numbers, resulting in 12 x 12 = 144 bits total.  As 144 / 8 = 18, 18 bytes are needed to encode the entire data block.  At step (4), the method includes writing the block header as shown in FIG. 9C. It follows that 7 bytes are needed for the block header. The total number of bytes needed for block 920 can be calculated as 18 + 7 = 25 bytes.  In this particular case, the header takes too much space with respect to the raw pixel data, which exemplifies the need to work with block sizes of 8 x 8 pixels or larger.  
+
+
+#### Example of LERC Encoding For One Block Using MaxZError = 1.0 m
+
+Using the same 4 x 4 pixel block shown in FIG. 9A, the LERC method is performed again using a larger MaxZError (i.e., error threshold) of 1.0 m. Beginning with step (1), the minimum value is 1222.2943 and the maximum value is 1280.8725. The number of valid pixels (i.e., non-void pixels) is 12 of 16. The number of invalid pixels (i.e., void pixels) is 4 of 16. In step (2), the LERC method proceeds with determining whether the pixel block should be encoded uncompressed or with a user-input MaxZError of 1.0 m. As By using equation (1) above:
+
+(Max-Min) / (2 x MaxZError) => (1280.8725-1222.2943) / (2 x 1.0) = 29.2891.
+
+Since this value is less than 2^28, we can quantize the pixel values in data block 910 and expect an acceptable compression ratio.  The block is quantized using equation (2) above, where each new pixel value is calculated by: 
+
+n(i) = (unsigned int)((x(i) - Min) / (2 x MaxZError) + 0.5), 
+
+resulting in the new pixel block 940 shown in FIG. 9D. At step (3), the method further includes determining the number of bits needed and bit stuffing these non-negative integers. The number of bits needed can be determine by equation (3): 
+
+NumBits = ceil(log2(29)) = 5
+
+To represent the number of bits needed another way, 2^4 < 29 < 2^5. In this case, 5 bits per number are needed to encode all numbers of block 940 lossless. There are 12 valid numbers, resulting in 5 x 12 = 60 bits total. As 60 / 8 = 7.5, 8 bytes are needed to encode the entire data block. At step (4), the method includes writing the block header as shown in FIG. 9E. It follows that 7 bytes are needed for the block header. The total number of bytes needed for block 920 can be calculated as 8 + 7 = 15 bytes. 
+
+
 ## About bugs
 
 The codecs Lerc2 and Lerc1 have been in use for years, bugs in those
