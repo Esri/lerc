@@ -323,7 +323,7 @@ bool Lerc::EncodeTempl(const T* pData,    // raw image data, row by row, band by
 
     unsigned int nBytesAlloc = nBytes + Lerc2::NumExtraBytesToAllocate();
 
-    if ((pByte - pBuffer) + nBytesAlloc > numBytesBuffer)    // check we have enough space left
+    if ((size_t)(pByte - pBuffer) + nBytesAlloc > numBytesBuffer)    // check we have enough space left
       return false;
 
     if (!lerc2.Encode(arr, &pByte))
@@ -438,7 +438,7 @@ bool Lerc::DecodeTempl(T* pData,    // outgoing data bands
     // first try Lerc2
     unsigned int numBytesHeader = lerc2.ComputeNumBytesHeader();
     Lerc2::HeaderInfo hdInfo;
-    if ((pByte - pLercBlob) + numBytesHeader <= numBytesBlob && lerc2.GetHeaderInfo(pByte, hdInfo))
+    if (((size_t)(pByte - pLercBlob) + numBytesHeader <= numBytesBlob) && lerc2.GetHeaderInfo(pByte, hdInfo))
     {
       if (hdInfo.nCols != nCols || hdInfo.nRows != nRows)
         return false;
@@ -459,7 +459,7 @@ bool Lerc::DecodeTempl(T* pData,    // outgoing data bands
     {
       unsigned int numBytesHeader = CntZImage::computeNumBytesNeededToReadHeader();
 
-      if ((pByte - pLercBlob) + numBytesHeader > numBytesBlob)
+      if ((size_t)(pByte - pLercBlob) + numBytesHeader > numBytesBlob)
         return false;
 
       bool onlyZPart = iBand > 0;
