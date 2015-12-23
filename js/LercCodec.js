@@ -18,11 +18,17 @@ A copy of the license and additional notices are located with the
 source distribution at:
 
 http://github.com/Esri/lerc/
-Contributors:  Wenxue Ju
+
+Contributors:  Johannes Schmid,
+               Chayanika Khatua,
+               Wenxue Ju
 
 */
 
 function LERC() {
+
+  // WARNING: This decoder version can only read old version 1 Lerc blobs. Use with caution. 
+  // A new, updated js Lerc decoder is in the works. 
 
   // Note: currently, this module only has an implementation for decoding LERC data, not encoding. The name of
   // the class was chosen to be future proof.
