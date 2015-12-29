@@ -133,7 +133,7 @@ bool Huffman::WriteCodeTable(Byte** ppByte) const
 
   // header
   vector<int> intVec;
-  intVec.push_back(2);    // version
+  intVec.push_back(2);    // huffman version
   intVec.push_back(size);
   intVec.push_back(i0);   // code range
   intVec.push_back(i1);
@@ -169,7 +169,7 @@ bool Huffman::ReadCodeTable(const Byte** ppByte)
   int version = *((int*)ptr);    // version
   ptr += sizeof(int);
 
-  if (version != 2)
+  if (version < 2)    // allow forward compatibility; for updates that break old decoders increase Lerc2 version number;
     return false;
 
   vector<int> intVec(4, 0);
