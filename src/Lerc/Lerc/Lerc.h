@@ -26,8 +26,6 @@ Contributors:  Thomas Maurer
 #include "../Common/BitMask.h"
 #include <vector>
 
-//#define EXT_CLASS _declspec(dllexport)
-
 namespace LercNS
 {
   class CntZImage;
@@ -35,14 +33,14 @@ namespace LercNS
   class Lerc
   {
   public:
-    Lerc() {};
-    ~Lerc() {};
+    LERCDLL_API Lerc() {};
+    LERCDLL_API ~Lerc() {};
 
     // data types supported by Lerc
     enum DataType { DT_Char, DT_Byte, DT_Short, DT_UShort, DT_Int, DT_UInt, DT_Float, DT_Double, DT_Undefined };
 
     // all functions are provided in 2 flavors
-    // - using void pointers to the image data, can be called on a static Lerc.lib
+    // - using void pointers to the image data, can be called on a Lerc lib or dll
     // - data templated, can be called if compiled together
 
 
@@ -56,6 +54,7 @@ namespace LercNS
     // or, if encoding a batch of same width / height tiles, call this function once, double the buffer size, and
     // then just call Encode() on all tiles;
 
+    LERCDLL_API
     bool ComputeBufferSize(const void* pData,  // raw image data, row by row, band by band
       DataType dt,
       int nCols, int nRows, int nBands,    // number of columns, rows, bands
@@ -65,6 +64,7 @@ namespace LercNS
 
     // encodes or compresses the image data into the buffer
 
+    LERCDLL_API
     bool Encode(const void* pData,         // raw image data, row by row, band by band
       DataType dt,
       int nCols, int nRows, int nBands,    // number of columns, rows, bands
@@ -100,10 +100,12 @@ namespace LercNS
     // the first blob, get the info, and on the other Lerc blobs just call Decode();
     // this function is very fast on (newer) Lerc2 blobs as it only reads the blob headers;
 
+    LERCDLL_API
     bool GetLercInfo(const Byte* pLercBlob, size_t numBytesBlob, struct LercInfo& lercInfo) const;
 
     // setup outgoing arrays accordingly, then call Decode()
 
+    LERCDLL_API
     bool Decode(const Byte* pLercBlob,    // Lerc blob to be decoded
       size_t numBytesBlob,                // size in bytes
       BitMask* pBitMask,                  // gets filled if not 0, even if all valid

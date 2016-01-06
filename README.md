@@ -46,22 +46,40 @@ if you would use png instead, or gzip, then you may want to try out Lerc.
 
 - this Lerc package can read all (legacy) versions of Lerc, such as
   Lerc(1), Lerc2 v1, and the current Lerc2 v2. It always writes 
-  the current version Lerc2 v2.
+  the latest version Lerc2 v2.
 
 
 ## How to use
 
-- build the solution in src/Lerc. Copy the resulting Lerc.lib to lib/.
+For illustration, we have put together a simple test sample. 
+
+- build the Lerc.dll in src/Lerc. Copy the resulting Lerc.lib into the lib/ folder. 
 - build the test app in src/LercTest. 
+- copy the Lerc.dll next to LercTest.exe.
 - run it. 
 
-- the main include file is include/Lerc.h. See the comments there 
-  about how to call the Lerc encode and decode functions. 
 
-- packages such as MRF Lerc encode image data per band. This way 
-  they can easily access each band individually. Lerc allows to
-  stack bands together into a single Lerc blob. This can be useful 
-  if the bands are always used together anyway. 
+## The LERC API
+
+The LERC API has only 4 functions:
+
+- bool ComputeBufferSize(...):
+Computes the buffer size that needs to be allocated so the image can be Lerc compressed into that buffer. The size is accurate to the byte. This function is optional. It is faster than Encode(...). It can also be called to decide whether an image or image tile should be encoded by Lerc or another method. 
+
+- bool Encode(...):
+Compresses a given image into a pre-allocated buffer. If that buffer is too small, the function fails and returns false. The function returns the number of bytes written. 
+
+- bool GetLercInfo(...):
+Looks into a given Lerc byte blob and returns a struct with all the header info. From this, the image to be decoded can be allocated and constructed. This function is optional. You don't need to call it if you already know the image properties such as tile size and data type. 
+
+- bool Decode(...):
+Uncompresses a given Lerc byte blob into a pre-allocated image. If the data found in the Lerc byte blob does not fit the specified image properties, the function fails and returns false. 
+
+To better support the case that not all image pixels are valid, the BitMask class is provided. It permits easy and efficient checking and setting pixels to valid / invalid. 
+
+See the sample program src/LercTest/main.cpp how the above functions and classes are called and used. Also see the two header files in the include/ folder and the comments in there. 
+
+One more comment about multiple bands. You can either store each band into its own Lerc byte blob which allows you to access / decode each band individually. Lerc also allows to stack bands together into one single Lerc byte blob. This can be useful if the bands are always used together anyway. 
 
 
 ## The Main Principle of Lerc
@@ -76,7 +94,7 @@ In some embodiments, LERC encoding can be performed using four simplified basic 
 
 (Max-Min) / (2 x MaxZError) => (1280.8725-1222.2943) / (2 x 0.01) = 2,928.91. 
 
-Since this value is less than 2^28, we can quantize the pixel values in data block 910 and expect an acceptable compression ratio. The block is quantized using equation (2) above, where each new pixel value is calculated by: 
+Since this value is less than 2^30, we can quantize the pixel values in data block 910 and expect an acceptable compression ratio. The block is quantized using equation (2) above, where each new pixel value is calculated by: 
 
 n(i) = (unsigned int)((x(i) - Min) / (2 x MaxZError) + 0.5), 
 
@@ -93,7 +111,7 @@ Using the same 4 x 4 pixel block shown in FIG. 9A, the LERC method is performed 
 
 (Max-Min) / (2 x MaxZError) => (1280.8725-1222.2943) / (2 x 1.0) = 29.2891.
 
-Since this value is less than 2^28, we can quantize the pixel values in data block 910 and expect an acceptable compression ratio.  The block is quantized using equation (2) above, where each new pixel value is calculated by: 
+Since this value is less than 2^30, we can quantize the pixel values in data block 910 and expect an acceptable compression ratio.  The block is quantized using equation (2) above, where each new pixel value is calculated by: 
 
 n(i) = (unsigned int)((x(i) - Min) / (2 x MaxZError) + 0.5), 
 
@@ -108,7 +126,7 @@ To represent the number of bits needed another way, 2^4 < 29 < 2^5. In this case
 
 The codecs Lerc2 and Lerc1 have been in use for years, bugs in those
 low level modules are very unlikely. The top level layer that wraps 
-the different Lerc versions is new. So if this package shows a bug,
+the different Lerc versions is newer. So if this package shows a bug,
 it is most likely in that layer. 
 
 
