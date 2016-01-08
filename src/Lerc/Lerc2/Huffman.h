@@ -31,7 +31,7 @@ namespace LercNS
   class Huffman
   {
   public:
-    Huffman() : m_maxHistoSize(1 << 15), m_maxNumBitsLUT(12), m_root(0) {};
+    Huffman() : m_maxHistoSize(1 << 15), m_maxNumBitsLUT(12), m_numBitsToSkipInTree(0), m_root(0) {};
     ~Huffman() { Clear(); };
 
     // Limitation: We limit the max Huffman code length to 32 bit. If this happens, the function ComputeCodes() 
@@ -122,6 +122,7 @@ namespace LercNS
     std::vector<std::pair<short, unsigned int> > m_codeTable;
     std::vector<std::pair<short, short> > m_decodeLUT;
     int m_maxNumBitsLUT;
+    int m_numBitsToSkipInTree;
     Node* m_root;
 
     int GetIndexWrapAround(int i, int size) const  { return i - (i < size ? 0 : size); }
@@ -129,6 +130,7 @@ namespace LercNS
     bool GetRange(int& i0, int& i1, int& maxCodeLength) const;
     bool BitStuffCodes(Byte** ppByte, int i0, int i1) const;
     bool BitUnStuffCodes(const Byte** ppByte, int i0, int i1);
+    bool ConvertCodesToCanonical();
   };
 
   // -------------------------------------------------------------------------- ;
@@ -159,6 +161,14 @@ namespace LercNS
 
     if (!m_root)
       return false;
+
+    // skip leading 0 bits before entering the tree
+    bitPos += m_numBitsToSkipInTree;
+    if (bitPos >= 32)
+    {
+      bitPos -= 32;
+      (*ppSrc)++;
+    }
 
     const Node* node = m_root;
     value = -1;
