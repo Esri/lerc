@@ -1,5 +1,6 @@
 **/obj/
 **/Release/
+**/Debug/
 **/ipch/
 *.bak*
 *.db
