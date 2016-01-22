@@ -40,8 +40,10 @@
   <div id="map"></div>
   <div id="info-pane" class="leaflet-bar">
     <label>
-    sample application for debugging
+    pixel range (m)
     </label>
+    <input id="pixelRangeMin" type="text" value="0" onchange="lerc.redraw()">
+    <input id="pixelRangeMax" type="text" value="8000" onchange="lerc.redraw()">
   </div>
 
   <script>
@@ -49,9 +51,10 @@
 
     var map = L.map('map', {
       noWrap: true
-    }).setView([40, -100], 2);
+    }).setView([40, -100], 3);
 
     var lerc = L.tileLayer.canvas({
+      noWrap: true,
       attribution: 'USGS, Esri <a href="https://github.com/Esri/lerc">LERC</a>'
     });
 
@@ -67,8 +70,6 @@
       '/' +
       tilePoint.x;
 
-      // var url = 'http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0';
-
       var lerc = LERC();
       var xhr = new XMLHttpRequest();
       xhr.responseType = "arraybuffer";
@@ -81,8 +82,8 @@
           width = decodedPixelBlock.width;
           height = decodedPixelBlock.height;
           // range suitable for the whole world
-          min = 0; // decodedPixelBlock.minValue;
-          max = 8000; // decodedPixelBlock.maxValue;
+          min = document.getElementById('pixelRangeMin').value;
+          max = document.getElementById('pixelRangeMax').value;
           pixels = decodedPixelBlock.pixelData;
           mask = decodedPixelBlock.maskData;
           // imageCanvas.width = width;
@@ -132,15 +133,15 @@
         //   info.innerHTML = "elevation: " + data[0] + " meters";
         // })
 
-        canvas.onmousemove = function (evt) {
-          // this isn't robust enough to survive a pan
-          var info = document.getElementById('info-pane');
-          var x = evt.layerX;
-          var y = evt.layerY;
-          var pixel = ctx.getImageData(x, y, 1, 1);
-          var data = pixel.data;
-          info.innerHTML = "elevation: " + data[0] + " meters";
-        }
+        // canvas.onmousemove = function (evt) {
+        //   // this isn't robust enough to survive a pan
+        //   var info = document.getElementById('info-pane');
+        //   var x = evt.layerX;
+        //   var y = evt.layerY;
+        //   var pixel = ctx.getImageData(x, y, 1, 1);
+        //   var data = pixel.data;
+        //   info.innerHTML = "elevation: " + data[0] + " meters";
+        // }
   	  }
 
 
