@@ -2,7 +2,7 @@
   <html>
   <head>
     <meta charset=utf-8 />
-    <title>Esri Leaflet Debugging Sample</title>
+    <title>Lerc in Leaflet</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 
     <!-- Load Leaflet from CDN-->
@@ -45,7 +45,9 @@
   </div>
 
   <script>
-    var map = L.map('map').setView([40, -100], 5);
+    var map = L.map('map', {
+      noWrap: true
+    }).setView([40, -100], 5);
 
     var lerc = L.tileLayer.canvas({
       attribution: 'USGS, Esri <a href="https://github.com/Esri/lerc">LERC</a>'
@@ -72,8 +74,8 @@
           var decodedPixelBlock = lerc.decode(xhr.response, { returnMask: true });
           width = decodedPixelBlock.width;
           height = decodedPixelBlock.height;
-          min = decodedPixelBlock.minValue;
-          max = decodedPixelBlock.maxValue;
+          min = 0; // decodedPixelBlock.minValue;
+          max = 8000; // decodedPixelBlock.maxValue;
           pixels = decodedPixelBlock.pixelData;
           mask = decodedPixelBlock.maskData;
           // imageCanvas.width = width;
@@ -85,7 +87,7 @@
           var pv = 0;
           var index = 0;
           var nPixels = width * height;
-          // optimization for no mask case  (mid of most rasters)
+          // optimization for no mask case (mid of most rasters)
           if (mask) {
               for (var i = 0; i < nPixels; i++) {
                   if (mask[i]) {
@@ -111,7 +113,19 @@
           }
           ctx.putImageData(imageData, 0, 0);
         }
+
+        // map.on('mousemove', function (evt) {
+        //   var info = document.getElementById('info-pane');
+        //   var x = evt.layerPoint.x;
+        //   var y = evt.layerPoint.y;
+        //   // this isn't robust enough to survive a pan
+        //   var pixel = ctx.getImageData(x, y, 1, 1);
+        //   var data = pixel.data;
+        //   info.innerHTML = "elevation: " + data[0] + " meters";
+        // })
+
         canvas.onmousemove = function (evt) {
+            // this isn't robust enough to survive a pan
             var info = document.getElementById('info-pane');
             var x = evt.layerX;
             var y = evt.layerY;
@@ -120,6 +134,8 @@
             info.innerHTML = "elevation: " + data[0] + " meters";
         }
   	  }
+
+
     }
 
     lerc.addTo(map);
