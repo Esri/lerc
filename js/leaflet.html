@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset=utf-8 />
+    <title>Lerc in Leaflet</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+    <!-- Load Leaflet from CDN-->
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+    <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+    <!--script src="../node_modules/leaflet/dist/leaflet-src.js"></script-->
+
+    <script src="./LercCodec.js"></script>
+
+    <style>
+      body {
+        margin:0;
+        padding:0;
+      }
+
+      #map {
+        position: absolute;
+        top:0;
+        bottom:0;
+        right:0;left:0;
+      }
+
+      #info-pane {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        padding: 1em;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+
+  <div id="map"></div>
+  <div id="info-pane" class="leaflet-bar">
+    <label>
+    pixel range (m)
+    </label>
+    <input id="pixelRangeMin" type="text" value="0" onchange="lerc.redraw()">
+    <input id="pixelRangeMax" type="text" value="8000" onchange="lerc.redraw()">
+  </div>
+
+  <script>
+    var url;
+
+    var map = L.map('map', {
+      noWrap: true
+    }).setView([40, -100], 3);
+
+    var lerc = L.tileLayer.canvas({
+      noWrap: true,
+      tileSize: 257,
+      attribution: 'USGS, Esri <a href="https://github.com/Esri/lerc">LERC</a>'
+    });
+
+    lerc.drawTile = function(canvas, tilePoint, zoom) {
+      var ctx = canvas.getContext('2d');
+      // ctx.fillStyle = '#00FFFF';
+      // ctx.fillRect(0, 0, 257, 257);
+      var canvasPos = canvas.getBoundingClientRect();
+      var url = 'http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/' +
+      zoom +
+      '/' +
+      tilePoint.y +
+      '/' +
+      tilePoint.x;
+
+      var lerc = LERC();
+      var xhr = new XMLHttpRequest();
+      xhr.responseType = "arraybuffer";
+      xhr.open("Get", url, true);
+      xhr.send();
+      var pixels, mask, min, max, height, width;
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+          var decodedPixelBlock = lerc.decode(xhr.response, { returnMask: true });
+          width = decodedPixelBlock.width;
+          height = decodedPixelBlock.height;
+          // range suitable for the whole world
+          min = document.getElementById('pixelRangeMin').value;
+          max = document.getElementById('pixelRangeMax').value;
+          pixels = decodedPixelBlock.pixelData;
+          mask = decodedPixelBlock.maskData;
+          // imageCanvas.width = width;
+          // imageCanvas.height = height;
+
+          var imageData = ctx.createImageData(width, height);
+          var data = imageData.data;
+          var f = 255 / (max - min);
+          var pv = 0;
+          var index = 0;
+          var nPixels = width * height;
+          // optimization for no mask case (mid of most rasters)
+          if (mask) {
+            for (var i = 0; i < nPixels; i++) {
+              if (mask[i]) {
+                pv = (pixels[i] - min) * f;
+                data[i * 4] = pv;
+                data[i * 4 + 1] = pv;
+                data[i * 4 + 2] = pv;
+                // the 4th position controls transparency (rgb, a)
+                data[i * 4 + 3] = 255;
+              }
+              else {
+                // not sure why, but 100% transparent doesn't show underlying canvas paint...
+                data[i * 4 + 3] = 255;
+              }
+            }
+          }
+          else {
+            for (var i = 0; i < nPixels; i++) {
+              pv = (pixels[i] - min) * f;
+              data[i * 4] = pv;
+              data[i * 4 + 1] = pv;
+              data[i * 4 + 2] = pv;
+              data[i * 4 + 3] = 255;
+            }
+          }
+          ctx.putImageData(imageData, 0, 0);
+        }
+
+        // map.on('mousemove', function (evt) {
+        //   var info = document.getElementById('info-pane');
+        //   var x = evt.layerPoint.x;
+        //   var y = evt.layerPoint.y;
+        //   var pixel = ctx.getImageData(x, y, 1, 1);
+        //   var data = pixel.data;
+        //   info.innerHTML = "elevation: " + data[0] + " meters";
+        // })
+
+        // canvas.onmousemove = function (evt) {
+        //   // this isn't robust enough to survive a pan
+        //   var info = document.getElementById('info-pane');
+        //   var x = evt.layerX;
+        //   var y = evt.layerY;
+        //   var pixel = ctx.getImageData(x, y, 1, 1);
+        //   var data = pixel.data;
+        //   info.innerHTML = "elevation: " + data[0] + " meters";
+        // }
+  	  }
+
+
+    }
+
+    lerc.addTo(map);
+  </script>
+  </body>
+  </html>
