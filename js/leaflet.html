@@ -113,17 +113,11 @@
         }
         canvas.onmousemove = function (evt) {
             var info = document.getElementById('info-pane');
-
-            if (!pixels) {
-                return;
-            }
-            var i = evt.clientX - canvasPos.left; //col
-            var j = evt.clientY - canvasPos.top; //row
-            var pos = j * width + i;
-            if (mask && mask[pos])
-                info.innerHTML = "elevation: " + pixels[pos];
-            else
-                info.innerHTML = "current pixel value: ?";
+            var x = evt.layerX;
+            var y = evt.layerY;
+            var pixel = ctx.getImageData(x, y, 1, 1);
+            var data = pixel.data;
+            info.innerHTML = "elevation: " + data[0] + " meters";
         }
   	  }
     }
