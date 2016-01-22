@@ -45,9 +45,11 @@
   </div>
 
   <script>
+    var url;
+
     var map = L.map('map', {
       noWrap: true
-    }).setView([40, -100], 5);
+    }).setView([40, -100], 2);
 
     var lerc = L.tileLayer.canvas({
       attribution: 'USGS, Esri <a href="https://github.com/Esri/lerc">LERC</a>'
@@ -55,6 +57,8 @@
 
     lerc.drawTile = function(canvas, tilePoint, zoom) {
       var ctx = canvas.getContext('2d');
+      // ctx.fillStyle = '#00FFFF';
+      // ctx.fillRect(0, 0, 257, 257);
       var canvasPos = canvas.getBoundingClientRect();
       var url = 'http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/' +
       zoom +
@@ -62,6 +66,8 @@
       tilePoint.y +
       '/' +
       tilePoint.x;
+
+      // var url = 'http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0';
 
       var lerc = LERC();
       var xhr = new XMLHttpRequest();
@@ -74,6 +80,7 @@
           var decodedPixelBlock = lerc.decode(xhr.response, { returnMask: true });
           width = decodedPixelBlock.width;
           height = decodedPixelBlock.height;
+          // range suitable for the whole world
           min = 0; // decodedPixelBlock.minValue;
           max = 8000; // decodedPixelBlock.maxValue;
           pixels = decodedPixelBlock.pixelData;
@@ -89,27 +96,29 @@
           var nPixels = width * height;
           // optimization for no mask case (mid of most rasters)
           if (mask) {
-              for (var i = 0; i < nPixels; i++) {
-                  if (mask[i]) {
-                      pv = (pixels[i] - min) * f;
-                      data[i * 4] = pv;
-                      data[i * 4 + 1] = pv;
-                      data[i * 4 + 2] = pv;
-                      data[i * 4 + 3] = 255;
-                  }
-                  else {
-                      data[i * 4 + 3] = 0;
-                  }
+            for (var i = 0; i < nPixels; i++) {
+              if (mask[i]) {
+                pv = (pixels[i] - min) * f;
+                data[i * 4] = pv;
+                data[i * 4 + 1] = pv;
+                data[i * 4 + 2] = pv;
+                // the 4th position controls transparency (rgb, a)
+                data[i * 4 + 3] = 255;
               }
+              else {
+                // not sure why, but 100% transparent doesn't show underlying canvas paint...
+                data[i * 4 + 3] = 255;
+              }
+            }
           }
           else {
-              for (var i = 0; i < nPixels; i++) {
-                  pv = (pixels[i] - min) * f;
-                  data[i * 4] = pv;
-                  data[i * 4 + 1] = pv;
-                  data[i * 4 + 2] = pv;
-                  data[i * 4 + 3] = 255;
-              }
+            for (var i = 0; i < nPixels; i++) {
+              pv = (pixels[i] - min) * f;
+              data[i * 4] = pv;
+              data[i * 4 + 1] = pv;
+              data[i * 4 + 2] = pv;
+              data[i * 4 + 3] = 255;
+            }
           }
           ctx.putImageData(imageData, 0, 0);
         }
@@ -118,20 +127,19 @@
         //   var info = document.getElementById('info-pane');
         //   var x = evt.layerPoint.x;
         //   var y = evt.layerPoint.y;
-        //   // this isn't robust enough to survive a pan
         //   var pixel = ctx.getImageData(x, y, 1, 1);
         //   var data = pixel.data;
         //   info.innerHTML = "elevation: " + data[0] + " meters";
         // })
 
         canvas.onmousemove = function (evt) {
-            // this isn't robust enough to survive a pan
-            var info = document.getElementById('info-pane');
-            var x = evt.layerX;
-            var y = evt.layerY;
-            var pixel = ctx.getImageData(x, y, 1, 1);
-            var data = pixel.data;
-            info.innerHTML = "elevation: " + data[0] + " meters";
+          // this isn't robust enough to survive a pan
+          var info = document.getElementById('info-pane');
+          var x = evt.layerX;
+          var y = evt.layerY;
+          var pixel = ctx.getImageData(x, y, 1, 1);
+          var data = pixel.data;
+          info.innerHTML = "elevation: " + data[0] + " meters";
         }
   	  }
 
