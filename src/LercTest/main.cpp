@@ -4,6 +4,7 @@
 #include <math.h>
 #include "BitMask.h"
 #include "Lerc.h"
+#include "PerfTimer.h"
 
 using namespace std;
 using namespace LercNS;
@@ -47,6 +48,7 @@ int _tmain(int argc, _TCHAR* argv[])
   size_t numBytesNeeded = 0;
   size_t numBytesWritten = 0;
   Lerc lerc;
+  PerfTimer pt;
 
   if (!lerc.ComputeBufferSize((void*)zImg,    // raw image data, row by row, band by band
     Lerc::DT_Float,
@@ -61,6 +63,8 @@ int _tmain(int argc, _TCHAR* argv[])
   size_t numBytesBlob = numBytesNeeded;
   Byte* pLercBlob = new Byte[numBytesBlob];
 
+  pt.start();
+
   if (!lerc.Encode((void*)zImg,    // raw image data, row by row, band by band
     Lerc::DT_Float,
     w, h, 1,
@@ -73,9 +77,10 @@ int _tmain(int argc, _TCHAR* argv[])
     cout << "Encode failed" << endl;
   }
 
+  pt.stop();
 
   double ratio = w * h * (0.125 + sizeof(float)) / numBytesBlob;
-  cout << "sample 1 compression ratio = " << ratio << endl;
+  cout << "sample 1 compression ratio = " << ratio << ", encode time = " << pt.ms() << " ms" << endl;
 
   // new data storage
   float* zImg3 = new float[w * h];
@@ -94,8 +99,12 @@ int _tmain(int argc, _TCHAR* argv[])
   if (lercInfo.nCols != w || lercInfo.nRows != h || lercInfo.nBands != 1 || lercInfo.dt != Lerc::DT_Float)
     cout << "got wrong lerc info" << endl;
 
+  pt.start();
+
   if (!lerc.Decode(pLercBlob, numBytesBlob, &bitMask3, w, h, 1, Lerc::DT_Float, (void*)zImg3))
     cout << "decode failed" << endl;
+
+  pt.stop();
 
 
   // compare to orig
@@ -117,7 +126,7 @@ int _tmain(int argc, _TCHAR* argv[])
     }
   }
 
-  cout << "max z error per pixel = " << maxDelta << endl;
+  cout << "max z error per pixel = " << maxDelta << ", decode time = " << pt.ms() << " ms" << endl;
 
   delete[] zImg;
   delete[] zImg3;
@@ -149,6 +158,8 @@ int _tmain(int argc, _TCHAR* argv[])
   numBytesBlob = numBytesNeeded;
   pLercBlob = new Byte[numBytesBlob];
 
+  pt.start();
+
   if (!lerc.Encode((void*)byteImg,    // raw image data, row by row, band by band
     Lerc::DT_Byte,
     w, h, 3,
@@ -161,8 +172,10 @@ int _tmain(int argc, _TCHAR* argv[])
     cout << "Encode failed" << endl;
   }
 
+  pt.stop();
+
   ratio = w * h * 3 / (double)numBytesBlob;
-  cout << "sample 2 compression ratio = " << ratio << endl;
+  cout << "sample 2 compression ratio = " << ratio << ", encode time = " << pt.ms() << " ms" << endl;
 
   // new data storage
   Byte* byteImg3 = new Byte[w * h * 3];
@@ -176,8 +189,12 @@ int _tmain(int argc, _TCHAR* argv[])
   if (lercInfo.nCols != w || lercInfo.nRows != h || lercInfo.nBands != 3 || lercInfo.dt != Lerc::DT_Byte)
     cout << "got wrong lerc info" << endl;
 
+  pt.start();
+
   if (!lerc.Decode(pLercBlob, numBytesBlob, 0, w, h, 3, Lerc::DT_Byte, (void*)byteImg3))
     cout << "decode failed" << endl;
+
+  pt.stop();
 
   // compare to orig
 
@@ -190,7 +207,7 @@ int _tmain(int argc, _TCHAR* argv[])
         maxDelta = delta;
     }
 
-  cout << "max z error per pixel = " << maxDelta << endl;
+  cout << "max z error per pixel = " << maxDelta << ", decode time = " << pt.ms() << " ms" << endl;
 
   delete[] byteImg;
   delete[] byteImg3;
@@ -273,13 +290,15 @@ int _tmain(int argc, _TCHAR* argv[])
       int nBands = lercInfo.nBands;
       Lerc::DataType dt = lercInfo.dt;
 
-      printf("w = %4d, h = %4d, nBands = %2d, dt = %2d :  %s ...  ", w, h, nBands, (int)dt, fnVec[n].c_str());
-
+      pt.start();
+      
+      std::string resultMsg = "ok";
       BitMask bitMask;
       if (!lerc.Decode(pLercBuffer, fileSize, &bitMask, w, h, nBands, dt, (void*)pDstArr))
-        printf("failed !!!\n");
-      else
-        printf("succeeded.\n");
+        resultMsg = "FAILED";
+
+      pt.stop();
+      printf("w = %4d, h = %4d, nBands = %2d, dt = %2d, time = %4d ms,  %s :  %s\n", w, h, nBands, (int)dt, pt.ms(), resultMsg.c_str(), fnVec[n].c_str());
     }
   }
 
