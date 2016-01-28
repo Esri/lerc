@@ -36,17 +36,18 @@ if you would use png instead, or gzip, then you may want to try out Lerc.
   decoding time is about 5 ms per MegaPixel per band. 
 
 - compression is better than most other compression methods for 
-  larger bitdepth data (>= 16 bit, float, double). 
+  larger bitdepth data (int types larger than 8 bit, float, double).  
 
 - for 8 bit data lossless compression, PNG can be better, but is
   much slower. 
 
 - in general for lossy compression with MaxZError > 0, the larger
   the error allowed, the stronger the compression. 
+  Compression factors larger than 100x have been reported.
 
 - this Lerc package can read all (legacy) versions of Lerc, such as
-  Lerc(1), Lerc2 v1, and the current Lerc2 v2. It always writes 
-  the latest version Lerc2 v2.
+  Lerc1, Lerc2 v1, and the current Lerc2 v2. It always writes the
+  latest stable version. 
 
 
 ## How to use
@@ -122,12 +123,65 @@ NumBits = ceil(log2(29)) = 5
 To represent the number of bits needed another way, 2^4 < 29 < 2^5. In this case, 5 bits per number are needed to encode all numbers of block 940 lossless. There are 12 valid numbers, resulting in 5 x 12 = 60 bits total. As 60 / 8 = 7.5, 8 bytes are needed to encode the entire data block. At step (4), the method includes writing the block header as shown in FIG. 9E. It follows that 7 bytes are needed for the block header. The total number of bytes needed for block 920 can be calculated as 8 + 7 = 15 bytes. 
 
 
-## About bugs
+## Demos
+
+We are not going to repeat here the general benefits of good compression. 
+However, Lerc is special in a number of ways. First, regarding speed, not only
+decode but also encode is very fast. This allows on-the-fly encode, transmit,
+decode. For instance, data residing on a server stored at high accuracy
+(potentially also using Lerc, with a very small MaxZError = 0.0001) can 
+be requested by a client at a much lower accuracy sufficient for display
+(let's say MaxZError = 0.1). Second, as Lerc supports all common data types,
+it can be used for numerical or scientific data, not just regular images. 
+Third, Lerc supports sparse images or raster with many pixels invalid
+or empty. Last not least Lerc is a standalone codec with no dependencies on 
+other software packages or libraries. It is relatively easy to port from C++ 
+to other languages such as JavaScript or Python, esp if only the decoder is 
+needed. A JavaScript decoder can enable web browsers to directly display 
+compressed Lerc tiles. 
+
+Here are some examples of fast display using Lerc:
+
+http://developers.arcgis.com/javascript/samples/layers_raster/
+
+http://developers.arcgis.com/javascript/samples/layers_imageservicevector/
+
+
+
+## History
+
+Lerc started in 2010 as a fast caching method for single band 32 bit float rasters. 
+At the time nobody could foresee that it would turn into a compression format for 
+all common data types. Later we also tried it successfully on 16 bit integer satellite data. 
+This first version, Lerc1, was mainly used for single band 32 bit float elevation services. 
+Lerc1 uses float internally, every other input data type gets converted to float first. 
+Therefore the use of old Lerc1 is unsafe for data types that may not fit into 32 bit 
+float, such as 32 bit integer or double. 
+
+Mainly for this reason Lerc was re-implemented from scratch in 2014. It is now fully
+templated C++, so it works for any input data type and any MaxZError down to 0 or 
+lossless. We call it Lerc2. It has many other improvements over the previous version,
+such as more info in the header. It is much faster, 2-4x, for both encode and decode. 
+Lerc2 has been in use since then inside the Esri core software in multiple places for 
+caching, transmission etc. 
+
+The latest addition was an improvement on 8 bit data compression. For 8 bit data,
+conventional compression methods yield usually better compression than Lerc, but are
+much slower. We added textbook Huffman coding for 8 bit data types, resulting in 10-30% 
+better compression while keeping the high speed. 
+
+
+## Bugs?
 
 The codecs Lerc2 and Lerc1 have been in use for years, bugs in those
 low level modules are very unlikely. The top level layer that wraps 
 the different Lerc versions is newer. So if this package shows a bug,
 it is most likely in that layer. 
+
+
+## Contact
+
+Send an email to  <a href="mailto:tmaurer@esri.com">tmaurer@esri.com</a>
 
 
 ## Licensing
