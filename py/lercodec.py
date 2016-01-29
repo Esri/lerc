@@ -100,18 +100,6 @@ class bitmask(object):
         l = y * self.w + x
         return 0 != (self.data[l / 8] & (128 >> (l % 8)))
 
-    def set(x, y, val = 1):
-        'set bit, or clear bit if val is zero'
-        assert x < self.w and y < self.h
-        l = y * self.w + x
-        bpos = 128 >> (l % 8)
-        l /= 8
-        self.data[l] = (self.data[l] | bpos) if val != 0 \
-            else (self.data[l] & ~bpos)
-
-    def size(self):
-        return self.sz
-
 # size is the number of bytes to read
 def decode_RLE(blob, offset, size):
     'Unpack the RLE encoded chunk of size starting at offset in blob'
@@ -292,15 +280,8 @@ def main():
     #
     # dump the data to output as csv
     #
-    # NOTE: the line order is top to bottom in MRF tiles, so tiles
-    # can be assembled without having to invert the array
-    #
-    # Most if not all of Esri usage is bottom to top
-    #
-    #  The sample is a single image, so the lines are bottom to top
-    #
 
-##    for row in range(info.height -1, -1, -1):
+##    for row in range(info.height):
 ##        print ",".join(`data[row * info.width + column]`
 ##            for column in range(info.width))
 ##
