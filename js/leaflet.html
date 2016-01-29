@@ -75,7 +75,8 @@
       '/' +
       tilePoint.x;
 
-      var lerc = LERC();
+      var tile = lerc._tiles[tilePoint.x + ':' + tilePoint.y];
+      var lerco = LERC();
       var xhr = new XMLHttpRequest();
       xhr.responseType = "arraybuffer";
       xhr.open("Get", url, true);
@@ -83,7 +84,7 @@
       var pixels, mask, min, max, height, width;
       xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
-          var decodedPixelBlock = lerc.decode(xhr.response, { returnMask: true });
+          var decodedPixelBlock = lerco.decode(xhr.response, { returnMask: true });
           width = decodedPixelBlock.width;
           height = decodedPixelBlock.height;
           // range suitable for the whole world
@@ -127,8 +128,9 @@
             }
           }
           ctx.putImageData(imageData, 0, 0);
+	  tile.decodedPixels = decodedPixelBlock
         }
-  	  }
+      }
     }
 
     map.on('mousemove', function (e) {
@@ -140,6 +142,7 @@
 
       // if we have a tile
       if(tile) {
+        var block = tile.decodedPixels
         // the top left corner of the tile relative to the map pane in px
         var tileTopLeft = tilePoint.multiplyBy(257);
 
@@ -157,11 +160,10 @@
         // extract the pixel data from the canvas
         var x = pointInTile.x;
         var y = pointInTile.y;
-        var pixel = tile.getContext('2d').getImageData(x, y, 1, 1);
-        var data = pixel.data;
+        var value = block.pixelData[y * block.width + x]
 
         // i assume there is some magic to turn pixels into elevation
-        document.getElementById('pixel-value').innerHTML = "pixel values: " + data;
+        document.getElementById('pixel-value').innerHTML = "Elevation: " + value + "m";
       }
     })
 
