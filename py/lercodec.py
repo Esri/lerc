@@ -163,7 +163,7 @@ def read_qval(blob, offset):
 
     # Values are packed in low endian int values, but starting with MSbit
     # How many full integers are there
-    nint = (count * nbits + 24) / 32
+    nint = (count * nbits + 7) / 32
     values32 = struct.unpack_from("<" + "I"*nint, blob, offset)
     offset += nint * 4
 
