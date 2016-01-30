@@ -97,7 +97,7 @@
             pv = (pixels[j] - min) * f;
             data[i * 4] = pv;
             data[i * 4 + 1] = pv;
-            data[i * 4 + 2] = pv;
+            data[i * 4 + 2] = pv + 128;
 	    // Mask only gets returned when missing data exists
 	    data[i * 4 + 3] = (mask && !mask[j]) ? 0 :255;
 	  } 
@@ -110,36 +110,23 @@
 
     map.on('mousemove', function (e) {
       // the x/y of the tile url
-      var tilePoint = map.project(e.latlng).divideBy(256).floor();
+      var layerPoint = map.project(e.latlng).floor();
+      var tilePoint = layerPoint.divideBy(256).floor();
 
       // the actual <canvas> object
       var tile = lerc._tiles[tilePoint.x + ':' + tilePoint.y];
 
       // if we have a tile
       if(tile) {
-        var block = tile.decodedPixels
-        // the top left corner of the tile relative to the map pane in px
-        var tileTopLeft = tilePoint.multiplyBy(256);
-
-        // top left corner of the map in px
-        var origin = map.getPixelOrigin();
-
-        // top left corner of the tile relative to the top left corner of the map
-        var tileContainerPoint = tileTopLeft.subtract(origin)
-
-        // now that we have the top left corner of the tile and the clicked coordinates
-        // both relative to the map container we can figure them out relative to each
-        // other and get the x,y of the clicked pixel inside the tile
-        var pointInTile = e.containerPoint.subtract(tileContainerPoint);
+        var block = tile.decodedPixels;
+	var pointInTile = layerPoint.subtract(tilePoint.multiplyBy(256));
 
         // extract the pixel data from the canvas
-        var x = pointInTile.x;
-        var y = pointInTile.y;
-        var value = block.pixelData[y * block.width + x]
-
-        // i assume there is some magic to turn pixels into elevation
-        document.getElementById('pixel-value').innerHTML = "Elevation: " + value + "m";
-      }
+        document.getElementById('pixel-value').innerHTML = "Elevation: " +
+       	  block.pixelData[pointInTile.y * block.width + pointInTile.x] + "m";
+	  } else {
+        document.getElementById('pixel-value').innerHTML = "Elevation: undefined";
+	  }
     })
 
     lerc.addTo(map);
