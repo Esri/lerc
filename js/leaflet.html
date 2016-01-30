@@ -59,21 +59,14 @@
 
     var lerc = L.tileLayer.canvas({
       noWrap: true,
-      tileSize: 257,
       attribution: 'USGS, Esri <a href="https://github.com/Esri/lerc">LERC</a>'
     });
 
     lerc.drawTile = function(canvas, tilePoint, zoom) {
       var ctx = canvas.getContext('2d');
-      // ctx.fillStyle = '#00FFFF';
-      // ctx.fillRect(0, 0, 257, 257);
       var canvasPos = canvas.getBoundingClientRect();
       var url = 'http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/' +
-      zoom +
-      '/' +
-      tilePoint.y +
-      '/' +
-      tilePoint.x;
+      zoom + '/' + tilePoint.y + '/' + tilePoint.x;
 
       var tile = lerc._tiles[tilePoint.x + ':' + tilePoint.y];
       var lerco = LERC();
@@ -85,48 +78,30 @@
       xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
           var decodedPixelBlock = lerco.decode(xhr.response, { returnMask: true });
-          width = decodedPixelBlock.width;
-          height = decodedPixelBlock.height;
+	  // LERC elevation tiles have a one row and one column overlap
+          width = decodedPixelBlock.width -1;
+          height = decodedPixelBlock.height -1;
           // range suitable for the whole world
           min = document.getElementById('pixelRangeMin').value;
           max = document.getElementById('pixelRangeMax').value;
           pixels = decodedPixelBlock.pixelData;
           mask = decodedPixelBlock.maskData;
-          // imageCanvas.width = width;
-          // imageCanvas.height = height;
 
           var imageData = ctx.createImageData(width, height);
           var data = imageData.data;
           var f = 255 / (max - min);
           var pv = 0;
-          var index = 0;
-          var nPixels = width * height;
-          // optimization for no mask case (mid of most rasters)
-          if (mask) {
-            for (var i = 0; i < nPixels; i++) {
-              if (mask[i]) {
-                pv = (pixels[i] - min) * f;
-                data[i * 4] = pv;
-                data[i * 4 + 1] = pv;
-                data[i * 4 + 2] = pv;
-                // the 4th position controls transparency (rgb, a)
-                data[i * 4 + 3] = 255;
-              }
-              else {
-                // not sure why, but 100% transparent doesn't show underlying canvas paint...
-                data[i * 4 + 3] = 255;
-              }
-            }
-          }
-          else {
-            for (var i = 0; i < nPixels; i++) {
-              pv = (pixels[i] - min) * f;
-              data[i * 4] = pv;
-              data[i * 4 + 1] = pv;
-              data[i * 4 + 2] = pv;
-              data[i * 4 + 3] = 255;
-            }
-          }
+          for (var i = 0; i < width * height; i++) {
+	    // Skip the last pixel in each input line
+	    var j = i + Math.floor(i / width);
+            pv = (pixels[j] - min) * f;
+            data[i * 4] = pv;
+            data[i * 4 + 1] = pv;
+            data[i * 4 + 2] = pv;
+	    // Mask only gets returned when missing data exists
+	    data[i * 4 + 3] = (mask && !mask[j]) ? 0 :255;
+	  } 
+
           ctx.putImageData(imageData, 0, 0);
 	  tile.decodedPixels = decodedPixelBlock
         }
@@ -135,7 +110,7 @@
 
     map.on('mousemove', function (e) {
       // the x/y of the tile url
-      var tilePoint = map.project(e.latlng).divideBy(257).floor();
+      var tilePoint = map.project(e.latlng).divideBy(256).floor();
 
       // the actual <canvas> object
       var tile = lerc._tiles[tilePoint.x + ':' + tilePoint.y];
@@ -144,7 +119,7 @@
       if(tile) {
         var block = tile.decodedPixels
         // the top left corner of the tile relative to the map pane in px
-        var tileTopLeft = tilePoint.multiplyBy(257);
+        var tileTopLeft = tilePoint.multiplyBy(256);
 
         // top left corner of the map in px
         var origin = map.getPixelOrigin();
