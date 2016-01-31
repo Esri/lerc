@@ -61,49 +61,53 @@
       noWrap: true,
       attribution: 'USGS, Esri <a href="https://github.com/Esri/lerc">LERC</a>'
     });
+ 
+    var drawData = function(lercblob, ctx) {
+      var width = lercblob.width -1;
+      var height = lercblob.height -1;
+      var min = document.getElementById('pixelRangeMin').value;
+      var max = document.getElementById('pixelRangeMax').value;
+      var pixels = lercblob.pixelData;
+      var mask = lercblob.maskData;
+
+      var imageData = ctx.createImageData(width, height);
+      var data = imageData.data;
+      var f = 256 / (max - min);
+      var pv = 0;
+      for (var i = 0; i < width * height; i++) {
+        // Skip the last pixel in each input line
+        var j = i + Math.floor(i / width);
+        pv = (pixels[j] - min) * f;
+        data[i * 4] = pv;
+        data[i * 4 + 1] = pv;
+        data[i * 4 + 2] = pv;
+        // Mask only gets returned when missing data exists
+        data[i * 4 + 3] = (mask && !mask[j]) ? 0 :255;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
 
     lerc.drawTile = function(canvas, tilePoint, zoom) {
       var ctx = canvas.getContext('2d');
-      var canvasPos = canvas.getBoundingClientRect();
-      var url = 'http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/' +
-      zoom + '/' + tilePoint.y + '/' + tilePoint.x;
 
       var tile = lerc._tiles[tilePoint.x + ':' + tilePoint.y];
       var lerco = LERC();
-      var xhr = new XMLHttpRequest();
-      xhr.responseType = "arraybuffer";
-      xhr.open("Get", url, true);
-      xhr.send();
-      var pixels, mask, min, max, height, width;
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4 && xhr.status == 200) {
-          var decodedPixelBlock = lerco.decode(xhr.response, { returnMask: true });
-	  // LERC elevation tiles have a one row and one column overlap
-          width = decodedPixelBlock.width -1;
-          height = decodedPixelBlock.height -1;
-          // range suitable for the whole world
-          min = document.getElementById('pixelRangeMin').value;
-          max = document.getElementById('pixelRangeMax').value;
-          pixels = decodedPixelBlock.pixelData;
-          mask = decodedPixelBlock.maskData;
-
-          var imageData = ctx.createImageData(width, height);
-          var data = imageData.data;
-          var f = 255 / (max - min);
-          var pv = 0;
-          for (var i = 0; i < width * height; i++) {
-	    // Skip the last pixel in each input line
-	    var j = i + Math.floor(i / width);
-            pv = (pixels[j] - min) * f;
-            data[i * 4] = pv;
-            data[i * 4 + 1] = pv;
-            data[i * 4 + 2] = pv + 128;
-	    // Mask only gets returned when missing data exists
-	    data[i * 4 + 3] = (mask && !mask[j]) ? 0 :255;
-	  } 
-
-          ctx.putImageData(imageData, 0, 0);
-	  tile.decodedPixels = decodedPixelBlock
+      if (tile.decodedPixels) {
+        // This would save time, but it doesn't seem to ever happen
+        drawData(tile.decodedPixels, ctx);
+      } else {
+        var xhr = new XMLHttpRequest();
+        xhr.responseType = "arraybuffer";
+        var url = 'http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/' +
+        zoom + '/' + tilePoint.y + '/' + tilePoint.x;
+        xhr.open("Get", url, true);
+        xhr.send();
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState == 4 && xhr.status == 200) {
+            var decodedPixelBlock = lerco.decode(xhr.response, { returnMask: true });
+            tile.decodedPixels = decodedPixelBlock;
+            drawData(decodedPixelBlock, ctx);
+          }
         }
       }
     }
@@ -114,19 +118,18 @@
       var tilePoint = layerPoint.divideBy(256).floor();
 
       // the actual <canvas> object
-      var tile = lerc._tiles[tilePoint.x + ':' + tilePoint.y];
+      var block = lerc._tiles[tilePoint.x + ':' + tilePoint.y].decodedPixels;
 
       // if we have a tile
-      if(tile) {
-        var block = tile.decodedPixels;
-	var pointInTile = layerPoint.subtract(tilePoint.multiplyBy(256));
+      if (block) {
+        var pointInTile = layerPoint.subtract(tilePoint.multiplyBy(256));
 
         // extract the pixel data from the canvas
         document.getElementById('pixel-value').innerHTML = "Elevation: " +
-       	  block.pixelData[pointInTile.y * block.width + pointInTile.x] + "m";
-	  } else {
+                 block.pixelData[pointInTile.y * block.width + pointInTile.x] + " m";
+      } else {
         document.getElementById('pixel-value').innerHTML = "Elevation: undefined";
-	  }
+      }
     })
 
     lerc.addTo(map);
