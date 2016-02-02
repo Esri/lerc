@@ -42,6 +42,15 @@ so large that the decoded image may come out flat.
 In a nutshell, if jpeg is good enough for your images, use jpeg. If not,
 if you would use png instead, or gzip, then you may want to try out Lerc.
 
+## How to use
+
+For illustration, we have put together a simple test sample.
+
+- build the Lerc.dll in src/Lerc. Copy the resulting Lerc.lib into the lib/ folder.
+- build the test app in src/LercTest.
+- copy the Lerc.dll next to LercTest.exe.
+- run it.
+
 ## Lerc Properties
 
 - works on any common data type, not just 8 bit:
@@ -70,15 +79,6 @@ if you would use png instead, or gzip, then you may want to try out Lerc.
   latest stable version.
 
 The main principle of Lerc and history can be found in [doc/MORE.md](doc/MORE.md)
-
-## How to use
-
-For illustration, we have put together a simple test sample.
-
-- build the Lerc.dll in src/Lerc. Copy the resulting Lerc.lib into the lib/ folder.
-- build the test app in src/LercTest.
-- copy the Lerc.dll next to LercTest.exe.
-- run it. 
 
 ## Bugs?
 
