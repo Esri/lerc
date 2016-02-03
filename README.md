@@ -2,7 +2,9 @@
 
 ## What is LERC?
 
-LERC is an Open Source format which supports rapid encoding/decoding with *dynamic* image compression and preserves the precision of the original raster.
+LERC is an open-source image format which supports rapid encoding and decoding for any pixel type. 
+Users set the maximum compression error per pixel while encoding, so the precision of the original 
+input image is preserved (within user defined error bounds).
 
 This repository contains both a C++ library for encoding/decoding images and JavaScript and Python codecs for decoding LERC files.
 
