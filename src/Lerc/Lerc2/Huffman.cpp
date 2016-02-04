@@ -63,7 +63,9 @@ bool Huffman::ComputeCodes(const vector<int>& histo)
   if (!pq.top().TreeToLUT(0, 0, m_codeTable))    // fill the LUT
     return false;
 
-  pq.top().FreeTree(numNodes);    // free all the nodes
+  //pq.top().FreeTree(numNodes);    // Linux compiler complains
+  Node nodeNonConst = pq.top();
+  nodeNonConst.FreeTree(numNodes);    // free all the nodes
 
   if (numNodes != 0)    // check the ref count
     return false;
