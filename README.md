@@ -2,9 +2,7 @@
 
 ## What is LERC?
 
-LERC is an open-source image format which supports rapid encoding and decoding for any pixel type. 
-Users set the maximum compression error per pixel while encoding, so the precision of the original 
-input image is preserved (within user defined error bounds).
+LERC is an open-source image format which supports rapid encoding and decoding for any pixel type. Users set the maximum compression error per pixel while encoding, so the precision of the original input image is preserved (within user defined error bounds).
 
 This repository contains both a C++ library for encoding/decoding images and JavaScript and Python codecs for decoding LERC files.
 
@@ -33,16 +31,11 @@ In image or raster compression, there are 2 different ways to go:
 
 - need control over the max coding error per pixel (elevation,
   scientific data, medical image data, ...).
-  Because of that, such data is often compressed using lossless methods,
-  such as LZW, gzip, and the like. The compression ratios achieved
-  are often low. On top the encoding is often slow and time consuming.
+  Because of that, such data is often compressed using lossless methods, such as LZW, gzip, and the like. The compression ratios achieved are often low. On top the encoding is often slow and time consuming.
 
-Lerc allows you to set the max coding error per pixel allowed, called
-"MaxZError". You can specify any number from 0 (lossless) to a number
-so large that the decoded image may come out flat.
+Lerc allows you to set the max coding error per pixel allowed, called "MaxZError". You can specify any number from 0 (lossless) to a number so large that the decoded image may come out flat.
 
-In a nutshell, if jpeg is good enough for your images, use jpeg. If not,
-if you would use png instead, or gzip, then you may want to try out Lerc.
+In a nutshell, if jpeg is good enough for your images, use jpeg. If not, if you would use png instead, or gzip, then you may want to try out Lerc.
 
 ## How to use
 
@@ -63,8 +56,7 @@ For illustration, we have put together a simple test sample.
 - can work with a bit mask that specifies which pixels are valid
   and which ones are not.
 
-- is very fast: encoding time is about 20 ms per MegaPixel per band,
-  decoding time is about 5 ms per MegaPixel per band.
+- is very fast: encoding time is about 20-30 ms per MegaPixel per band, decoding time is about 5 ms per MegaPixel per band.
 
 - compression is better than most other compression methods for
   larger bitdepth data (int types larger than 8 bit, float, double).  
@@ -76,18 +68,18 @@ For illustration, we have put together a simple test sample.
   the error allowed, the stronger the compression.
   Compression factors larger than 100x have been reported.
 
-- this Lerc package can read all (legacy) versions of Lerc, such as
-  Lerc1, Lerc2 v1, and the current Lerc2 v2. It always writes the
-  latest stable version.
+- this Lerc package can read all (legacy) versions of Lerc, such as Lerc1, Lerc2 v1, and the current Lerc2 v2. It always writes the latest stable version.
 
 The main principle of Lerc and history can be found in [doc/MORE.md](doc/MORE.md)
 
+## Benchmarks
+
+Some benchmarks are in 
+[doc/LercBenchmarks_Feb_2016.pdf](doc/LercBenchmarks_Feb_2016.pdf)
+
 ## Bugs?
 
-The codecs Lerc2 and Lerc1 have been in use for years, bugs in those
-low level modules are very unlikely. The top level layer that wraps
-the different Lerc versions is newer. So if this package shows a bug,
-it is most likely in that layer.
+The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level modules are very unlikely. The top level layer that wraps the different Lerc versions is newer. So if this package shows a bug, it is most likely in that layer.
 
 ## Contact
 
@@ -103,13 +95,9 @@ You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
 
-A local copy of the license and additional notices are located with the
-source distribution at:
+A local copy of the license and additional notices are located with the source distribution at:
 
 http://github.com/Esri/lerc/
