@@ -1,8 +1,6 @@
 
 #include <tchar.h>
 #include <iostream>
-#include <math.h>
-#include "BitMask.h"
 #include "Lerc.h"
 #include "PerfTimer.h"
 
@@ -11,7 +9,7 @@ using namespace LercNS;
 
 //#define TestLegacyData
 
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -133,6 +131,7 @@ int _tmain(int argc, _TCHAR* argv[])
   delete[] pLercBlob;
   pLercBlob = 0;
 
+  //---------------------------------------------------------------------------
 
   // Sample 2: random byte image, 3 bands, all pixels valid, maxZError = 0 (lossless)
 
@@ -213,6 +212,8 @@ int _tmain(int argc, _TCHAR* argv[])
   delete[] byteImg3;
   delete[] pLercBlob;
   pLercBlob = 0;
+
+  //---------------------------------------------------------------------------
 
 
 #ifdef TestLegacyData
@@ -310,5 +311,4 @@ int _tmain(int argc, _TCHAR* argv[])
 	return 0;
 }
 
-//------------------------------------------------------------------------------
-
+//-----------------------------------------------------------------------------

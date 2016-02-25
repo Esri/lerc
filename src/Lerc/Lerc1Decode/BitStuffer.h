@@ -21,39 +21,30 @@ http://github.com/Esri/lerc/
 Contributors:  Thomas Maurer
 */
 
-#pragma once
+#ifndef BITSTUFFER_H
+#define BITSTUFFER_H
 
-#include "Image.h"
 #include <vector>
+#include "../Common/Defines.h"
 
-/** Bit stuffer, for writing unsigned int arrays compressed lossless
+NAMESPACE_LERC_START
+
+/** Bit stuffer, for reading unsigned int arrays compressed lossless in the oldest Lerc1 version
 *
 */
 
-namespace LercNS
+class BitStuffer
 {
-  class BitStuffer
-  {
-  public:
-    BitStuffer()           {}
-    virtual ~BitStuffer()  {}
+public:
+  BitStuffer()  {}
+  virtual ~BitStuffer()  {}
 
-    // these 2 do not allocate memory. Byte ptr is moved like a file pointer.
-    bool write(Byte** ppByte, const std::vector<unsigned int>& dataVec) const;
-    bool read(Byte** ppByte, std::vector<unsigned int>& dataVec) const;
+  bool read(Byte** ppByte, std::vector<unsigned int>& dataVec) const;
 
-    static unsigned int computeNumBytesNeeded(unsigned int numElem, unsigned int maxElem);
-    static unsigned int numExtraBytesToAllocate()  { return 3; }
+protected:
+  bool readUInt(Byte** ppByte, unsigned int& k, int numBytes) const;    // numBytes = 1, 2, or 4
+  static unsigned int numTailBytesNotNeeded(unsigned int numElem, int numBits);
+};
 
-  protected:
-    unsigned int findMax(const std::vector<unsigned int>& dataVec) const;
-
-    // numBytes = 1, 2, or 4
-    bool writeUInt(Byte** ppByte, unsigned int k, int numBytes) const;
-    bool readUInt(Byte** ppByte, unsigned int& k, int numBytes) const;
-
-    static int numBytesUInt(unsigned int k)  { return (k < 256) ? 1 : (k < (1 << 16)) ? 2 : 4; }
-    static unsigned int numTailBytesNotNeeded(unsigned int numElem, int numBits);
-  };
-}
-
+NAMESPACE_LERC_END
+#endif

@@ -22,8 +22,7 @@ Contributors:  Thomas Maurer
 */
 
 #include "RLE.h"
-#include <vector>
-#include <math.h>
+#include <cstring>
 
 using namespace LercNS;
 
@@ -266,12 +265,19 @@ bool RLE::decompress(const Byte* arrRLE, Byte** arr, size_t& numBytes) const
   short cnt = readCount(&srcPtr);
   while (cnt != -32768)
   {
-    sum += abs(cnt);
+    sum += cnt < 0 ? -cnt : cnt;
     srcPtr += cnt > 0 ? cnt : 1;
     cnt = readCount(&srcPtr);
   }
 
   numBytes = sum;
+
+  if (numBytes == 0)
+  {
+    *arr = 0;
+    return false;
+  }
+
   *arr = new Byte[numBytes];
   if (!*arr)
     return false;
@@ -291,7 +297,7 @@ bool RLE::decompress(const Byte* arrRLE, Byte* arr) const
   short cnt = readCount(&srcPtr);
   while (cnt != -32768)
   {
-    int i = abs(cnt);
+    int i = cnt < 0 ? -cnt : cnt;
     if (cnt > 0)
       while (i--) *dstPtr++ = *srcPtr++;
     else
@@ -309,7 +315,8 @@ bool RLE::decompress(const Byte* arrRLE, Byte* arr) const
 
 void RLE::writeCount(short cnt, Byte** ppCnt, Byte** ppDst) const
 {
-  *((short*)*ppCnt) = cnt;
+  SWAP_2(cnt);    // write short's in little endian byte order, always
+  memcpy(*ppCnt, &cnt, sizeof(short));
   *ppCnt = *ppDst;
   *ppDst += 2;
 }
@@ -318,7 +325,9 @@ void RLE::writeCount(short cnt, Byte** ppCnt, Byte** ppDst) const
 
 short RLE::readCount(const Byte** ppCnt) const
 {
-  short cnt = *((const short*)*ppCnt);
+  short cnt;
+  memcpy(&cnt, *ppCnt, sizeof(short));
+  SWAP_2(cnt);
   *ppCnt += 2;
   return cnt;
 }

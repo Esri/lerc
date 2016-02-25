@@ -21,76 +21,43 @@ http://github.com/Esri/lerc/
 Contributors:  Thomas Maurer
 */
 
-#pragma once
+#ifndef IMAGE_H
+#define IMAGE_H
 
 #include <string>
 #include "../Common/Defines.h"
 
-namespace LercNS
+NAMESPACE_LERC_START
+
+class Image
 {
-  class Image
-  {
-  public:
+public:
 
-    virtual ~Image()    {};
+  virtual ~Image()  {};
 
-    enum Type
-    {
-      BYTE,
-      RGB,
-      SHORT,
-      LONG,
-      FLOAT,
-      DOUBLE,
-      COMPLEX,
-      POINT3F,
-      CNT_Z,
-      CNT_ZXY,
-      Last_Type_
-    };
+  enum Type { BYTE, RGB, SHORT, LONG, FLOAT, DOUBLE, COMPLEX, POINT3F, CNT_Z, CNT_ZXY, Last_Type_ };
 
-    /// access
-    bool isByteImage() const       { return type_ == BYTE; }
-    bool isRGBImage() const        { return type_ == RGB; }
-    bool isShortImage() const      { return type_ == SHORT; }
-    bool isLongImage() const       { return type_ == LONG; }
-    bool isFloatImage() const      { return type_ == FLOAT; }
-    bool isDoubleImage() const     { return type_ == DOUBLE; }
-    bool isCntZImage() const       { return type_ == CNT_Z; }
-    Type getType() const           { return type_; }
-    int getWidth() const           { return width_; }
-    int getHeight() const          { return height_; }
-    int getSize() const            { return width_ * height_; }
+  bool isType(Type t) const	 { return t == type_; }
+  Type getType() const       { return type_; }
+  int getWidth() const       { return width_; }
+  int getHeight() const      { return height_; }
+  int getSize() const        { return width_ * height_; }
 
-    bool isInside(int row, int col) const;
+  bool isInside(int row, int col) const  { return row >= 0 && row < height_ && col >= 0 && col < width_; }
 
-    virtual std::string getTypeString() const = 0;
-    virtual int getSizeInBytes() const = 0;
+  virtual std::string getTypeString() const = 0;
 
+protected:
 
-  protected:
+  Image() : type_(Last_Type_), width_(0), height_(0)  {};
 
-    Image() : type_(Last_Type_), width_(0), height_(0)   {};
+  /// compare
+  bool operator == (const Image& img) const  { return type_ == img.type_ && width_ == img.width_ && height_ == img.height_; }
+  bool operator != (const Image& img) const	 { return !operator==(img); };
 
-    /// compare
-    bool operator == (const Image& img) const;
-    bool operator != (const Image& img) const	{ return !operator==(img); };
+  Type type_;
+  int width_, height_;
+};
 
-    Type type_;
-    int width_, height_;
-  };
-
-  // -------------------------------------------------------------------------- ;
-
-  inline bool Image::isInside(int row, int col) const
-  {
-    return row >= 0 && row < height_ && col >= 0 && col < width_;
-  }
-
-  // -------------------------------------------------------------------------- ;
-
-  inline bool Image::operator == (const Image& img) const
-  {
-    return type_ == img.type_ && width_ == img.width_ && height_ == img.height_;
-  }
-}
+NAMESPACE_LERC_END
+#endif

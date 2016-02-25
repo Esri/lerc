@@ -38,7 +38,7 @@ bool BitStuffer2::EncodeSimple(Byte** ppByte, const vector<unsigned int>& dataVe
 
   unsigned int maxElem = *max_element(dataVec.begin(), dataVec.end());
   int numBits = 0;
-  while ((maxElem >> numBits) && (numBits < 32))
+  while ((numBits < 32) && (maxElem >> numBits))
     numBits++;
 
   if (numBits >= 32)
@@ -82,7 +82,8 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
   unsigned int indexLut = 0;
 
   m_tmpLutVec.resize(0);    // omit the 0 throughout that corresponds to min
-  m_tmpIndexVec.assign(numElem, 0);
+  m_tmpIndexVec.resize(numElem);
+  memset(&m_tmpIndexVec[0], 0, numElem * sizeof(unsigned int));
 
   for (unsigned int i = 1; i < numElem; i++)
   {
@@ -100,7 +101,7 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
   // write first 2 data elements same as simple, but bit5 set to 1
   unsigned int maxElem = m_tmpLutVec.back();
   int numBits = 0;
-  while ((maxElem >> numBits) && (numBits < 32))
+  while ((numBits < 32) && (maxElem >> numBits))
     numBits++;
 
   if (numBits >= 32)
@@ -131,7 +132,7 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
   BitStuff(ppByte, m_tmpLutVec, numBits);    // lut
 
   int nBitsLut = 0;
-  while (nLut >> nBitsLut)
+  while (nLut >> nBitsLut)    // indexes are in [0 .. nLut]
     nBitsLut++;
 
   BitStuff(ppByte, m_tmpIndexVec, nBitsLut);    // indexes
@@ -143,7 +144,7 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
 
 // if you change Encode(...) / Decode(...), don't forget to update ComputeNumBytesNeeded(...)
 
-bool BitStuffer2::Decode(const Byte** ppByte, vector<unsigned int>& dataVec) const
+bool BitStuffer2::Decode(const Byte** ppByte, vector<unsigned int>& dataVec, int lerc2Version) const
 {
   if (!ppByte)
     return false;
@@ -162,12 +163,16 @@ bool BitStuffer2::Decode(const Byte** ppByte, vector<unsigned int>& dataVec) con
     return false;
 
   int numBits = numBitsByte;
-  dataVec.resize(numElements, 0);    // init with 0
 
   if (!doLut)
   {
     if (numBits > 0)    // numBits can be 0
-      BitUnStuff(ppByte, dataVec, numElements, numBits);
+    {
+      if (lerc2Version >= 3)
+        BitUnStuff(ppByte, dataVec, numElements, numBits);
+      else
+        BitUnStuff_Before_Lerc2v3(ppByte, dataVec, numElements, numBits);
+    }
   }
   else
   {
@@ -175,13 +180,20 @@ bool BitStuffer2::Decode(const Byte** ppByte, vector<unsigned int>& dataVec) con
     (*ppByte)++;
 
     int nLut = nLutByte - 1;
-    BitUnStuff(ppByte, m_tmpLutVec, nLut, numBits);    // unstuff lut w/o the 0
+
+    if (lerc2Version >= 3)
+      BitUnStuff(ppByte, m_tmpLutVec, nLut, numBits);    // unstuff lut w/o the 0
+    else
+      BitUnStuff_Before_Lerc2v3(ppByte, m_tmpLutVec, nLut, numBits);    // unstuff lut w/o the 0
 
     int nBitsLut = 0;
     while (nLut >> nBitsLut)
       nBitsLut++;
 
-    BitUnStuff(ppByte, dataVec, numElements, nBitsLut);    // unstuff indexes
+    if (lerc2Version >= 3)
+      BitUnStuff(ppByte, dataVec, numElements, nBitsLut);    // unstuff indexes
+    else
+      BitUnStuff_Before_Lerc2v3(ppByte, dataVec, numElements, nBitsLut);    // unstuff indexes
 
     // replace indexes by values
     m_tmpLutVec.insert(m_tmpLutVec.begin(), 0);    // put back in the 0
@@ -201,7 +213,7 @@ unsigned int BitStuffer2::ComputeNumBytesNeededLut(const vector<pair<unsigned in
   unsigned int numElem = (unsigned int)sortedDataVec.size();
 
   int numBits = 0;
-  while ((maxElem >> numBits) && (numBits < 32))
+  while ((numBits < 32) && (maxElem >> numBits))
     numBits++;
   unsigned int numBytes = 1 + NumBytesUInt(numElem) + ((numElem * numBits + 7) >> 3);
 
@@ -225,53 +237,7 @@ unsigned int BitStuffer2::ComputeNumBytesNeededLut(const vector<pair<unsigned in
 // -------------------------------------------------------------------------- ;
 // -------------------------------------------------------------------------- ;
 
-void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, int numBits) const
-{
-  unsigned int numElements = (unsigned int)dataVec.size();
-  unsigned int numUInts = (numElements * numBits + 31) / 32;
-  unsigned int numBytes = numUInts * sizeof(unsigned int);
-  unsigned int* arr = (unsigned int*)(*ppByte);
-
-  memset(arr, 0, numBytes);
-
-  // do the stuffing
-  const unsigned int* srcPtr = &dataVec[0];
-  unsigned int* dstPtr = arr;
-  int bitPos = 0;
-
-  for (unsigned int i = 0; i < numElements; i++)
-  {
-    if (32 - bitPos >= numBits)
-    {
-      *dstPtr |= (*srcPtr++) << (32 - bitPos - numBits);
-      bitPos += numBits;
-      if (bitPos == 32)    // shift >= 32 is undefined
-      {
-        bitPos = 0;
-        dstPtr++;
-      }
-    }
-    else
-    {
-      int n = numBits - (32 - bitPos);
-      *dstPtr++ |= (*srcPtr  ) >> n;
-      *dstPtr   |= (*srcPtr++) << (32 - n);
-      bitPos = n;
-    }
-  }
-
-  // save the 0-3 bytes not used in the last UInt
-  unsigned int numBytesNotNeeded = NumTailBytesNotNeeded(numElements, numBits);
-  unsigned int n = numBytesNotNeeded;
-  while (n--)
-    *dstPtr >>= 8;
-
-  *ppByte += numBytes - numBytesNotNeeded;
-}
-
-// -------------------------------------------------------------------------- ;
-
-void BitStuffer2::BitUnStuff(const Byte** ppByte, vector<unsigned int>& dataVec,
+void BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, vector<unsigned int>& dataVec,
                              unsigned int numElements, int numBits) const
 {
   dataVec.resize(numElements, 0);    // init with 0
@@ -288,8 +254,14 @@ void BitStuffer2::BitUnStuff(const Byte** ppByte, vector<unsigned int>& dataVec,
   unsigned int lastUInt = *srcPtr;
   unsigned int numBytesNotNeeded = NumTailBytesNotNeeded(numElements, numBits);
   unsigned int n = numBytesNotNeeded;
+
   while (n--)
-    *srcPtr <<= 8;
+  {
+    unsigned int val;
+    memcpy(&val, srcPtr, sizeof(unsigned int));
+    val <<= 8;
+    memcpy(srcPtr, &val, sizeof(unsigned int));
+  }
 
   // do the un-stuffing
   srcPtr = arr;
@@ -300,7 +272,10 @@ void BitStuffer2::BitUnStuff(const Byte** ppByte, vector<unsigned int>& dataVec,
   {
     if (32 - bitPos >= numBits)
     {
-      unsigned int n = (*srcPtr) << bitPos;
+      unsigned int val;
+      memcpy(&val, srcPtr, sizeof(unsigned int));
+      unsigned int n = val << bitPos;
+
       *dstPtr++ = n >> (32 - numBits);
       bitPos += numBits;
       if (bitPos == 32)    // shift >= 32 is undefined
@@ -311,17 +286,113 @@ void BitStuffer2::BitUnStuff(const Byte** ppByte, vector<unsigned int>& dataVec,
     }
     else
     {
-      unsigned int n = (*srcPtr++) << bitPos;
+      unsigned int val;
+      memcpy(&val, srcPtr, sizeof(unsigned int));
+      srcPtr++;
+      unsigned int n = val << bitPos;
       *dstPtr = n >> (32 - numBits);
       bitPos -= (32 - numBits);
-      *dstPtr++ |= (*srcPtr) >> (32 - bitPos);
+      memcpy(&val, srcPtr, sizeof(unsigned int));
+      *dstPtr++ |= val >> (32 - bitPos);
     }
   }
 
   if (numBytesNotNeeded > 0)
-    *srcPtr = lastUInt;    // restore the last UInt
+    memcpy(srcPtr, &lastUInt, sizeof(unsigned int));  // restore the last UInt
 
   *ppByte += numBytes - numBytesNotNeeded;
+}
+
+// -------------------------------------------------------------------------- ;
+
+// starting with version Lerc2v3: integer >> into local uint buffer, plus final memcpy
+
+void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, int numBits) const
+{
+  unsigned int numElements = (unsigned int)dataVec.size();
+  unsigned int numUInts = (numElements * numBits + 31) / 32;
+  unsigned int numBytes = numUInts * sizeof(unsigned int);
+
+  m_tmpBitStuffVec.resize(numUInts);
+  unsigned int* dstPtr = &m_tmpBitStuffVec[0];
+
+  memset(dstPtr, 0, numBytes);
+
+  // do the stuffing
+  const unsigned int* srcPtr = &dataVec[0];
+  int bitPos = 0;
+
+  for (unsigned int i = 0; i < numElements; i++)
+  {
+    if (32 - bitPos >= numBits)
+    {
+      *dstPtr |= (*srcPtr++) << bitPos;
+      bitPos += numBits;
+      if (bitPos == 32)    // shift >= 32 is undefined
+      {
+        dstPtr++;
+        bitPos = 0;
+      }
+    }
+    else
+    {
+      *dstPtr++ |= (*srcPtr) << bitPos;
+      *dstPtr |= (*srcPtr++) >> (32 - bitPos);
+      bitPos += numBits - 32;
+    }
+  }
+
+  // copy the bytes to the outgoing byte stream
+  int numBytesUsed = numBytes - NumTailBytesNotNeeded(numElements, numBits);
+  memcpy(*ppByte, &m_tmpBitStuffVec[0], numBytesUsed);
+
+  *ppByte += numBytesUsed;
+}
+
+// -------------------------------------------------------------------------- ;
+
+void BitStuffer2::BitUnStuff(const Byte** ppByte, vector<unsigned int>& dataVec,
+  unsigned int numElements, int numBits) const
+{
+  dataVec.resize(numElements);
+
+  unsigned int numUInts = (numElements * numBits + 31) / 32;
+  unsigned int numBytes = numUInts * sizeof(unsigned int);
+
+  m_tmpBitStuffVec.resize(numUInts);
+  m_tmpBitStuffVec[numUInts - 1] = 0;    // set last uint to 0
+
+  // copy the bytes from the incoming byte stream
+  int numBytesUsed = numBytes - NumTailBytesNotNeeded(numElements, numBits);
+  memcpy(&m_tmpBitStuffVec[0], *ppByte, numBytesUsed);
+
+  // do the un-stuffing
+  unsigned int* srcPtr = &m_tmpBitStuffVec[0];
+  unsigned int* dstPtr = &dataVec[0];
+  int bitPos = 0;
+  int nb = 32 - numBits;
+
+  for (unsigned int i = 0; i < numElements; i++)
+  {
+    if (nb - bitPos >= 0)
+    {
+      *dstPtr++ = ((*srcPtr) << (nb - bitPos)) >> nb;
+      bitPos += numBits;
+      if (bitPos == 32)    // shift >= 32 is undefined
+      {
+        srcPtr++;
+        bitPos = 0;
+      }
+    }
+    else
+    {
+      *dstPtr = (*srcPtr++) >> bitPos;
+      *dstPtr++ |= ((*srcPtr) << (64 - numBits - bitPos)) >> nb;
+      bitPos -= nb;
+    }
+  }
+
+  *ppByte += numBytesUsed;
 }
 
 // -------------------------------------------------------------------------- ;

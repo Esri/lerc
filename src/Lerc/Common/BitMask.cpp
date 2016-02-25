@@ -22,28 +22,16 @@ Contributors:  Thomas Maurer
 */
 
 #include "BitMask.h"
+#include <cstring>
 
 using namespace LercNS;
-
-// -------------------------------------------------------------------------- ;
-
-BitMask::BitMask() : m_pBits(0), m_nCols(0), m_nRows(0)
-{
-}
-
-// -------------------------------------------------------------------------- ;
-
-BitMask::BitMask(int nCols, int nRows) : m_pBits(0)
-{
-  SetSize(nCols, nRows);
-}
 
 // -------------------------------------------------------------------------- ;
 
 BitMask::BitMask(const BitMask& src) : m_pBits(0)
 {
   SetSize(src.m_nCols, src.m_nRows);
-  if (src.m_pBits)
+  if (m_pBits && src.m_pBits)
     memcpy(m_pBits, src.m_pBits, Size());
 }
 
@@ -54,10 +42,22 @@ BitMask& BitMask::operator= (const BitMask& src)
   if (this == &src) return *this;
 
   SetSize(src.m_nCols, src.m_nRows);
-  if (src.m_pBits)
+  if (m_pBits && src.m_pBits)
     memcpy(m_pBits, src.m_pBits, Size());
 
   return *this;
+}
+
+// -------------------------------------------------------------------------- ;
+
+void BitMask::SetAllValid() const
+{
+  memset(m_pBits, 255, Size());
+}
+
+void BitMask::SetAllInvalid() const
+{
+  memset(m_pBits, 0, Size());
 }
 
 // -------------------------------------------------------------------------- ;

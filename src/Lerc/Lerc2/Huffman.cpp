@@ -96,6 +96,9 @@ bool Huffman::ComputeCompressedSize(const std::vector<int>& histo, int& numBytes
       numElem += histo[i];
     }
 
+  if (numElem == 0)
+    return false;
+
   int numUInts = ((((numBits + 7) >> 3) + 3) >> 2) + 1;    // add one more as the decode LUT can read ahead
   numBytes += 4 * numUInts;    // data huffman coded
   avgBpp = 8 * numBytes / (double)numElem;
@@ -136,7 +139,7 @@ bool Huffman::WriteCodeTable(Byte** ppByte) const
 
   // header
   vector<int> intVec;
-  intVec.push_back(3);    // huffman version; 3 uses canonical huffman codes;
+  intVec.push_back(2);    // huffman version
   intVec.push_back(size);
   intVec.push_back(i0);   // code range
   intVec.push_back(i1);
@@ -162,7 +165,7 @@ bool Huffman::WriteCodeTable(Byte** ppByte) const
 
 // -------------------------------------------------------------------------- ;
 
-bool Huffman::ReadCodeTable(const Byte** ppByte)
+bool Huffman::ReadCodeTable(const Byte** ppByte, int lerc2Version)
 {
   if (!ppByte || !(*ppByte))
     return false;
@@ -191,7 +194,7 @@ bool Huffman::ReadCodeTable(const Byte** ppByte)
 
   vector<unsigned int> dataVec(i1 - i0, 0);
   BitStuffer2 bitStuffer2;
-  if (!bitStuffer2.Decode(&ptr, dataVec))    // unstuff the code lengths
+  if (!bitStuffer2.Decode(&ptr, dataVec, lerc2Version))    // unstuff the code lengths
     return false;
 
   m_codeTable.resize(size);
@@ -260,11 +263,10 @@ bool Huffman::BuildTreeFromCodes(int& numBitsLUT)
     }
   }
 
-  int numNodesCreated = 1;
-  Node emptyNode((short)-1, 0);
+  ClearTree();  // if there
 
-  if (!m_root)
-    m_root = new Node(emptyNode);
+  Node emptyNode((short)-1, 0);
+  m_root = new Node(emptyNode);
 
   for (int i = i0; i < i1; i++)
   {
@@ -282,26 +284,20 @@ bool Huffman::BuildTreeFromCodes(int& numBitsLUT)
         if (code & (1 << j))
         {
           if (!node->child1)
-          {
             node->child1 = new Node(emptyNode);
-            numNodesCreated++;
-          }
+
           node = node->child1;
         }
         else
         {
           if (!node->child0)
-          {
             node->child0 = new Node(emptyNode);
-            numNodesCreated++;
-          }
+
           node = node->child0;
         }
 
         if (j == 0)    // last bit, leaf node
-        {
           node->value = (short)k;    // set the value
-        }
       }
     }
   }
@@ -315,6 +311,13 @@ void Huffman::Clear()
 {
   m_codeTable.clear();
   m_decodeLUT.clear();
+  ClearTree();
+}
+
+// -------------------------------------------------------------------------- ;
+
+void Huffman::ClearTree()
+{
   if (m_root)
   {
     int n = 0;
@@ -427,7 +430,6 @@ bool Huffman::BitStuffCodes(Byte** ppByte, int i0, int i1) const
     if (len > 0)
     {
       unsigned int val = m_codeTable[k].second;
-
       if (32 - bitPos >= len)
       {
         if (bitPos == 0)
@@ -541,3 +543,4 @@ bool Huffman::ConvertCodesToCanonical()
 }
 
 // -------------------------------------------------------------------------- ;
+

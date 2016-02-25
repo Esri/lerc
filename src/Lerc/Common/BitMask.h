@@ -21,25 +21,24 @@ http://github.com/Esri/lerc/
 Contributors:  Thomas Maurer
 */
 
-#pragma once
-
-#include <vector>
+#ifndef BITMASK_H
+#define BITMASK_H
 
 #define LERCDLL_API __declspec(dllexport)
 
-typedef unsigned char Byte;
-
-/** BitMask - Convenient and fast access to binary mask bits
-*
-*/
-
 namespace LercNS
 {
+  typedef unsigned char Byte;
+
+  /** BitMask - Convenient and fast access to binary mask bits
+  *
+  */
+
   class LERCDLL_API BitMask
   {
   public:
-    BitMask();
-    BitMask(int nCols, int nRows);
+    BitMask() : m_pBits(0), m_nCols(0), m_nRows(0)  {}
+    BitMask(int nCols, int nRows) : m_pBits(0)      { SetSize(nCols, nRows); }
     BitMask(const BitMask& src);
     virtual ~BitMask()                        { Clear(); }
 
@@ -55,8 +54,8 @@ namespace LercNS
     void SetInvalid(int k) const              { m_pBits[k >> 3] &= ~Bit(k); }
     void SetInvalid(int row, int col) const   { SetInvalid(row * m_nCols + col); }
 
-    void SetAllValid() const                  { memset(m_pBits, 255, Size()); }
-    void SetAllInvalid() const                { memset(m_pBits, 0, Size()); }
+    void SetAllValid() const;
+    void SetAllInvalid() const;
 
     bool SetSize(int nCols, int nRows);
 
@@ -72,7 +71,8 @@ namespace LercNS
 
   private:
     Byte*  m_pBits;
-    int    m_nCols,
-           m_nRows;
+    int    m_nCols, m_nRows;
   };
-}
+}    // namespace LercNS
+
+#endif

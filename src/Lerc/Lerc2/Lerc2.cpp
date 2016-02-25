@@ -18,7 +18,8 @@ source distribution at:
 
 http://github.com/Esri/lerc/
 
-Contributors:  Thomas Maurer
+Contributors:   Thomas Maurer
+                Lucian Plesea (provided checksum code)
 */
 
 #include "Lerc2.h"
@@ -44,7 +45,9 @@ Lerc2::Lerc2(int nCols, int nRows, const Byte* pMaskBits)
 
 void Lerc2::Init()
 {
-  m_currentVersion    = 2;    // 2: added Huffman coding to 8 bit types DT_Char, DT_Byte;
+  m_currentVersion    = 3;    // 2: added Huffman coding to 8 bit types DT_Char, DT_Byte;
+                              // 3: changed the bit stuffing to using a uint aligned buffer,
+                              //    added Fletcher32 checksum
   m_microBlockSize    = 8;
   m_maxValToQuantize  = 0;
   m_encodeMask        = true;
@@ -96,9 +99,9 @@ bool Lerc2::Set(const BitMask& bitMask)
 
 unsigned int Lerc2::ComputeNumBytesHeader() const
 {
-  // header
   unsigned int numBytes = (unsigned int)FileKey().length();
   numBytes += 7 * sizeof(int);
+  numBytes += 1 * sizeof(unsigned int);
   numBytes += 3 * sizeof(double);
   return numBytes;
 }
@@ -108,6 +111,9 @@ unsigned int Lerc2::ComputeNumBytesHeader() const
 bool Lerc2::GetHeaderInfo(const Byte* pByte, struct HeaderInfo& headerInfo) const
 {
   if (!pByte)
+    return false;
+
+  if (!IsLittleEndianSystem())
     return false;
 
   return ReadHeader(&pByte, headerInfo);
@@ -125,7 +131,6 @@ bool Lerc2::WriteHeader(Byte** ppByte) const
   const HeaderInfo& hd = m_headerInfo;
 
   std::vector<int> intVec;
-  intVec.push_back(m_currentVersion);
   intVec.push_back(hd.nRows);
   intVec.push_back(hd.nCols);
   intVec.push_back(hd.numValidPixel);
@@ -140,20 +145,24 @@ bool Lerc2::WriteHeader(Byte** ppByte) const
 
   Byte* ptr = *ppByte;
 
-  memcpy(ptr, fileKey.c_str(), fileKey.length());
-  ptr += fileKey.length();
+  size_t len = fileKey.length();
+  memcpy(ptr, fileKey.c_str(), len);
+  ptr += len;
 
-  for (size_t i = 0; i < intVec.size(); i++)
-  {
-    *((int*)ptr) = intVec[i];
-    ptr += sizeof(int);
-  }
+  memcpy(ptr, &m_currentVersion, sizeof(int));
+  ptr += sizeof(int);
 
-  for (size_t i = 0; i < dblVec.size(); i++)
-  {
-    *((double*)ptr) = dblVec[i];
-    ptr += sizeof(double);
-  }
+  unsigned int checksum = 0;
+  memcpy(ptr, &checksum, sizeof(unsigned int));    // place holder to be filled by the real check sum later
+  ptr += sizeof(unsigned int);
+
+  len = intVec.size() * sizeof(int);
+  memcpy(ptr, &intVec[0], len);
+  ptr += len;
+
+  len = dblVec.size() * sizeof(double);
+  memcpy(ptr, &dblVec[0], len);
+  ptr += len;
 
   *ppByte = ptr;
   return true;
@@ -177,33 +186,35 @@ bool Lerc2::ReadHeader(const Byte** ppByte, struct HeaderInfo& headerInfo) const
 
   ptr += fileKey.length();
 
-  hd.version = *((int*)ptr);
+  memcpy(&(hd.version), ptr, sizeof(int));
   ptr += sizeof(int);
 
   if (hd.version > m_currentVersion)    // this reader is outdated
     return false;
 
-  std::vector<int>  intVec(7, 0);
+  if (hd.version >= 3)
+  {
+    memcpy(&(hd.checksum), ptr, sizeof(unsigned int));
+    ptr += sizeof(unsigned int);
+  }
+
+  std::vector<int>  intVec(6, 0);
   std::vector<double> dblVec(3, 0);
 
-  for (size_t i = 1; i < intVec.size(); i++)
-  {
-    intVec[i] = *((int*)ptr);
-    ptr += sizeof(int);
-  }
+  size_t len = sizeof(int) * intVec.size();
+  memcpy(&intVec[0], ptr, len);
+  ptr += len;
 
-  for (size_t i = 0; i < dblVec.size(); i++)
-  {
-    dblVec[i] = *((double*)ptr);
-    ptr += sizeof(double);
-  }
+  len = sizeof(double) * dblVec.size();
+  memcpy(&dblVec[0], ptr, len);
+  ptr += len;
 
-  hd.nRows          = intVec[1];
-  hd.nCols          = intVec[2];
-  hd.numValidPixel  = intVec[3];
-  hd.microBlockSize = intVec[4];
-  hd.blobSize       = intVec[5];
-  hd.dt             = (DataType)intVec[6];
+  hd.nRows          = intVec[0];
+  hd.nCols          = intVec[1];
+  hd.numValidPixel  = intVec[2];
+  hd.microBlockSize = intVec[3];
+  hd.blobSize       = intVec[4];
+  hd.dt             = static_cast<DataType>(intVec[5]);
 
   hd.maxZError      = dblVec[0];
   hd.zMin           = dblVec[1];
@@ -236,7 +247,7 @@ bool Lerc2::WriteMask(Byte** ppByte) const
       return false;
 
     int numBytesMask = (int)numBytesRLE;
-    *((int*)ptr) = numBytesMask;    // num bytes for compressed mask
+    memcpy(ptr, &numBytesMask, sizeof(int));    // num bytes for compressed mask
     ptr += sizeof(int);
     memcpy(ptr, pArrRLE, numBytesRLE);
     ptr += numBytesRLE;
@@ -245,7 +256,7 @@ bool Lerc2::WriteMask(Byte** ppByte) const
   }
   else
   {
-    *((int*)ptr) = 0;    // indicates no mask stored
+    memset(ptr, 0, sizeof(int));    // indicates no mask stored
     ptr += sizeof(int);
   }
 
@@ -266,7 +277,8 @@ bool Lerc2::ReadMask(const Byte** ppByte)
 
   const Byte* ptr = *ppByte;
 
-  int numBytesMask = *((int*)ptr);
+  int numBytesMask;
+  memcpy(&numBytesMask, ptr, sizeof(int));
   ptr += sizeof(int);
 
   if ((numValid == 0 || numValid == w * h) && (numBytesMask != 0))
@@ -291,6 +303,57 @@ bool Lerc2::ReadMask(const Byte** ppByte)
 
   *ppByte = ptr;
   return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+bool Lerc2::DoChecksOnEncode(Byte* pBlobBegin, Byte* pBlobEnd) const
+{
+  if ((size_t)(pBlobEnd - pBlobBegin) != (size_t)m_headerInfo.blobSize)
+    return false;
+
+  int blobSize = (int)(pBlobEnd - pBlobBegin);
+  int nBytes = (int)(FileKey().length() + sizeof(int) + sizeof(unsigned int));    // start right after the checksum entry
+  unsigned int checksum = ComputeChecksumFletcher32(pBlobBegin + nBytes, blobSize - nBytes);
+
+  nBytes -= sizeof(unsigned int);
+  memcpy(pBlobBegin + nBytes, &checksum, sizeof(unsigned int));
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+// from  https://en.wikipedia.org/wiki/Fletcher's_checksum
+// modified from ushorts to bytes (by Lucian Plesea)
+
+unsigned int Lerc2::ComputeChecksumFletcher32(const Byte* pByte, int len) const
+{
+  unsigned int sum1 = 0xffff, sum2 = 0xffff;
+  unsigned int words = len / 2;
+
+  while (words)
+  {
+    unsigned int tlen = (words >= 359) ? 359 : words;
+    words -= tlen;
+    do {
+      sum1 += (*pByte++ << 8);
+      sum2 += sum1 += *pByte++;
+    } while (--tlen);
+
+    sum1 = (sum1 & 0xffff) + (sum1 >> 16);
+    sum2 = (sum2 & 0xffff) + (sum2 >> 16);
+  }
+
+  // add the straggler byte if it exists
+  if (len & 1)
+    sum2 += sum1 += (*pByte << 8);
+
+  // second reduction step to reduce sums to 16 bits
+  sum1 = (sum1 & 0xffff) + (sum1 >> 16);
+  sum2 = (sum2 & 0xffff) + (sum2 >> 16);
+
+  return sum2 << 16 | sum1;
 }
 
 // -------------------------------------------------------------------------- ;

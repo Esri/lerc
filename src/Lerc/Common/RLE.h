@@ -21,9 +21,13 @@ http://github.com/Esri/lerc/
 Contributors:  Thomas Maurer
 */
 
-#pragma once
+#ifndef RLE_H
+#define RLE_H
 
-typedef unsigned char Byte;
+#include <cstddef>
+#include "Defines.h"
+
+NAMESPACE_LERC_START
 
 /** RLE:
  *  run length encode a byte array
@@ -35,33 +39,32 @@ typedef unsigned char Byte;
  *    n + (n + 1) * 2 / 32767 + 2  ~= 1.00006
  */
 
-namespace LercNS
+class RLE
 {
-  class RLE
-  {
-  public:
-    RLE() : m_minNumEven(5) {};
-    virtual ~RLE() {};
+public:
+  RLE() : m_minNumEven(5) {};
+  virtual ~RLE() {};
 
-    size_t computeNumBytesRLE(const Byte* arr, size_t numBytes) const;
+  size_t computeNumBytesRLE(const Byte* arr, size_t numBytes) const;
 
-    // when done, call
-    // delete[] *arrRLE;
-    bool compress(const Byte* arr, size_t numBytes,
-      Byte** arrRLE, size_t& numBytesRLE, bool verify = false) const;
+  // when done, call
+  // delete[] *arrRLE;
+  bool compress(const Byte* arr, size_t numBytes,
+    Byte** arrRLE, size_t& numBytesRLE, bool verify = false) const;
 
-    // when done, call
-    // delete[] *arr;
-    bool decompress(const Byte* arrRLE, Byte** arr, size_t& numBytes) const;
+  // when done, call
+  // delete[] *arr;
+  bool decompress(const Byte* arrRLE, Byte** arr, size_t& numBytes) const;
 
-    // arr already allocated, just fill
-    bool decompress(const Byte* arrRLE, Byte* arr) const;
+  // arr already allocated, just fill
+  bool decompress(const Byte* arrRLE, Byte* arr) const;
 
-  protected:
-    int m_minNumEven;
+protected:
+  int m_minNumEven;
 
-    void writeCount(short cnt, Byte** ppCnt, Byte** ppDst) const;
-    short readCount(const Byte** ppCnt) const;
-  };
-}
+  void writeCount(short cnt, Byte** ppCnt, Byte** ppDst) const;
+  short readCount(const Byte** ppCnt) const;
+};
 
+NAMESPACE_LERC_END
+#endif

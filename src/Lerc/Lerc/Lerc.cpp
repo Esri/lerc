@@ -25,10 +25,6 @@ Contributors:  Thomas Maurer
 #include "../Lerc2/Lerc2.h"
 #include "../Lerc1Decode/CntZImage.h"
 
-#ifdef MAINWIN
-#include <typeinfo>
-#endif
-
 using namespace std;
 using namespace LercNS;
 
@@ -277,7 +273,6 @@ bool Lerc::ComputeBufferSizeTempl(const T* pData,    // raw image data, row by r
     numBytesNeeded += nBytes;
   }
 
-  numBytesNeeded += Lerc2::NumExtraBytesToAllocate();
   return true;
 }
 
@@ -321,7 +316,7 @@ bool Lerc::EncodeTempl(const T* pData,    // raw image data, row by row, band by
     if (nBytes == 0)
       return false;
 
-    unsigned int nBytesAlloc = nBytes + Lerc2::NumExtraBytesToAllocate();
+    unsigned int nBytesAlloc = nBytes;
 
     if ((size_t)(pByte - pBuffer) + nBytesAlloc > numBytesBuffer)    // check we have enough space left
       return false;
@@ -330,7 +325,7 @@ bool Lerc::EncodeTempl(const T* pData,    // raw image data, row by row, band by
       return false;
   }
 
-  numBytesWritten = (pByte - pBuffer) + Lerc2::NumExtraBytesToAllocate();
+  numBytesWritten = (pByte - pBuffer);
   return true;
 }
 
@@ -378,7 +373,7 @@ bool Lerc::EncodeTempl(const T* pData,    // raw image data, row by row, band by
       return false;
     }
 
-    unsigned int nBytesAlloc = nBytes + Lerc2::NumExtraBytesToAllocate();
+    unsigned int nBytesAlloc = nBytes;
     bufferPerBandVec[iBand] = new Byte[nBytesAlloc];
     Byte* pByte = bufferPerBandVec[iBand];
 
@@ -392,7 +387,7 @@ bool Lerc::EncodeTempl(const T* pData,    // raw image data, row by row, band by
     numBytesAllBands += numBytesPerBandVec[iBand];
   }
 
-  numBytesBlob = numBytesAllBands + Lerc2::NumExtraBytesToAllocate();
+  numBytesBlob = numBytesAllBands;
 
   if (nBands == 1)
   {

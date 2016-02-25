@@ -28,91 +28,6 @@ using namespace LercNS;
 
 // -------------------------------------------------------------------------- ;
 
-// see the old stream IO functions below on how to call.
-// if you change write(...) / read(...), don't forget to update computeNumBytesNeeded(...).
-
-bool BitStuffer::write(Byte** ppByte, const vector<unsigned int>& dataVec) const
-{
-  if (!ppByte)
-    return false;
-
-  if (dataVec.empty())
-    return false;
-
-  unsigned int maxElem = findMax(dataVec);
-
-  int numBits = 0;
-  while (maxElem >> numBits)
-    numBits++;
-  Byte numBitsByte = (Byte)numBits;
-  unsigned int numElements = (unsigned int)dataVec.size();
-  unsigned int numUInts = (numElements * numBits + 31) / 32;
-
-  // use the upper 2 bits to encode the type used for numElements: Byte, ushort, or uint
-  int n = numBytesUInt(numElements);
-  int bits67 = (n == 4) ? 0 : 3 - n;
-  numBitsByte |= bits67 << 6;
-
-  **ppByte = numBitsByte;
-  (*ppByte)++;
-
-  if (!writeUInt(ppByte, numElements, n))
-    return false;
-
-  if (numUInts > 0)    // numBits can be 0, then we only write the header
-  {
-    unsigned int numBytes = numUInts * sizeof(unsigned int);
-    unsigned int* arr = (unsigned int*)(*ppByte);
-
-    memset(arr, 0, numBytes);
-
-    // do the stuffing
-    const unsigned int* srcPtr = &dataVec[0];
-    unsigned int* dstPtr = arr;
-    int bitPos = 0;
-
-    for (unsigned int i = 0; i < numElements; i++)
-    {
-      if (32 - bitPos >= numBits)
-      {
-        *dstPtr |= (*srcPtr++) << (32 - bitPos - numBits);
-        bitPos += numBits;
-        if (bitPos == 32)    // shift >= 32 is undefined
-        {
-          bitPos = 0;
-          dstPtr++;
-        }
-      }
-      else
-      {
-        int n = numBits - (32 - bitPos);
-        *dstPtr++ |= (*srcPtr  ) >> n;
-        *dstPtr   |= (*srcPtr++) << (32 - n);
-        bitPos = n;
-      }
-    }
-
-    // save the 0-3 bytes not used in the last UInt
-    unsigned int numBytesNotNeeded = numTailBytesNotNeeded(numElements, numBits);
-    unsigned int n = numBytesNotNeeded;
-    while (n--)
-      *dstPtr >>= 8;
-
-    dstPtr = arr;
-    for (unsigned int i = 0; i < numUInts; i++)
-    {
-      SWAP_4(*dstPtr);
-      dstPtr++;
-    }
-
-    *ppByte += numBytes - numBytesNotNeeded;
-  }
-
-  return true;
-}
-
-// -------------------------------------------------------------------------- ;
-
 bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
 {
   if (!ppByte)
@@ -151,11 +66,17 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
 
     // needed to save the 0-3 bytes not used in the last UInt
     srcPtr--;
-    unsigned int lastUInt = *srcPtr;
+    unsigned int lastUInt;
+    memcpy(&lastUInt, srcPtr, sizeof(unsigned int));
     unsigned int numBytesNotNeeded = numTailBytesNotNeeded(numElements, numBits);
     unsigned int n = numBytesNotNeeded;
     while (n--)
-      *srcPtr <<= 8;
+    {
+      unsigned int val;
+      memcpy(&val, srcPtr, sizeof(unsigned int));
+      val <<= 8;
+      memcpy(srcPtr, &val, sizeof(unsigned int));
+    }
 
     // do the un-stuffing
     srcPtr = arr;
@@ -166,8 +87,11 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
     {
       if (32 - bitPos >= numBits)
       {
-        unsigned int n = (*srcPtr) << bitPos;
+        unsigned int val;
+        memcpy(&val, srcPtr, sizeof(unsigned int));
+        unsigned int n = val << bitPos;
         *dstPtr++ = n >> (32 - numBits);
+
         bitPos += numBits;
         if (bitPos == 32)    // shift >= 32 is undefined
         {
@@ -177,15 +101,19 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
       }
       else
       {
-        unsigned int n = (*srcPtr++) << bitPos;
+        unsigned int val;
+        memcpy(&val, srcPtr, sizeof(unsigned int));
+        srcPtr++;
+        unsigned int n = val << bitPos;
         *dstPtr = n >> (32 - numBits);
         bitPos -= (32 - numBits);
-        *dstPtr++ |= (*srcPtr) >> (32 - bitPos);
+        memcpy(&val, srcPtr, sizeof(unsigned int));
+        *dstPtr++ |= val >> (32 - bitPos);
       }
     }
 
     if (numBytesNotNeeded > 0)
-      *srcPtr = lastUInt;    // restore the last UInt
+      memcpy(srcPtr, &lastUInt, sizeof(unsigned int));    // restore the last UInt
 
     *ppByte += numBytes - numBytesNotNeeded;
   }
@@ -194,63 +122,6 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
 }
 
 // -------------------------------------------------------------------------- ;
-
-unsigned int BitStuffer::computeNumBytesNeeded(unsigned int numElem, unsigned int maxElem)
-{
-  int numBits = 0;
-  while (maxElem >> numBits)
-    numBits++;
-  unsigned int numUInts = (numElem * numBits + 31) / 32;
-  unsigned int numBytes = 1 + numBytesUInt(numElem) + numUInts * sizeof(unsigned int) -
-    numTailBytesNotNeeded(numElem, numBits);
-
-  return numBytes;
-}
-
-// -------------------------------------------------------------------------- ;
-// -------------------------------------------------------------------------- ;
-
-unsigned int BitStuffer::findMax(const vector<unsigned int>& dataVec) const
-{
-  unsigned int maxElem = 0;
-  const unsigned int* ptr = &dataVec[0];
-  size_t i = dataVec.size();
-  while (i--)
-  {
-    unsigned int n = *ptr++;
-    maxElem = max(n, maxElem);
-  }
-  return maxElem;
-}
-
-// -------------------------------------------------------------------------- ;
-
-bool BitStuffer::writeUInt(Byte** ppByte, unsigned int k, int numBytes) const
-{
-  Byte* ptr = *ppByte;
-
-  if (numBytes == 1)
-  {
-    *ptr = (Byte)k;
-  }
-  else if (numBytes == 2)
-  {
-    unsigned short s = (unsigned short)k;
-    SWAP_2(s);
-    *((unsigned short*)ptr) = s;
-  }
-  else if (numBytes == 4)
-  {
-    SWAP_4(k);
-    *((unsigned int*)ptr) = k;
-  }
-  else
-    return false;
-
-  *ppByte = ptr + numBytes;
-  return true;
-}
-
 // -------------------------------------------------------------------------- ;
 
 bool BitStuffer::readUInt(Byte** ppByte, unsigned int& k, int numBytes) const
@@ -263,13 +134,14 @@ bool BitStuffer::readUInt(Byte** ppByte, unsigned int& k, int numBytes) const
   }
   else if (numBytes == 2)
   {
-    unsigned short s = *((unsigned short*)ptr);
+    unsigned short s;
+    memcpy(&s, ptr, sizeof(unsigned short));
     SWAP_2(s);
     k = s;
   }
   else if (numBytes == 4)
   {
-    k = *((unsigned int*)ptr);
+    memcpy(&k, ptr, sizeof(unsigned int));
     SWAP_4(k);
   }
   else

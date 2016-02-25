@@ -153,4 +153,4 @@ namespace LercNS
     void FreeBuffer(std::vector<Byte*>& bufferVec) const;
     template<class T> bool Convert(const CntZImage& zImg, T* arr, BitMask* pBitMask) const;
   };
-}
+}    // namespace LercNS

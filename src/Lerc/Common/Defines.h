@@ -18,10 +18,25 @@ source distribution at:
 
 http://github.com/Esri/lerc/
 
-Contributors:  Thomas Maurer
+Contributors:  Thomas Maurer, Lucian Plesea
 */
 
-#pragma once
+#ifndef LERC_DEFINES_H
+#define LERC_DEFINES_H
+
+// This is useful when compiling within GDAL in DEBUG_BOOL mode, where a
+// MSVCPedanticBool class is used as an alias for the bool type, so as
+// to catch more easily int/bool misuses, even on Linux
+// Also for NULL_AS_NULLPTR mode where NULL is aliased to C++11 nullptr
+#if defined(DEBUG_BOOL) || defined(NULL_AS_NULLPTR)
+#include "cpl_port.h"
+#endif
+
+#define NAMESPACE_LERC_START namespace LercNS {
+#define NAMESPACE_LERC_END }
+#define USING_NAMESPACE_LERC using namespace LercNS;
+
+NAMESPACE_LERC_START
 
 typedef unsigned char Byte;
 
@@ -33,8 +48,17 @@ typedef unsigned char Byte;
 #define min(a,b)      (((a) < (b)) ? (a) : (b))
 #endif
 
-// drop support for big endian in Lerc2
+#ifdef SWAPB    // define this on big endian system
+
+// big endian systems no longer supported by Lerc
+
+#else // SWAPB
+
 #define SWAP_2(x)
 #define SWAP_4(x)
 #define SWAP_8(x)
 
+#endif // SWAPB
+
+NAMESPACE_LERC_END
+#endif
