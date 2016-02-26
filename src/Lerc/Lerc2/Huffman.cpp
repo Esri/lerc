@@ -139,18 +139,16 @@ bool Huffman::WriteCodeTable(Byte** ppByte) const
 
   // header
   vector<int> intVec;
-  intVec.push_back(2);    // huffman version
+  intVec.push_back(4);    // huffman version; 4 guarantees canonical codes
   intVec.push_back(size);
   intVec.push_back(i0);   // code range
   intVec.push_back(i1);
 
   Byte* ptr = *ppByte;
 
-  for (size_t i = 0; i < intVec.size(); i++)
-  {
-    *((int*)ptr) = intVec[i];
-    ptr += sizeof(int);
-  }
+  size_t len = intVec.size() * sizeof(int);
+  memcpy(ptr, &intVec[0], len);
+  ptr += len;
 
   BitStuffer2 bitStuffer2;
   if (!bitStuffer2.EncodeSimple(&ptr, dataVec))    // code lengths, bit stuffed
@@ -172,18 +170,15 @@ bool Huffman::ReadCodeTable(const Byte** ppByte, int lerc2Version)
 
   const Byte* ptr = *ppByte;
 
-  int version = *((int*)ptr);    // version
-  ptr += sizeof(int);
+  vector<int> intVec(4, 0);
+  size_t len = intVec.size() * sizeof(int);
+  memcpy(&intVec[0], ptr, len);
+  ptr += len;
+
+  int version = intVec[0];
 
   if (version < 2)    // allow forward compatibility; for updates that break old decoders increase Lerc2 version number;
     return false;
-
-  vector<int> intVec(4, 0);
-  for (size_t i = 1; i < intVec.size(); i++)
-  {
-    intVec[i] = *((int*)ptr);
-    ptr += sizeof(int);
-  }
 
   int size = intVec[1];
   int i0 = intVec[2];
