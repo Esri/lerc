@@ -41,10 +41,20 @@ In a nutshell, if jpeg is good enough for your images, use jpeg. If not, if you 
 
 For illustration, we have put together a simple test sample.
 
-- build the Lerc.dll in src/Lerc. Copy the resulting Lerc.lib into the lib/ folder.
-- build the test app in src/LercTest.
-- copy the Lerc.dll next to LercTest.exe.
-- run it.
+### Windows
+
+- Open src/Lerc/Lerc.sln with Microsoft Visual Studio. We have used MSVS 2013. 
+- Build the Lerc.dll. Pick x64 or Win32 according to your system. Copy the resulting Lerc.lib into the lib/ folder.
+- Open src/LercTest/LercTest.sln. 
+- Build the test application LercTest.exe. Again, pick x64 or Win32. 
+- Copy the Lerc.dll from above next to LercTest.exe.
+- Run it. 
+
+### Linux
+
+- Go to src/Lerc. Call make. This should create libLerc.so. 
+- Go to src/LercTest. In the makefile, adjust the paths at the top as needed. Call make. This should create main.out. 
+- Run it. 
 
 ## Lerc Properties
 
