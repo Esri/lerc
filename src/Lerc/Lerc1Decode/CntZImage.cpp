@@ -21,6 +21,7 @@ http://github.com/Esri/lerc/
 Contributors:  Thomas Maurer
 */
 
+#include <cstring>
 #include "CntZImage.h"
 #include "BitStuffer.h"
 #include "../Common/BitMask.h"

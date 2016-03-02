@@ -21,9 +21,10 @@ http://github.com/Esri/lerc/
 Contributors:  Thomas Maurer
 */
 
+#include <algorithm>
+#include <queue>
 #include "Huffman.h"
 #include "BitStuffer2.h"
-#include <queue>
 
 using namespace std;
 using namespace LercNS;

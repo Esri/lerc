@@ -21,8 +21,8 @@ http://github.com/Esri/lerc/
 Contributors:  Thomas Maurer
 */
 
-#include "BitStuffer2.h"
 #include <algorithm>
+#include "BitStuffer2.h"
 
 using namespace std;
 using namespace LercNS;

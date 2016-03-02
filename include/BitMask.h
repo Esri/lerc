@@ -24,7 +24,13 @@ Contributors:  Thomas Maurer
 #ifndef BITMASK_H
 #define BITMASK_H
 
-#define LERCDLL_API __declspec(dllexport)
+#if defined(_MSC_VER)
+  #define LERCDLL_API __declspec(dllexport)
+#elif __GNUC__ >= 4
+  #define LERCDLL_API __attribute__((visibility("default")))
+#else
+  #define LERCDLL_API
+#endif
 
 namespace LercNS
 {

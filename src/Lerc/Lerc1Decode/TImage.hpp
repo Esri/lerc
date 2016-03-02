@@ -26,6 +26,8 @@ Contributors:  Thomas Maurer
 
 // ---- includes ------------------------------------------------------------ ;
 
+#include <cstring>
+#include <stdlib.h>
 #include "Image.h"
 
 NAMESPACE_LERC_START

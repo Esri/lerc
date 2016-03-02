@@ -23,8 +23,9 @@ Contributors:  Thomas Maurer
 
 #pragma once
 
-#include "../Common/BitMask.h"
 #include <vector>
+#include <cstring>
+#include "../Common/BitMask.h"
 
 namespace LercNS
 {

@@ -24,13 +24,15 @@ Contributors:  Thomas Maurer
 #ifndef LERC2_H
 #define LERC2_H
 
+#include <algorithm>
+#include <cfloat>
+#include <cmath>
+#include <string>
+#include <typeinfo>
 #include "BitStuffer2.h"
 #include "Huffman.h"
 #include "../Common/BitMask.h"
 #include "../Common/RLE.h"
-#include <algorithm>
-#include <string>
-#include <typeinfo>
 
 NAMESPACE_LERC_START
 

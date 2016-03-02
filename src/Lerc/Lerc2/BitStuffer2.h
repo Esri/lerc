@@ -25,6 +25,7 @@ Contributors:  Thomas Maurer
 #define BITSTUFFER2_H
 
 #include <vector>
+#include <cstring>
 #include <utility>
 #include "../Common/Defines.h"
 

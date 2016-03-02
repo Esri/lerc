@@ -25,6 +25,7 @@ Contributors:  Thomas Maurer
 #define HUFFMAN_H
 
 #include <vector>
+#include <cstring>
 #include <utility>
 #include "../Common/Defines.h"
 
