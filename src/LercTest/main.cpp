@@ -1,8 +1,15 @@
 
-#include <tchar.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
 #include <iostream>
 #include "Lerc.h"
-#include "PerfTimer.h"
+
+#if defined(_MSC_VER)
+  #include "PerfTimer.h"
+#else
+  class PerfTimer { public:  void start(){};  void stop(){};  int ms(){return 0;} };    // dummy class
+#endif
 
 using namespace std;
 using namespace LercNS;
@@ -11,7 +18,7 @@ using namespace LercNS;
 
 //-----------------------------------------------------------------------------
 
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char* arcv[])
 {
   // Sample 1: float image, 1 band, with some pixels set to invalid / void, maxZError = 0.1
 
@@ -299,6 +306,7 @@ int _tmain(int argc, _TCHAR* argv[])
         resultMsg = "FAILED";
 
       pt.stop();
+
       printf("w = %4d, h = %4d, nBands = %2d, dt = %2d, time = %4d ms,  %s :  %s\n", w, h, nBands, (int)dt, pt.ms(), resultMsg.c_str(), fnVec[n].c_str());
     }
   }
@@ -308,7 +316,7 @@ int _tmain(int argc, _TCHAR* argv[])
   printf("\npress ENTER\n");
   getchar();
   
-	return 0;
+  return 0;
 }
 
 //-----------------------------------------------------------------------------
