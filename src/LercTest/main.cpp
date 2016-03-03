@@ -8,7 +8,8 @@
 #if defined(_MSC_VER)
   #include "PerfTimer.h"
 #else
-  class PerfTimer { public:  void start(){};  void stop(){};  int ms(){return 0;} };    // dummy class
+  #include "LinuxTimer.h"
+//  class PerfTimer { public: void start(){}; void stop(){}; int ms(){return 0;} };
 #endif
 
 using namespace std;
