@@ -680,7 +680,7 @@ bool Lerc2::ComputeStats(const T* data, int i0, int i1, int j0, int j1,
 
   tryLutA = false;
 
-  T zMin, zMax, prevVal = 0;
+  T zMin = 0, zMax = 0, prevVal = 0;
   int numValidPixel = 0;
   int cntSameVal = 0;
 
@@ -839,7 +839,7 @@ int Lerc2::NumBytesTile(int numValidPixel, T zMin, T zMax, bool& tryLut,  // can
     //enum DataType {DT_Char, DT_Byte, DT_Short, DT_UShort, DT_Int, DT_UInt, DT_Float, DT_Double};
     Byte sizeArr[] = {1, 1, 2, 2, 4, 4, 4, 8};
     DataType dtUsed;
-    int bits67 = TypeCode(zMin, dtUsed);
+    TypeCode(zMin, dtUsed);
     int nBytesForMin = sizeArr[dtUsed];
     int nBytes = 1 + nBytesForMin;
 
