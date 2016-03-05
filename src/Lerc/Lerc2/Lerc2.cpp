@@ -97,11 +97,12 @@ bool Lerc2::Set(const BitMask& bitMask)
 
 // -------------------------------------------------------------------------- ;
 
-unsigned int Lerc2::ComputeNumBytesHeader() const
+// if the Lerc2 header should ever shrink in size to less than below, then update it (very unlikely)
+
+unsigned int Lerc2::ComputeMinNumBytesNeededToReadHeader() const
 {
   unsigned int numBytes = (unsigned int)FileKey().length();
   numBytes += 7 * sizeof(int);
-  numBytes += 1 * sizeof(unsigned int);
   numBytes += 3 * sizeof(double);
   return numBytes;
 }
@@ -120,6 +121,17 @@ bool Lerc2::GetHeaderInfo(const Byte* pByte, struct HeaderInfo& headerInfo) cons
 }
 
 // -------------------------------------------------------------------------- ;
+// -------------------------------------------------------------------------- ;
+
+unsigned int Lerc2::ComputeNumBytesHeaderToWrite() const
+{
+  unsigned int numBytes = (unsigned int)FileKey().length();
+  numBytes += 7 * sizeof(int);
+  numBytes += 1 * sizeof(unsigned int);
+  numBytes += 3 * sizeof(double);
+  return numBytes;
+}
+
 // -------------------------------------------------------------------------- ;
 
 bool Lerc2::WriteHeader(Byte** ppByte) const

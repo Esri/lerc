@@ -74,7 +74,7 @@ public:
   template<class T>
   unsigned int ComputeNumBytesNeededToWrite(const T* arr, double maxZError, bool encodeMask);
 
-  unsigned int ComputeNumBytesHeader() const;
+  unsigned int ComputeMinNumBytesNeededToReadHeader() const;
 
   /// dst buffer already allocated;  byte ptr is moved like a file pointer
   template<class T>
@@ -122,6 +122,8 @@ private:
   std::string FileKey() const  { return "Lerc2 "; }
   bool IsLittleEndianSystem() const  { int n = 1;  return (1 == *((Byte*)&n)) && (4 == sizeof(int)); }
   void Init();
+  unsigned int ComputeNumBytesHeaderToWrite() const;
+
   bool WriteHeader(Byte** ppByte) const;
   bool ReadHeader(const Byte** ppByte, struct HeaderInfo& headerInfo) const;
   bool WriteMask(Byte** ppByte) const;
@@ -210,7 +212,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
     return 0;
 
   // header
-  unsigned int numBytes = ComputeNumBytesHeader();
+  unsigned int numBytes = ComputeNumBytesHeaderToWrite();
 
   // valid / invalid mask
   int numValid = m_headerInfo.numValidPixel;

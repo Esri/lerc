@@ -93,10 +93,10 @@ bool Lerc::GetLercInfo(const Byte* pLercBlob, size_t numBytesBlob, struct LercIn
   // first try Lerc2
 
   Lerc2 lerc2;
-  unsigned int numBytesHeader = lerc2.ComputeNumBytesHeader();
+  unsigned int minNumBytesHeader = lerc2.ComputeMinNumBytesNeededToReadHeader();
 
   struct Lerc2::HeaderInfo lerc2Info;
-  if (numBytesHeader <= numBytesBlob && lerc2.GetHeaderInfo(pLercBlob, lerc2Info))
+  if (minNumBytesHeader <= numBytesBlob && lerc2.GetHeaderInfo(pLercBlob, lerc2Info))
   {
     lercInfo.version = lerc2Info.version;
     lercInfo.nCols = lerc2Info.nCols;
@@ -112,7 +112,7 @@ bool Lerc::GetLercInfo(const Byte* pLercBlob, size_t numBytesBlob, struct LercIn
     if (lercInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
       return false;
 
-    while (lercInfo.blobSize + numBytesHeader < numBytesBlob)    // means there could be another band
+    while (lercInfo.blobSize + minNumBytesHeader < numBytesBlob)    // means there could be another band
     {
       struct Lerc2::HeaderInfo hdInfo;
       if (!lerc2.GetHeaderInfo(pLercBlob + lercInfo.blobSize, hdInfo))
@@ -141,7 +141,7 @@ bool Lerc::GetLercInfo(const Byte* pLercBlob, size_t numBytesBlob, struct LercIn
   }
 
   // then try Lerc1
-  numBytesHeader = CntZImage::computeNumBytesNeededToReadHeader();
+  unsigned int numBytesHeader = CntZImage::computeNumBytesNeededToReadHeader();
   Byte* pByte = const_cast<Byte*>(pLercBlob);
 
   CntZImage cntZImg;
@@ -431,9 +431,9 @@ bool Lerc::DecodeTempl(T* pData,    // outgoing data bands
   for (int iBand = 0; iBand < nBands; iBand++)
   {
     // first try Lerc2
-    unsigned int numBytesHeader = lerc2.ComputeNumBytesHeader();
+    unsigned int minNumBytesHeader = lerc2.ComputeMinNumBytesNeededToReadHeader();
     Lerc2::HeaderInfo hdInfo;
-    if (((size_t)(pByte - pLercBlob) + numBytesHeader <= numBytesBlob) && lerc2.GetHeaderInfo(pByte, hdInfo))
+    if (((size_t)(pByte - pLercBlob) + minNumBytesHeader <= numBytesBlob) && lerc2.GetHeaderInfo(pByte, hdInfo))
     {
       if (hdInfo.nCols != nCols || hdInfo.nRows != nRows)
         return false;
