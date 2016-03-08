@@ -25,6 +25,8 @@ Contributors:  Thomas Maurer
 
 #include <time.h>
 
+// see also  http://tdistler.com/2010/06/27/high-performance-timing-on-linux-windows
+
 class PerfTimer
 {
 public:
@@ -105,5 +107,4 @@ inline void PerfTimer::ask(int& sec, int& nsec) const
 }
 
 // -------------------------------------------------------------------------- ;
-
 

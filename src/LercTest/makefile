@@ -2,7 +2,7 @@ INCL = /home/john/Code/Lerc/include
 LIBS = /home/john/Code/Lerc/src/Lerc/libLerc.so
 
 CC = g++
-CFLAGS = -c -Wall -O3
+CFLAGS = -c -Wall -O2
 RM = rm -f
 SRCS = main.cpp
 OBJS = $(SRCS:.cpp=.o)

@@ -8,7 +8,7 @@ FILES = Common/BitMask\
 	Lerc/Lerc
 
 CC = g++
-CFLAGS = -fPIC -Wall -O3
+CFLAGS = -Wall -O2 -c
 LDFLAGS = -shared -fvisibility=hidden -fvisibility-inlines-hidden
 RM = rm -f
 TARGET_LIB = libLerc.so
@@ -20,6 +20,9 @@ all: ${TARGET_LIB}
 
 $(TARGET_LIB): $(OBJS)
 	$(CC) ${LDFLAGS} -o $@ $^
+
+$(SRCS:.cpp=.o):%.o:%.cpp
+	$(CC) $(CFLAGS) $< -o $@
 
 $(SRCS:.cpp=.d):%.d:%.cpp
 	$(CC) $(CFLAGS) -MM $< >$@
