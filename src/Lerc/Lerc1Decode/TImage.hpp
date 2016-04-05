@@ -46,7 +46,7 @@ class TImage : public Image
 {
 public:
   TImage() : data_(0)  {}
-  TImage(const TImage& tImg) : data_(0)  { *this = tImg; }
+  TImage(const TImage& tImg) : data_(0)  { type_ = tImg.type_;  *this = tImg; }
   virtual ~TImage()                      { clear(); }
 
   /// assignment

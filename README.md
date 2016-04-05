@@ -111,3 +111,6 @@ See the License for the specific language governing permissions and limitations 
 A local copy of the license and additional notices are located with the source distribution at:
 
 http://github.com/Esri/lerc/
+
+[](Esri Tags: raster, image, encoding, encoded, compression, codec, lerc)
+[](Esri Language: C++)
