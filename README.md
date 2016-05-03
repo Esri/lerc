@@ -18,43 +18,46 @@ Function | Description
 
 To better support the case that not all image pixels are valid, the BitMask class is provided. It permits easy and efficient checking and setting pixels to valid / invalid.
 
-See the sample program src/LercTest/main.cpp how the above functions and classes are called and used. Also see the two header files in the include/ folder and the comments in there.
+See the sample program `src/LercTest/main.cpp` which demonstrates how the above functions and classes are called and used. Also see the two header files in the `include/` folder and the comments in there.
 
 One more comment about multiple bands. You can either store each band into its own Lerc byte blob which allows you to access / decode each band individually. Lerc also allows to stack bands together into one single Lerc byte blob. This can be useful if the bands are always used together anyway.
 
 ## When to use
 
-In image or raster compression, there are 2 different ways to go:
+In image or raster compression, there are two different options:
 
 - compress an image as much as possible but so it still looks ok
-  (jpeg and relatives). The max coding error per pixel can be large.
+  (.jpeg and relatives). The max coding error per pixel can be large.
 
-- need control over the max coding error per pixel (elevation,
+- prioritize control over the max coding error per pixel (elevation,
   scientific data, medical image data, ...).
-  Because of that, such data is often compressed using lossless methods, such as LZW, gzip, and the like. The compression ratios achieved are often low. On top the encoding is often slow and time consuming.
 
-Lerc allows you to set the max coding error per pixel allowed, called "MaxZError". You can specify any number from 0 (lossless) to a number so large that the decoded image may come out flat.
+In the second case, data is often compressed using lossless methods, such as LZW, gzip, and the like. The compression ratios achieved are often low. On top the encoding is often slow and time consuming.
 
-In a nutshell, if jpeg is good enough for your images, use jpeg. If not, if you would use png instead, or gzip, then you may want to try out Lerc.
+Lerc allows you to set the max coding error per pixel allowed, called `"MaxZError"`. You can specify any number from `0` (lossless) to a number so large that the decoded image may come out flat.
+
+In a nutshell, if .jpeg is good enough for your images, use .jpeg. If not, if you would use .png instead, or .gzip, then you may want to try out Lerc.
 
 ## How to use
 
-For illustration, we have put together a simple test sample.
+Lerc can be run anywhere without external dependencies.  It can be accessed in GDAL via the [MRF driver](https://github.com/nasa-gibs/mrf).  For illustration purposes, we have put together a simple test sample.
 
 ### Windows
 
-- Open src/Lerc/Lerc.sln with Microsoft Visual Studio. We have used MSVS 2013. 
-- Build the Lerc.dll. Pick x64 or Win32 according to your system. Copy the resulting Lerc.lib into the lib/ folder.
-- Open src/LercTest/LercTest.sln. 
-- Build the test application LercTest.exe. Again, pick x64 or Win32. 
-- Copy the Lerc.dll from above next to LercTest.exe.
-- Run it. 
+- Open `src/Lerc/Lerc.sln` with Microsoft Visual Studio. We have used MSVS 2013.
+- Build the `Lerc.dll`. Pick x64 or Win32 according to your system. Copy the resulting `Lerc.lib` into the `lib/` folder.
+- Open `src/LercTest/LercTest.sln`.
+- Build the test application `LercTest.exe`. Again, pick x64 or Win32.
+- Copy the `Lerc.dll` from above next to `LercTest.exe`.
+- Run it.
 
 ### Linux
 
-- Go to src/Lerc. Call make. This should create libLerc.so. 
-- Go to src/LercTest. In the makefile, adjust the paths at the top as needed. Call make. This should create main.out. 
-- Run it. 
+- Go to `src/Lerc`
+- Call `make`. This should create `libLerc.so`.
+- Go to `src/LercTest`. In the makefile, adjust the paths at the top as needed.
+- `Call make`. This should create `main.out`.
+- Run it.
 
 ## Lerc Properties
 
@@ -84,7 +87,7 @@ The main principle of Lerc and history can be found in [doc/MORE.md](doc/MORE.md
 
 ## Benchmarks
 
-Some benchmarks are in 
+Some benchmarks are in
 [doc/LercBenchmarks_Feb_2016.pdf](doc/LercBenchmarks_Feb_2016.pdf)
 
 ## Bugs?
@@ -93,7 +96,7 @@ The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level m
 
 ## Contact
 
-Send an email to  <a href="mailto:tmaurer@esri.com">tmaurer@esri.com</a>
+Send an email to <a href="mailto:tmaurer@esri.com">tmaurer@esri.com</a>
 
 ## Licensing
 
