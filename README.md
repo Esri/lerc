@@ -40,6 +40,8 @@ In a nutshell, if .jpeg is good enough for your images, use .jpeg. If not, if yo
 
 ## How to use
 
+Lerc can be run anywhere without external dependencies.  This project includes a test sample of how to use LERRC directly.
+LERC can also be used as a compression for the MRF format via [GDAL](http://gdal.org) release 2.1 or newer.  
 
 ### Windows
 
