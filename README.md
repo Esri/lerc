@@ -40,7 +40,8 @@ In a nutshell, if .jpeg is good enough for your images, use .jpeg. If not, if yo
 
 ## How to use
 
-Lerc can be run anywhere without external dependencies.  It can be accessed in GDAL via the [MRF driver](https://github.com/nasa-gibs/mrf).  For illustration purposes, we have put together a simple test sample.
+Lerc can be run anywhere without external dependencies.  This project includes a test sample of how to use LERC directly.
+LERC can also be used as a compression for the MRF format via [GDAL](http://gdal.org) release 2.1 or newer.  
 
 ### Windows
 
