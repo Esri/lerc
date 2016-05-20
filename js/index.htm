@@ -120,7 +120,7 @@
           var i = evt.clientX - canvasPos.left; //col
           var j = evt.clientY - canvasPos.top; //row
           var pos = j * width + i;
-          if (mask && mask[pos]){
+          if (mask && mask[pos] || !mask) {
             var pv = [];
             for (var kk = 0; kk < planes; kk++) {
               pv.push(pixels[kk][pos]);
