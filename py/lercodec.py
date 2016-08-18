@@ -31,15 +31,16 @@
 ##    http://github.com/Esri/lerc/
 ##-----------------------------------------------------------------------------
 
+'''Lerc codec'''
+
 import struct
 import array
 
-'''Lerc codec'''
-
-def dloop(xrange, yrange):
-    ''' A double loop, x changes first, then y'''
-    for t in ((x, y) for y in yrange for x in xrange):
-        yield t
+def dloop(xr, yr):
+    ''' A double loop, x inner, y outer'''
+    for y in yr:
+        for x in xr:
+            yield x, y
 
 # size is the number of bytes to read
 def decode_RLE(blob, offset, size):
@@ -117,18 +118,20 @@ def read_block(data, rx, ry, mask, Q, max_val, blob, offset):
     flags &= 63
     assert flags < 4
 
-    # Stored as such, based on mask
     if flags == 0:
+        # Stored as such, based on mask
         for x, y in dloop(rx, ry):
             if mask.at(x, y) != 0:
                 data[y * mask.w + x], = struct.unpack_from("<f", blob, offset)
                 offset += 4
         return offset
 
-    mval = 0.0
-    if 0 != (flags & 1): # A min value is present
+    if 0 != (flags & 1):
+        # A min value is present
         mval, = struct.unpack_from(("<f", "<h", "b")[mf], blob, offset)
         offset += (4, 2, 1)[mf]
+    else:
+        mval = 0.0
 
     # constant encoding, all mval, ignore the mask
     if 0 != (flags & 2):
@@ -149,8 +152,8 @@ def read_block(data, rx, ry, mask, Q, max_val, blob, offset):
 class bitmask(object):
     def __init__(self, w, h, val = 255, data = None):
         sz = (w * h + 7) / 8
-        self.data = array.array('B', (val,) * sz) if data is None else data
         self.w, self.h = w, h
+        self.data = array.array('B', (val,) * sz) if data is None else data
 
     def at(self, x, y):
         'query mask at x and y'
@@ -205,11 +208,11 @@ class lerc(object):
     # Decode data from blob starting at a given offset
     # assuming header, mask and offset are correct
     def read_tiles(self, blob):
-        result = array.array('f', (0.0, ) * self.w * self.h)
-        # Figure out the endcoding block size
+        # the encoding block size
         bh = self.h / self.v_nbY
         bw = self.w / self.v_nbX
         offset = 66 + self.m_nB
+        result = array.array('f', (0.0, ) * self.w * self.h)
         for x, y in dloop(range(0, self.w, bw), range(0, self.h, bh)):
 			offset = read_block(result,
 				range(x, x + min(bw, self.w - x)),
@@ -249,7 +252,7 @@ def main():
     assert codec.valid
     assert codec.mask.at(0,0) == 0 and codec.mask.at(1, 1) == 1
     assert data[74 * codec.w + 74] == 111.0
-    print codec
+    print  codec
 
 ##    for row in range(info.height): # Write data as CSV
 ##        print ",".join(`data[row * info.width + column]`
