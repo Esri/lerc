@@ -5,7 +5,6 @@
   <meta charset="utf-8" />
   <title></title>
   <script type="text/javascript" src="./LercCodec.js"></script>
-  <script type="text/javascript" src="./LercRaster.js"></script>
 </head>
 <body>
   <div id="imageInfo">Image Header Info</div>
@@ -18,7 +17,6 @@
     document.getElementById('mapUrl').onchange();
     //http://sampleserver6.arcgisonline.com/arcgis/rest/services/Toronto/ImageServer/exportImage?bbox=-8844874.0651,5401062.402699997,-8828990.0651,5420947.402699997&bboxSR=&size=&imageSR=&time=&format=lerc&pixelType=UNKNOWN&noData=&noDataInterpretation=esriNoDataMatchAny&interpolation= RSP_BilinearInterpolation&compression=&compressionQuality=&bandIds=&mosaicRule=&renderingRule=&f=image
     function showTile() {
-      var lerc = LERC();
       //UI elements
       var div_Info = document.getElementById("imageInfo");
       var div_CurrentPv = document.getElementById("currentPV");
@@ -32,13 +30,14 @@
       context.fillRect(0, 0, 100, 100);
       //fetching lerc
       var xhr = new XMLHttpRequest();
-      xhr.responseType = "arraybuffer";
       xhr.open("Get", mapUrl, true);
+      xhr.responseType = "arraybuffer";
       xhr.send();
       var pixels, mask, min, max, factor, planes, height, width;
       xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
-          var decodedPixelBlock = LercRaster.decode(xhr.response, { returnMask: true });
+          var t0 = new Date();
+          var decodedPixelBlock = Lerc.decode(xhr.response, {returnMask: true });
           width = decodedPixelBlock.width;
           height = decodedPixelBlock.height;
           pixels = decodedPixelBlock.pixels;
@@ -110,7 +109,8 @@
             }
           }
           context.putImageData(imageData, 0, 0);
-          div_Info.innerHTML = "max: " + max + ", min: " + min + ", width: " + width + ", height: " + height + ", planes: " + planes;
+          var duration = ((new Date()) - t0);
+          div_Info.innerHTML = "max: " + max + ", min: " + min + ", width: " + width + ", height: " + height + ", planes: " + planes + ", decode time:" + duration;
 
         }
         imageCanvas.onmousemove = function (evt) {
