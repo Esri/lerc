@@ -119,8 +119,7 @@ inline bool BitStuffer2::DecodeUInt(const Byte** ppByte, unsigned int& k, int nu
 
 // -------------------------------------------------------------------------- ;
 
-inline
-  unsigned int BitStuffer2::NumTailBytesNotNeeded(unsigned int numElem, int numBits) const
+inline unsigned int BitStuffer2::NumTailBytesNotNeeded(unsigned int numElem, int numBits) const
 {
   int numBitsTail = (numElem * numBits) & 31;
   int numBytesTail = (numBitsTail + 7) >> 3;

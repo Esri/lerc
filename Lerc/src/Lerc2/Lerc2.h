@@ -74,7 +74,7 @@ public:
   template<class T>
   unsigned int ComputeNumBytesNeededToWrite(const T* arr, double maxZError, bool encodeMask);
 
-  unsigned int ComputeMinNumBytesNeededToReadHeader() const;
+  static unsigned int MinNumBytesNeededToReadHeader();
 
   /// dst buffer already allocated;  byte ptr is moved like a file pointer
   template<class T>
@@ -100,15 +100,17 @@ public:
     void RawInit()  { memset(this, 0, sizeof(struct HeaderInfo)); }
   };
 
-  bool GetHeaderInfo(const Byte* pByte, struct HeaderInfo& headerInfo) const;
+  static bool GetHeaderInfo(const Byte* pByte, struct HeaderInfo& headerInfo);
 
   /// does not allocate memory;  byte ptr is moved like a file pointer
   template<class T>
   bool Decode(const Byte** ppByte, T* arr, Byte* pMaskBits = 0);    // if mask ptr is not 0, mask bits are returned (even if all valid or same as previous)
 
 private:
-  int         m_currentVersion,
-              m_microBlockSize,
+  static const int kCurrVersion = 3;    // 2: added Huffman coding to 8 bit types DT_Char, DT_Byte;
+                                        // 3: changed the bit stuffing to using a uint aligned buffer,
+                                        //    added Fletcher32 checksum
+  int         m_microBlockSize,
               m_maxValToQuantize;
   BitMask     m_bitMask;
   HeaderInfo  m_headerInfo;
@@ -119,13 +121,14 @@ private:
   mutable std::vector<std::pair<short, unsigned int> > m_huffmanCodes;    // <= 256 codes, 1.5 kB
 
 private:
-  std::string FileKey() const  { return "Lerc2 "; }
-  bool IsLittleEndianSystem() const  { int n = 1;  return (1 == *((Byte*)&n)) && (4 == sizeof(int)); }
+  static std::string FileKey()  { return "Lerc2 "; }
+  static bool IsLittleEndianSystem()  { int n = 1;  return (1 == *((Byte*)&n)) && (4 == sizeof(int)); }
   void Init();
-  unsigned int ComputeNumBytesHeaderToWrite() const;
 
-  bool WriteHeader(Byte** ppByte) const;
-  bool ReadHeader(const Byte** ppByte, struct HeaderInfo& headerInfo) const;
+  static unsigned int ComputeNumBytesHeaderToWrite();
+  static bool WriteHeader(Byte** ppByte, const struct HeaderInfo& hd);
+  static bool ReadHeader(const Byte** ppByte, struct HeaderInfo& hd);
+
   bool WriteMask(Byte** ppByte) const;
   bool ReadMask(const Byte** ppByte);
 
@@ -237,7 +240,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
     return 0;
 
   if (m_headerInfo.dt < DT_Float)
-    maxZError = max(0.5, floor(maxZError));
+    maxZError = std::max(0.5, floor(maxZError));
 
   m_headerInfo.maxZError = maxZError;
   m_headerInfo.zMin = 0;
@@ -310,7 +313,7 @@ bool Lerc2::Encode(const T* arr, Byte** ppByte) const
 
   Byte* ptrBlob = *ppByte;    // keep a ptr to the start of the blob
 
-  if (!WriteHeader(ppByte))
+  if (!WriteHeader(ppByte, m_headerInfo))
     return false;
 
   if (!WriteMask(ppByte))
@@ -553,8 +556,8 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes, double& zMin
 
       if (numValidPixel > 0)
       {
-        zMinA = min(zMinA, (double)zMin);
-        zMaxA = max(zMaxA, (double)zMax);
+        zMinA = std::min(zMinA, (double)zMin);
+        zMaxA = std::max(zMaxA, (double)zMax);
       }
 
       // if needed, quantize the data here once
@@ -919,7 +922,7 @@ bool Lerc2::WriteTile(const T* data, Byte** ppByte, int& numBytesWritten,
 
     if (maxElem > 0)
     {
-      if (quantVec.size() != numValidPixel)
+      if ((int)quantVec.size() != numValidPixel)
         return false;
 
       if (!doLut)
@@ -1022,7 +1025,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, T* data, int i0, int i1, int j0, int j
           for (int j = j0; j < j1; j++, k++)
           {
             double z = offset + *srcPtr++ * invScale;
-            data[k] = (T)min(z, m_headerInfo.zMax);    // make sure we stay in the orig range
+            data[k] = (T)std::min(z, m_headerInfo.zMax);    // make sure we stay in the orig range
           }
         }
       }
@@ -1035,7 +1038,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, T* data, int i0, int i1, int j0, int j
             if (m_bitMask.IsValid(k))
             {
               double z = offset + *srcPtr++ * invScale;
-              data[k] = (T)min(z, m_headerInfo.zMax);    // make sure we stay in the orig range
+              data[k] = (T)std::min(z, m_headerInfo.zMax);    // make sure we stay in the orig range
             }
         }
       }

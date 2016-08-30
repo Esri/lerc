@@ -24,14 +24,6 @@ Contributors:  Thomas Maurer
 #ifndef BITMASK_H
 #define BITMASK_H
 
-#if defined(_MSC_VER)
-  #define LERCDLL_API __declspec(dllexport)
-#elif __GNUC__ >= 4
-  #define LERCDLL_API __attribute__((visibility("default")))
-#else
-  #define LERCDLL_API
-#endif
-
 namespace LercNS
 {
   typedef unsigned char Byte;
@@ -40,7 +32,7 @@ namespace LercNS
   *
   */
 
-  class LERCDLL_API BitMask
+  class BitMask
   {
   public:
     BitMask() : m_pBits(0), m_nCols(0), m_nRows(0)  {}

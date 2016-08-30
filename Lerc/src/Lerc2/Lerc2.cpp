@@ -45,16 +45,13 @@ Lerc2::Lerc2(int nCols, int nRows, const Byte* pMaskBits)
 
 void Lerc2::Init()
 {
-  m_currentVersion    = 3;    // 2: added Huffman coding to 8 bit types DT_Char, DT_Byte;
-                              // 3: changed the bit stuffing to using a uint aligned buffer,
-                              //    added Fletcher32 checksum
   m_microBlockSize    = 8;
   m_maxValToQuantize  = 0;
   m_encodeMask        = true;
   m_writeDataOneSweep = false;
 
   m_headerInfo.RawInit();
-  m_headerInfo.version = m_currentVersion;
+  m_headerInfo.version = kCurrVersion;
   m_headerInfo.microBlockSize = m_microBlockSize;
 }
 
@@ -99,7 +96,7 @@ bool Lerc2::Set(const BitMask& bitMask)
 
 // if the Lerc2 header should ever shrink in size to less than below, then update it (very unlikely)
 
-unsigned int Lerc2::ComputeMinNumBytesNeededToReadHeader() const
+unsigned int Lerc2::MinNumBytesNeededToReadHeader()
 {
   unsigned int numBytes = (unsigned int)FileKey().length();
   numBytes += 7 * sizeof(int);
@@ -109,21 +106,18 @@ unsigned int Lerc2::ComputeMinNumBytesNeededToReadHeader() const
 
 // -------------------------------------------------------------------------- ;
 
-bool Lerc2::GetHeaderInfo(const Byte* pByte, struct HeaderInfo& headerInfo) const
+bool Lerc2::GetHeaderInfo(const Byte* pByte, struct HeaderInfo& hd)
 {
-  if (!pByte)
+  if (!pByte || !IsLittleEndianSystem())
     return false;
 
-  if (!IsLittleEndianSystem())
-    return false;
-
-  return ReadHeader(&pByte, headerInfo);
+  return ReadHeader(&pByte, hd);
 }
 
 // -------------------------------------------------------------------------- ;
 // -------------------------------------------------------------------------- ;
 
-unsigned int Lerc2::ComputeNumBytesHeaderToWrite() const
+unsigned int Lerc2::ComputeNumBytesHeaderToWrite()
 {
   unsigned int numBytes = (unsigned int)FileKey().length();
   numBytes += 7 * sizeof(int);
@@ -134,13 +128,12 @@ unsigned int Lerc2::ComputeNumBytesHeaderToWrite() const
 
 // -------------------------------------------------------------------------- ;
 
-bool Lerc2::WriteHeader(Byte** ppByte) const
+bool Lerc2::WriteHeader(Byte** ppByte, const struct HeaderInfo& hd)
 {
   if (!ppByte)
     return false;
 
   std::string fileKey = FileKey();
-  const HeaderInfo& hd = m_headerInfo;
 
   std::vector<int> intVec;
   intVec.push_back(hd.nRows);
@@ -161,7 +154,7 @@ bool Lerc2::WriteHeader(Byte** ppByte) const
   memcpy(ptr, fileKey.c_str(), len);
   ptr += len;
 
-  memcpy(ptr, &m_currentVersion, sizeof(int));
+  memcpy(ptr, &kCurrVersion, sizeof(int));
   ptr += sizeof(int);
 
   unsigned int checksum = 0;
@@ -182,7 +175,7 @@ bool Lerc2::WriteHeader(Byte** ppByte) const
 
 // -------------------------------------------------------------------------- ;
 
-bool Lerc2::ReadHeader(const Byte** ppByte, struct HeaderInfo& headerInfo) const
+bool Lerc2::ReadHeader(const Byte** ppByte, struct HeaderInfo& hd)
 {
   if (!ppByte || !*ppByte)
     return false;
@@ -190,7 +183,6 @@ bool Lerc2::ReadHeader(const Byte** ppByte, struct HeaderInfo& headerInfo) const
   const Byte* ptr = *ppByte;
 
   std::string fileKey = FileKey();
-  HeaderInfo& hd = headerInfo;
   hd.RawInit();
 
   if (0 != memcmp(ptr, fileKey.c_str(), fileKey.length()))
@@ -201,7 +193,7 @@ bool Lerc2::ReadHeader(const Byte** ppByte, struct HeaderInfo& headerInfo) const
   memcpy(&(hd.version), ptr, sizeof(int));
   ptr += sizeof(int);
 
-  if (hd.version > m_currentVersion)    // this reader is outdated
+  if (hd.version > kCurrVersion)    // this reader is outdated
     return false;
 
   if (hd.version >= 3)

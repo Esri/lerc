@@ -6,19 +6,19 @@ LERC is an open-source image or raster format which supports rapid encoding and 
 
 This repository contains both a C++ library for encoding/decoding images and JavaScript and Python codecs for decoding LERC files.
 
-## The LERC API
+## The LERC C API
 
 Function | Description
 --- | ---
-`bool ComputeBufferSize(...)` | Computes the buffer size that needs to be allocated so the image can be Lerc compressed into that buffer. The size is accurate to the byte. This function is optional. It is faster than `Encode(...)`. It can also be called to decide whether an image or image tile should be encoded by Lerc or another method.
-`bool Encode(...)` | Compresses a given image into a pre-allocated buffer. If that buffer is too small, the function fails and returns `false`. The function returns the number of bytes written.
-`bool GetLercInfo(...)` | Looks into a given Lerc byte blob and returns a struct with all the header info. From this, the image to be decoded can be allocated and constructed. This function is optional. You don't need to call it if you already know the image properties such as tile size and data type.
-`bool Decode(...)` | Uncompresses a given Lerc byte blob into a pre-allocated image. If the data found in the Lerc byte blob does not fit the specified image properties, the function fails and returns `false`.
+`uint lerc_computeCompressedSize(...)` | Computes the buffer size that needs to be allocated so the image can be Lerc compressed into that buffer. The size is accurate to the byte. This function is optional. It is faster than `lerc_encode(...)`. It can also be called to decide whether an image or image tile should be encoded by Lerc or another method.
+`uint lerc_encode(...)` | Compresses a given image into a pre-allocated buffer. If that buffer is too small, the function fails with the corresponding error code. The function returns the number of bytes written.
+`uint lerc_getBlobInfo(...)` | Looks into a given Lerc byte blob and returns an array with all the header info. From this, the image to be decoded can be allocated and constructed. This function is optional. You don't need to call it if you already know the image properties such as tile size and data type.
+`uint lerc_decode(...)` | Uncompresses a given Lerc byte blob into a pre-allocated image. If the data found in the Lerc byte blob does not fit the specified image properties, the function fails with the corresponding error code. 
 
 
-To better support the case that not all image pixels are valid, the BitMask class is provided. It permits easy and efficient checking and setting pixels to valid / invalid.
+To support the case that not all image pixels are valid, a mask image can be passed. It has one byte per pixel, 1 for valid, 0 for invalid. 
 
-See the sample program `src/LercTest/main.cpp` which demonstrates how the above functions and classes are called and used. Also see the two header files in the `include/` folder and the comments in there.
+See the sample program `LercTest/src/main.cpp` which demonstrates how the above functions are called and used. Also see the two header files in the `include/` folder and the comments in there.
 
 One more comment about multiple bands. You can either store each band into its own Lerc byte blob which allows you to access / decode each band individually. Lerc also allows to stack bands together into one single Lerc byte blob. This can be useful if the bands are always used together anyway.
 
@@ -45,19 +45,19 @@ LERC can also be used as a compression for the MRF format via [GDAL](http://gdal
 
 ### Windows
 
-- Open `src/Lerc/Lerc.sln` with Microsoft Visual Studio. We have used MSVS 2013.
-- Build the `Lerc.dll`. Pick x64 or Win32 according to your system. Copy the resulting `Lerc.lib` into the `lib/` folder.
-- Open `src/LercTest/LercTest.sln`.
-- Build the test application `LercTest.exe`. Again, pick x64 or Win32.
+- Open `Lerc/build/Windows/MS_VS201X/Lerc.sln` with Microsoft Visual Studio. We have used MSVS 2013 and 2015.
+- Build the `Lerc.dll`. Pick x64. Copy the resulting `Lerc.lib` into the `lib/` folder.
+- Open `LercTest/build/Windows/MS_VS201X/LercTest.sln`.
+- Build the test application `LercTest.exe`. Pick x64.
 - Copy the `Lerc.dll` from above next to `LercTest.exe`.
 - Run it.
 
 ### Linux
 
-- Go to `src/Lerc`
-- Call `make`. This should create `libLerc.so`.
-- Go to `src/LercTest`. In the makefile, adjust the paths at the top as needed.
-- `Call make`. This should create `main.out`.
+- Open `Lerc/build/Linux/CodeBlocks/Lerc_dll/Lerc_dll.cbp` using the free Code::Blocks IDE for Linux. 
+- Build it. Should create `libLerc_dll.so`.
+- Open `LercTest/build/Linux/CodeBlocks/LercTest/LercTest.cbp`.
+- Build it. Should create `LercTest`.
 - Run it.
 
 ## Lerc Properties

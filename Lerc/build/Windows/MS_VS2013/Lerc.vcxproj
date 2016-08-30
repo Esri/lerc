@@ -125,27 +125,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Common\BitMask.cpp" />
-    <ClCompile Include="Common\RLE.cpp" />
-    <ClCompile Include="Lerc1Decode\BitStuffer.cpp" />
-    <ClCompile Include="Lerc1Decode\CntZImage.cpp" />
-    <ClCompile Include="Lerc2\BitStuffer2.cpp" />
-    <ClCompile Include="Lerc2\Huffman.cpp" />
-    <ClCompile Include="Lerc2\Lerc2.cpp" />
-    <ClCompile Include="Lerc\Lerc.cpp" />
+    <ClCompile Include="..\..\..\src\Common\BitMask.cpp" />
+    <ClCompile Include="..\..\..\src\Common\RLE.cpp" />
+    <ClCompile Include="..\..\..\src\Lerc1Decode\BitStuffer.cpp" />
+    <ClCompile Include="..\..\..\src\Lerc1Decode\CntZImage.cpp" />
+    <ClCompile Include="..\..\..\src\Lerc2\BitStuffer2.cpp" />
+    <ClCompile Include="..\..\..\src\Lerc2\Huffman.cpp" />
+    <ClCompile Include="..\..\..\src\Lerc2\Lerc2.cpp" />
+    <ClCompile Include="..\..\..\src\Lerc\Lerc.cpp" />
+    <ClCompile Include="..\..\..\src\Lerc\Lerc_c_api_impl.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\BitMask.h" />
-    <ClInclude Include="Common\Defines.h" />
-    <ClInclude Include="Common\RLE.h" />
-    <ClInclude Include="Lerc1Decode\BitStuffer.h" />
-    <ClInclude Include="Lerc1Decode\CntZImage.h" />
-    <ClInclude Include="Lerc1Decode\Image.h" />
-    <ClInclude Include="Lerc1Decode\TImage.hpp" />
-    <ClInclude Include="Lerc2\BitStuffer2.h" />
-    <ClInclude Include="Lerc2\Huffman.h" />
-    <ClInclude Include="Lerc2\Lerc2.h" />
-    <ClInclude Include="Lerc\Lerc.h" />
+    <ClInclude Include="..\..\..\src\Common\BitMask.h" />
+    <ClInclude Include="..\..\..\src\Common\Defines.h" />
+    <ClInclude Include="..\..\..\src\Common\RLE.h" />
+    <ClInclude Include="..\..\..\src\Include\Lerc_c_api.h" />
+    <ClInclude Include="..\..\..\src\Include\Lerc_types.h" />
+    <ClInclude Include="..\..\..\src\Lerc1Decode\BitStuffer.h" />
+    <ClInclude Include="..\..\..\src\Lerc1Decode\CntZImage.h" />
+    <ClInclude Include="..\..\..\src\Lerc1Decode\Image.h" />
+    <ClInclude Include="..\..\..\src\Lerc1Decode\TImage.hpp" />
+    <ClInclude Include="..\..\..\src\Lerc2\BitStuffer2.h" />
+    <ClInclude Include="..\..\..\src\Lerc2\Huffman.h" />
+    <ClInclude Include="..\..\..\src\Lerc2\Lerc2.h" />
+    <ClInclude Include="..\..\..\src\Lerc\Lerc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

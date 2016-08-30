@@ -1,9 +1,13 @@
 
+#include <cstring>
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
+#include <vector>
 #include <iostream>
-#include "Lerc.h"
+#include "Lerc_c_api.h"
+
+//#include "Lerc_types.h"    // see for error codes, data types, etc
 
 #if defined(_MSC_VER)
   #include "PerfTimer.h"
@@ -13,14 +17,35 @@
 #endif
 
 using namespace std;
-using namespace LercNS;
 
 //#define TestLegacyData
+
+typedef unsigned char Byte;    // convenience
+typedef unsigned int uint32;
+
+//-----------------------------------------------------------------------------
+
+enum lerc_DataType { dt_char = 0, dt_uchar, dt_short, dt_ushort, dt_int, dt_uint, dt_float, dt_double };
+
+void BlobInfo_Print(const uint32* infoArr)
+{
+  const uint32* ia = infoArr;
+  printf("version = %d, dataType = %d, nCols = %d, nRows = %d, nBands = %d, nValidPixels = %d, blobSize = %d\n",
+    ia[0], ia[1], ia[2], ia[3], ia[4], ia[5], ia[6]);
+}
+
+bool BlobInfo_Equal(const uint32* infoArr, uint32 nCols, uint32 nRows, uint32 nBands, uint32 dataType)
+{
+  const uint32* ia = infoArr;
+  return ia[1] == dataType && ia[2] == nCols && ia[3] == nRows && ia[4] == nBands;
+}
 
 //-----------------------------------------------------------------------------
 
 int main(int argc, char* arcv[])
 {
+  lerc_status hr;
+
   // Sample 1: float image, 1 band, with some pixels set to invalid / void, maxZError = 0.1
 
   int h = 512;
@@ -29,8 +54,8 @@ int main(int argc, char* arcv[])
   float* zImg = new float[w * h];
   memset(zImg, 0, w * h * sizeof(float));
 
-  LercNS::BitMask bitMask(w, h);
-  bitMask.SetAllValid();
+  Byte* maskByteImg = new Byte[w * h];
+  memset(maskByteImg, 0, w * h);
 
   for (int k = 0, i = 0; i < h; i++)
   {
@@ -40,7 +65,9 @@ int main(int argc, char* arcv[])
       zImg[k] += rand() % 20;    // add some small amplitude noise
 
       if (j % 100 == 0 || i % 100 == 0)    // set some void points
-        bitMask.SetInvalid(k);
+        maskByteImg[k] = 0;
+      else
+        maskByteImg[k] = 1;
     }
   }
 
@@ -51,64 +78,66 @@ int main(int argc, char* arcv[])
   double eps = 0.0001;    // safety margin (optional), to account for finite floating point accuracy
   double maxZError = maxZErrorWanted - eps;
 
-  size_t numBytesNeeded = 0;
-  size_t numBytesWritten = 0;
-  Lerc lerc;
+  uint32 numBytesNeeded = 0;
+  uint32 numBytesWritten = 0;
   PerfTimer pt;
 
-  if (!lerc.ComputeBufferSize((void*)zImg,    // raw image data, row by row, band by band
-    Lerc::DT_Float,
-    w, h, 1,
-    &bitMask,                  // set 0 if all pixels are valid
-    maxZError,                 // max coding error per pixel, or precision
-    numBytesNeeded))           // size of outgoing Lerc blob
-  {
-    cout << "ComputeBufferSize failed" << endl;
-  }
+  hr = lerc_computeCompressedSize((void*)zImg,    // raw image data, row by row, band by band
+    (uint32)dt_float, w, h, 1,
+    maskByteImg,         // can give nullptr if all pixels are valid
+    maxZError,           // max coding error per pixel, or precision
+    &numBytesNeeded);    // size of outgoing Lerc blob
 
-  size_t numBytesBlob = numBytesNeeded;
+  if (hr)
+    cout << "lerc_computeCompressedSize(...) failed" << endl;
+
+  uint32 numBytesBlob = numBytesNeeded;
   Byte* pLercBlob = new Byte[numBytesBlob];
 
   pt.start();
 
-  if (!lerc.Encode((void*)zImg,    // raw image data, row by row, band by band
-    Lerc::DT_Float,
-    w, h, 1,
-    &bitMask,           // 0 if all pixels are valid
+  hr = lerc_encode((void*)zImg,    // raw image data, row by row, band by band
+    (uint32)dt_float, w, h, 1,
+    maskByteImg,         // can give nullptr if all pixels are valid
     maxZError,           // max coding error per pixel, or precision
     pLercBlob,           // buffer to write to, function will fail if buffer too small
     numBytesBlob,        // buffer size
-    numBytesWritten))    // num bytes written to buffer
-  {
-    cout << "Encode failed" << endl;
-  }
+    &numBytesWritten);   // num bytes written to buffer
+
+  if (hr)
+    cout << "lerc_encode(...) failed" << endl;
 
   pt.stop();
 
   double ratio = w * h * (0.125 + sizeof(float)) / numBytesBlob;
   cout << "sample 1 compression ratio = " << ratio << ", encode time = " << pt.ms() << " ms" << endl;
 
-  // new data storage
-  float* zImg3 = new float[w * h];
-  memset(zImg3, 0, w * h * sizeof(float));
-
-  BitMask bitMask3(w, h);
-  bitMask3.SetAllValid();
-
 
   // decompress
 
-  Lerc::LercInfo lercInfo;
-  if (!lerc.GetLercInfo(pLercBlob, numBytesBlob, lercInfo))
-    cout << "get header info failed" << endl;
+  uint32 infoArr[10];
+  double dataRangeArr[3];
+  hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, 10, 3);
+  if (hr)
+    cout << "lerc_getBlobInfo(...) failed" << endl;
 
-  if (lercInfo.nCols != w || lercInfo.nRows != h || lercInfo.nBands != 1 || lercInfo.dt != Lerc::DT_Float)
+  BlobInfo_Print(infoArr);
+
+  if (!BlobInfo_Equal(infoArr, w, h, 1, (uint32)dt_float))
     cout << "got wrong lerc info" << endl;
+
+  // new empty data storage
+  float* zImg3 = new float[w * h];
+  memset(zImg3, 0, w * h * sizeof(float));
+
+  Byte* maskByteImg3 = new Byte[w * h];
+  memset(maskByteImg3, 0, w * h);
 
   pt.start();
 
-  if (!lerc.Decode(pLercBlob, numBytesBlob, &bitMask3, w, h, 1, Lerc::DT_Float, (void*)zImg3))
-    cout << "decode failed" << endl;
+  hr = lerc_decode(pLercBlob, numBytesBlob, maskByteImg3, w, h, 1, (uint32)dt_float, (void*)zImg3);
+  if (hr)
+    cout << "lerc_decode(...) failed" << endl;
 
   pt.stop();
 
@@ -120,10 +149,10 @@ int main(int argc, char* arcv[])
   {
     for (int j = 0; j < w; j++, k++)
     {
-      if (bitMask3.IsValid(k) != bitMask.IsValid(k))
-        cout << "Error in main: decoded bit mask differs from encoded bit mask" << endl;
+      if (maskByteImg3[k] != maskByteImg[k])
+        cout << "Error in main: decoded valid bytes differ from encoded valid bytes" << endl;
 
-      if (bitMask3.IsValid(k))
+      if (maskByteImg3[k])
       {
         double delta = fabs(zImg3[k] - zImg[k]);
         if (delta > maxDelta)
@@ -133,9 +162,12 @@ int main(int argc, char* arcv[])
   }
 
   cout << "max z error per pixel = " << maxDelta << ", decode time = " << pt.ms() << " ms" << endl;
+  cout << endl;
 
   delete[] zImg;
   delete[] zImg3;
+  delete[] maskByteImg;
+  delete[] maskByteImg3;
   delete[] pLercBlob;
   pLercBlob = 0;
 
@@ -157,49 +189,60 @@ int main(int argc, char* arcv[])
         arr[k] = rand() % 30;
   }
 
-  // encode 
 
-  if (!lerc.ComputeBufferSize((void*)byteImg, Lerc::DT_Byte, w, h, 3, 0, 0, numBytesNeeded))
-    cout << "ComputeBufferSize failed" << endl;
+  // encode
+
+  hr = lerc_computeCompressedSize((void*)byteImg,    // raw image data, row by row, band by band
+    (uint32)dt_uchar, w, h, 3,
+    0,                   // can give nullptr if all pixels are valid
+    0,                   // max coding error per pixel
+    &numBytesNeeded);    // size of outgoing Lerc blob
+
+  if (hr)
+    cout << "lerc_computeCompressedSize(...) failed" << endl;
 
   numBytesBlob = numBytesNeeded;
   pLercBlob = new Byte[numBytesBlob];
 
   pt.start();
 
-  if (!lerc.Encode((void*)byteImg,    // raw image data, row by row, band by band
-    Lerc::DT_Byte,
-    w, h, 3,
-    0,                   // 0 if all pixels are valid
-    0,                   // max coding error per pixel, or precision
+  hr = lerc_encode((void*)byteImg,    // raw image data, row by row, band by band
+    (uint32)dt_uchar, w, h, 3,
+    0,                   // can give nullptr if all pixels are valid
+    0,                   // max coding error per pixel
     pLercBlob,           // buffer to write to, function will fail if buffer too small
     numBytesBlob,        // buffer size
-    numBytesWritten))    // num bytes written to buffer
-  {
-    cout << "Encode failed" << endl;
-  }
+    &numBytesWritten);   // num bytes written to buffer
+
+  if (hr)
+    cout << "lerc_encode(...) failed" << endl;
 
   pt.stop();
 
   ratio = w * h * 3 / (double)numBytesBlob;
   cout << "sample 2 compression ratio = " << ratio << ", encode time = " << pt.ms() << " ms" << endl;
 
+
+  // decode
+
+  hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, 10, 3);
+  if (hr)
+    cout << "lerc_getBlobInfo(...) failed" << endl;
+
+  BlobInfo_Print(infoArr);
+
+  if (!BlobInfo_Equal(infoArr, w, h, 3, (uint32)dt_uchar))
+    cout << "got wrong lerc info" << endl;
+
   // new data storage
   Byte* byteImg3 = new Byte[w * h * 3];
   memset(byteImg3, 0, w * h * 3);
 
-  // decompress
-
-  if (!lerc.GetLercInfo(pLercBlob, numBytesBlob, lercInfo))
-    cout << "get header info failed" << endl;
-
-  if (lercInfo.nCols != w || lercInfo.nRows != h || lercInfo.nBands != 3 || lercInfo.dt != Lerc::DT_Byte)
-    cout << "got wrong lerc info" << endl;
-
   pt.start();
 
-  if (!lerc.Decode(pLercBlob, numBytesBlob, 0, w, h, 3, Lerc::DT_Byte, (void*)byteImg3))
-    cout << "decode failed" << endl;
+  hr = lerc_decode(pLercBlob, numBytesBlob, 0, w, h, 3, (uint32)dt_uchar, (void*)byteImg3);
+  if (hr)
+    cout << "lerc_decode(...) failed" << endl;
 
   pt.stop();
 
@@ -215,6 +258,7 @@ int main(int argc, char* arcv[])
     }
 
   cout << "max z error per pixel = " << maxDelta << ", decode time = " << pt.ms() << " ms" << endl;
+  cout << endl;
 
   delete[] byteImg;
   delete[] byteImg3;
@@ -228,6 +272,7 @@ int main(int argc, char* arcv[])
 
   Byte* pLercBuffer = new Byte[4 * 2048 * 2048];
   Byte* pDstArr     = new Byte[4 * 2048 * 2048];
+  Byte* pValidBytes = new Byte[1 * 2048 * 2048];
 
   vector<string> fnVec;
   string path = "D:/GitHub/LercOpenSource/testData/";
@@ -290,33 +335,37 @@ int main(int argc, char* arcv[])
     fclose(fp);
     fp = 0;
 
-    if (!lerc.GetLercInfo(pLercBuffer, fileSize, lercInfo))
-      cout << "get header info failed" << endl;
-    else
+    hr = lerc_getBlobInfo(pLercBuffer, (uint32)fileSize, infoArr, dataRangeArr, 10, 3);
+    if (hr)
+      cout << "lerc_getBlobInfo(...) failed" << endl;
+
     {
-      int w = lercInfo.nCols;
-      int h = lercInfo.nRows;
-      int nBands = lercInfo.nBands;
-      Lerc::DataType dt = lercInfo.dt;
+      int w = infoArr[2];
+      int h = infoArr[3];
+      int nBands = infoArr[4];
+      uint32 dt = infoArr[1];
 
       pt.start();
-      
+
       std::string resultMsg = "ok";
-      BitMask bitMask;
-      if (!lerc.Decode(pLercBuffer, fileSize, &bitMask, w, h, nBands, dt, (void*)pDstArr))
+      if (0 != lerc_decode(pLercBuffer, (uint32)fileSize, pValidBytes, w, h, nBands, dt, (void*)pDstArr))
         resultMsg = "FAILED";
 
       pt.stop();
 
-      printf("w = %4d, h = %4d, nBands = %2d, dt = %2d, time = %4d ms,  %s :  %s\n", w, h, nBands, (int)dt, pt.ms(), resultMsg.c_str(), fnVec[n].c_str());
+      printf("w = %4d, h = %4d, nBands = %2d, dt = %2d, time = %4d ms,  %s :  %s\n", w, h, nBands, dt, pt.ms(), resultMsg.c_str(), fnVec[n].c_str());
     }
   }
+
+  delete[] pLercBuffer;
+  delete[] pDstArr;
+  delete[] pValidBytes;
 
 #endif
 
   printf("\npress ENTER\n");
   getchar();
-  
+
   return 0;
 }
 
