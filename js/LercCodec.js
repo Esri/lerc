@@ -932,7 +932,7 @@ Contributors:  Johannes Schmid,
 
         //this could be questionable ???
         //data.ptr = data.ptr + (srcPtr + 1) * 4 + (bitPos > 1 ? 4 : 0);
-        data.ptr = data.ptr + (srcPtr) * 4 + (bitPos > 1 ? 4 : 0);
+        data.ptr = data.ptr + (srcPtr) * 4 + (bitPos > 0 ? 4 : 0);
         //finished reading code table
 
 
@@ -1163,7 +1163,7 @@ Contributors:  Johannes Schmid,
 
                 if (j > 0 && mask[k - 1])
                   delta += prevVal;    // use overflow
-                else if (i > 0 && resultPixels[k - width])
+                else if (i > 0 && mask[k - width])
                   delta += resultPixels[k - width];
                 else
                   delta += prevVal;
@@ -1723,8 +1723,11 @@ Contributors:  Johannes Schmid,
         var temp = 0;
         switch (block.offsetType) {
           case 0: //char
-          case 1: //byte
             temp = view.getInt8(block.ptr);
+            block.ptr++;
+            break;
+          case 1: //byte
+            temp = view.getUint8(block.ptr);
             block.ptr++;
             break;
           case 2:
@@ -1750,9 +1753,9 @@ Contributors:  Johannes Schmid,
           case 7:
             //temp = view.getFloat64(block.ptr, true);
             //block.ptr += 8;
-            //lerc2 encoding doesnt handle float 64, force to float32
-            temp = view.getFloat32(block.ptr, true);
-            block.ptr += 4;
+            //lerc2 encoding doesnt handle float 64, force to float32???
+            temp = view.getFloat64(block.ptr, true);
+            block.ptr += 8;
             break;
           default:
             throw ("the decoder does not understand this pixel type");
