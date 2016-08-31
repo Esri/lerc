@@ -85,7 +85,7 @@ lerc_status lerc_encode(const void* pData, unsigned int dataType, int nCols, int
 lerc_status lerc_getBlobInfo(const unsigned char* pLercBlob, unsigned int blobSize, 
   unsigned int* infoArray, double* dataRangeArray, int infoArraySize, int dataRangeArraySize)
 {
-  if (!pLercBlob || !blobSize || !infoArray || infoArraySize < 7 || !dataRangeArray || dataRangeArraySize < 3)
+  if (!pLercBlob || !blobSize || (!infoArray && !dataRangeArray) || ((infoArraySize <= 0) && (dataRangeArraySize <= 0)))
     return (lerc_status)ErrCode::WrongParam;
 
   Lerc::LercInfo lercInfo;
@@ -93,17 +93,37 @@ lerc_status lerc_getBlobInfo(const unsigned char* pLercBlob, unsigned int blobSi
   if (errCode != ErrCode::Ok)
     return (lerc_status)errCode;
 
-  infoArray[0] = (unsigned int)lercInfo.version;
-  infoArray[1] = (unsigned int)lercInfo.dt;
-  infoArray[2] = (unsigned int)lercInfo.nCols;
-  infoArray[3] = (unsigned int)lercInfo.nRows;
-  infoArray[4] = (unsigned int)lercInfo.nBands;
-  infoArray[5] = (unsigned int)lercInfo.numValidPixel;
-  infoArray[6] = (unsigned int)lercInfo.blobSize;
+  if (infoArray)
+  {
+    int i = 0, ias = infoArraySize;
 
-  dataRangeArray[0] = lercInfo.zMin;
-  dataRangeArray[1] = lercInfo.zMax;
-  dataRangeArray[2] = lercInfo.maxZError;
+    if (i < ias)
+      infoArray[i++] = (unsigned int)lercInfo.version;
+    if (i < ias)
+      infoArray[i++] = (unsigned int)lercInfo.dt;
+    if (i < ias)
+      infoArray[i++] = (unsigned int)lercInfo.nCols;
+    if (i < ias)
+      infoArray[i++] = (unsigned int)lercInfo.nRows;
+    if (i < ias)
+      infoArray[i++] = (unsigned int)lercInfo.nBands;
+    if (i < ias)
+      infoArray[i++] = (unsigned int)lercInfo.numValidPixel;
+    if (i < ias)
+      infoArray[i++] = (unsigned int)lercInfo.blobSize;
+  }
+
+  if (dataRangeArray)
+  {
+    int i = 0, dras = dataRangeArraySize;
+
+    if (i < dras)
+      dataRangeArray[i++] = lercInfo.zMin;
+    if (i < dras)
+      dataRangeArray[i++] = lercInfo.zMax;
+    if (i < dras)
+      dataRangeArray[i++] = lercInfo.maxZError;
+  }
 
   return (lerc_status)ErrCode::Ok;
 }
