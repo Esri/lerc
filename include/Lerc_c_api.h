@@ -38,20 +38,20 @@ extern "C" {
 
 
   //! C-API for LERC library
-  //! Unless specified:
-  //!   - all output buffers must have been allocated by caller. 
-  //!   - Input buffers do not need to outlive Lerc function call (Lerc will make internal copies if needed).
+
+  //! All output buffers must have been allocated by caller. 
   
   typedef unsigned int lerc_status;
 
   //! Compute the buffer size in bytes required to hold the compressed input tile. Optional. 
-  //! You can call lerc_encode(...) directly as long as the output buffer is large enough. 
+  //! You can call lerc_encode(...) directly as long as the output buffer is big enough. 
 
   //! Order of raw input data is top left corner to lower right corner, row by row. This for each band. 
   //! Data type is  { char = 0, uchar = 1, short = 2, ushort = 3, int = 4, uint = 5, float = 6, double = 7 }, see Lerc_types.h .
-  //! maxZErr is the max compression error tolerated per pixel.
-  //! The tile of valid bytes is optional. Zero means all pixels are valid. 
-  //! If not all pixels are valid, set those bytes to 0, valid pixel bytes to 1. 
+  //! maxZErr is the max compression error per pixel allowed.
+
+  //! The tile or mask of valid bytes is optional. Null pointer means all pixels are valid. 
+  //! If not all pixels are valid, set invalid pixel bytes to 0, valid pixel bytes to 1. 
   //! Size of the valid / invalid byte image is nCols x nRows. 
 
   LERCDLL_API
@@ -59,7 +59,7 @@ extern "C" {
     const void* pData,                   // raw image data, row by row, band by band
     unsigned int dataType,
     int nCols, int nRows, int nBands,    // number of columns, rows, bands
-    const unsigned char* pValidBytes,    // 0 if all pixels are valid; 1 byte per pixel (1 = valid, 0 = invalid)
+    const unsigned char* pValidBytes,    // null ptr if all pixels are valid; otherwise 1 byte per pixel (1 = valid, 0 = invalid)
     double maxZErr,                      // max coding error per pixel, defines the precision
     unsigned int* numBytes);             // size of outgoing Lerc blob
 
@@ -81,10 +81,13 @@ extern "C" {
   //! Call this to get info about the compressed Lerc blob. Optional. 
   //! Info returned in infoArray is { version, dataType, nCols, nRows, nBands, nValidPixels, blobSize }, see Lerc_types.h .
   //! Info returned in dataRangeArray is { zMin, zMax, maxZErrorUsed }, see Lerc_types.h .
-  //! If more than 1 band this is over all bands. 
+  //! If more than 1 band the data range [zMin, zMax] is over all bands. 
+
+  // Remark on function signature. The arrays to be filled may grow in future versions. In order not to break 
+  // existing code, the function fills these arrays only up to their allocated size. 
 
   // Remark on param blobSize. Usually it is known, either the file size of the blob written to disk, 
-  // or the size of the blob transmitted. It should be accurate for 2 reasons:
+  // or the size of the blob transmitted. It should be passed accurately for 2 reasons:
   // _ function finds out how many single band Lerc blobs are concatenated
   // _ function checks for truncated file or blob
   // It is OK to pass blobSize too large as long as there is no other (valid) Lerc blob following next.
@@ -92,7 +95,7 @@ extern "C" {
 
   LERCDLL_API
   lerc_status lerc_getBlobInfo(const unsigned char* pLercBlob, unsigned int blobSize, 
-    unsigned int* infoArray, double* dataRangeArray, int infoArraySize = 7, int dataRangeArraySize = 3);
+    unsigned int* infoArray, double* dataRangeArray, int infoArraySize, int dataRangeArraySize);
 
 
   //! Decode the compressed Lerc blob into a raw data array.
@@ -103,7 +106,7 @@ extern "C" {
   lerc_status lerc_decode(
     const unsigned char* pLercBlob,     // Lerc blob to decode
     unsigned int blobSize,              // blob size in bytes
-    unsigned char* pValidBytes,         // gets filled if not 0, even if all valid
+    unsigned char* pValidBytes,         // gets filled if not null ptr, even if all valid
     int nCols, int nRows, int nBands,   // number of columns, rows, bands
     unsigned int dataType,              // data type of outgoing array
     void* pData);                       // outgoing data array

@@ -1,6 +1,11 @@
 
 #pragma once
 
+// You can include this file (if you work in C++) but you don't have to. 
+// If you call this api from another language (Python, C#), you see integers. 
+// This header file tells you what these integers mean. 
+// These enum's may grow in the future. More values can be added. 
+
 namespace LercNS
 {
   enum class ErrCode : int
