@@ -659,16 +659,19 @@ Contributors:  Johannes Schmid,
         src[src.length - 1] <<= 8 * numInvalidTailBytes;
         
         for (o = 0; o < numPixels; o++) {
-          if (bitPos === 32) {
+          if (bitsLeft === 0) {
             buffer = src[i++];
+            bitsLeft = 32;
             bitPos = 0;
           }
-          if (bitsUnoccupied >= bitPos) {
-            n = (buffer >>> bitPos) & bitMask;
+          if (bitsLeft >= bitsPerPixel) {
+            //no unsigned left shift
+            n = ((buffer >>> bitPos) & bitMask);
+            bitsLeft -= bitsPerPixel;
             bitPos += bitsPerPixel;
           } else {
             missingBits = (bitsPerPixel - bitsLeft);
-            n = (buffer >>> bitPos) & bitMask;
+            n = (buffer >>> bitPos) & bitMask;//((buffer & bitMask) << missingBits) & bitMask;
             buffer = src[i++];
             bitsLeft = 32 - missingBits;
             n |= (buffer & ((1 << missingBits) - 1)) << (bitsPerPixel - missingBits);
@@ -1303,7 +1306,7 @@ Contributors:  Johannes Schmid,
 
         for (blockY = 0; blockY < numBlocksY; blockY++) {
           thisBlockHeight = (blockY !== numBlocksY - 1) ? microBlockSize : lastBlockHeight;
-          for (blockX = 0; blockX < numBlocksX; blockX++) {
+          for (blockX = 0; blockX < numBlocksX; blockX++) {            
             //console.debug("y" + blockY + " x" + blockX);
             thisBlockWidth = (blockX !== numBlocksX - 1) ? microBlockSize : lastBlockWidth;
 
@@ -1493,7 +1496,7 @@ Contributors:  Johannes Schmid,
                 }
                 else {
                   for (row = 0; row < thisBlockHeight; row++) {
-                    for (col = 0; col < thisBlockWidth; col++) {
+                    for (col = 0; col < thisBlockWidth; col++) {                      
                       data.pixels.resultPixels[outPtr++] = blockDataBuffer[blockPtr++];
                     }
                     outPtr += outStride;
