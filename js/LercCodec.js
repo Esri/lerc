@@ -477,28 +477,18 @@ Contributors:  Johannes Schmid,
     * private static class bitsutffer used by Lerc2Codec
     *******************************************/
     var BitStuffer = {
-
-      unstuff: function(block, dest, maxValue) {
-        var src = block.stuffedData;
-        var bitsPerPixel = block.bitsPerPixel;
-        var numPixels = block.numValidPixel;
-        var offset = block.offset;
-        var scale = block.scale;
-        var doLut = block.doLut;
-        var lutArr = block.lutArr;
-
+      //methods ending with 2 are for the new byte order used by Lerc2.3 and above.
+      //original is listed here but not used. code is duplicated to unstuffx and unstuffLUTx for performance reasons.
+      unstuff: function(src, dest, bitsPerPixel, numPixels, lutArr, offset, scale, maxValue) {
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o;
         var bitsLeft = 0;
-        var n, buffer, kk, missingBits;
+        var n, buffer, kk, missingBits, nmax;
 
         // get rid of trailing bytes that are already part of next block
         var numInvalidTailBytes = src.length * 4 - Math.ceil(bitsPerPixel * numPixels / 8);
         src[src.length - 1] <<= 8 * numInvalidTailBytes;
-        if (doLut) {
-          for (kk = 0; kk < lutArr.length; kk++) {
-            lutArr[kk] = offset + lutArr[kk] * scale;
-          }
+        if (lutArr) {
           for (o = 0; o < numPixels; o++) {
             if (bitsLeft === 0) {
               buffer = src[i++];
@@ -519,7 +509,7 @@ Contributors:  Johannes Schmid,
           }
         }
         else {
-          var nmax = Math.ceil((maxValue - offset) / scale);
+          nmax = Math.ceil((maxValue - offset) / scale);
           for (o = 0; o < numPixels; o++) {
             if (bitsLeft === 0) {
               buffer = src[i++];
@@ -536,18 +526,13 @@ Contributors:  Johannes Schmid,
               bitsLeft = 32 - missingBits;
               n += (buffer >>> bitsLeft);
             }
-            if (n < nmax) {
-              dest[o] = offset + n * scale;
-            }
-            else {
-              dest[o] = maxValue;
-            }
+            //pixel values may exceed max due to quantization
+            dest[o] = n < nmax ? offset + n * scale : maxValue;
           }
         }
-        return dest;
       },
 
-      unstuffLUT: function(src, bitsPerPixel, numPixels) {
+      unstuffLUT: function(src, bitsPerPixel, numPixels, offset, scale, maxValue) {
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o = 0, missingBits = 0, bitsLeft = 0, n = 0;
         var buffer;
@@ -557,6 +542,7 @@ Contributors:  Johannes Schmid,
         var numInvalidTailBytes = src.length * 4 - Math.ceil(bitsPerPixel * numPixels / 8);
         src[src.length - 1] <<= 8 * numInvalidTailBytes;
 
+        var nmax = Math.ceil((maxValue - offset) / scale);
         for (o = 0; o < numPixels; o++) {
           if (bitsLeft === 0) {
             buffer = src[i++];
@@ -572,29 +558,19 @@ Contributors:  Johannes Schmid,
             bitsLeft = 32 - missingBits;
             n += (buffer >>> bitsLeft);
           }
-          //dest[o] = offset + n * scale;
-          dest.push(n);
+          //dest.push(n);
+          dest[o] = n < nmax ? offset + n * scale : maxValue;
         }
+        dest.unshift(offset);
         return dest;
       },
 
-      unstuff2: function(block, dest, maxValue) {
-        var src = block.stuffedData;
-        var bitsPerPixel = block.bitsPerPixel;
-        var numPixels = block.numValidPixel;
-        var offset = block.offset;
-        var scale = block.scale;
-        var doLut = block.doLut;
-        var lutArr = block.lutArr;
-
+      unstuff2: function(src, dest, bitsPerPixel, numPixels, lutArr, offset, scale, maxValue) {
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o;
         var bitsLeft = 0, bitPos = 0;
         var n, buffer, kk, missingBits;
-        if (doLut) {
-          for (kk = 0; kk < lutArr.length; kk++) {
-            lutArr[kk] = offset + lutArr[kk] * scale;
-          }
+        if (lutArr) {
           for (o = 0; o < numPixels; o++) {
             if (bitsLeft === 0) {
               buffer = src[i++];
@@ -637,27 +613,19 @@ Contributors:  Johannes Schmid,
               n |= (buffer & ((1 << missingBits) - 1)) << (bitsPerPixel - missingBits);
               bitPos = missingBits;
             }
-            if (n < nmax) {
-              dest[o] = offset + n * scale;
-            }
-            else {
-              dest[o] = maxValue;
-            }
+            //pixel values may exceed max due to quantization
+            dest[o] = n < nmax ? offset + n * scale : maxValue;
           }
         }
         return dest;
       },
 
-      unstuffLUT2: function(src, bitsPerPixel, numPixels) {
+      unstuffLUT2: function(src, bitsPerPixel, numPixels, offset, scale, maxValue) {
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o = 0, missingBits = 0, bitsLeft = 0, n = 0, bitPos = 0, bitsUnoccupied = 32 - bitsPerPixel;
         var buffer;
         var dest = [];
-
-        // get rid of trailing bytes that are already part of next block
-        var numInvalidTailBytes = src.length * 4 - Math.ceil(bitsPerPixel * numPixels / 8);
-        src[src.length - 1] <<= 8 * numInvalidTailBytes;
-        
+        var nmax = Math.ceil((maxValue - offset) / scale);
         for (o = 0; o < numPixels; o++) {
           if (bitsLeft === 0) {
             buffer = src[i++];
@@ -677,7 +645,70 @@ Contributors:  Johannes Schmid,
             n |= (buffer & ((1 << missingBits) - 1)) << (bitsPerPixel - missingBits);
             bitPos = missingBits;
           }
-          dest.push(n);
+          //dest.push(n);
+          dest[o] = n < nmax ? offset + n * scale : maxValue;
+        }
+        dest.unshift(offset);
+        return dest;
+      },
+
+      originalUnstuff: function(src, dest, bitsPerPixel, numPixels) {
+        var bitMask = (1 << bitsPerPixel) - 1;
+        var i = 0, o;
+        var bitsLeft = 0;
+        var n, buffer, kk, missingBits;
+
+        // get rid of trailing bytes that are already part of next block
+        var numInvalidTailBytes = src.length * 4 - Math.ceil(bitsPerPixel * numPixels / 8);
+        src[src.length - 1] <<= 8 * numInvalidTailBytes;
+
+        for (o = 0; o < numPixels; o++) {
+          if (bitsLeft === 0) {
+            buffer = src[i++];
+            bitsLeft = 32;
+          }
+          if (bitsLeft >= bitsPerPixel) {
+            n = (buffer >>> (bitsLeft - bitsPerPixel)) & bitMask;
+            bitsLeft -= bitsPerPixel;
+          }
+          else {
+            missingBits = (bitsPerPixel - bitsLeft);
+            n = ((buffer & bitMask) << missingBits) & bitMask;
+            buffer = src[i++];
+            bitsLeft = 32 - missingBits;
+            n += (buffer >>> bitsLeft);
+          }
+          dest[o] = n;
+        }
+        return dest;
+      },
+
+      originalUnstuff2: function(src, dest, bitsPerPixel, numPixels) {
+        var bitMask = (1 << bitsPerPixel) - 1;
+        var i = 0, o;
+        var bitsLeft = 0, bitPos = 0;
+        var n, buffer, kk, missingBits, lutArr;
+        //micro-optimizations
+        for (o = 0; o < numPixels; o++) {
+          if (bitsLeft === 0) {
+            buffer = src[i++];
+            bitsLeft = 32;
+            bitPos = 0;
+          }
+          if (bitsLeft >= bitsPerPixel) {
+            //no unsigned left shift
+            n = ((buffer >>> bitPos) & bitMask);
+            bitsLeft -= bitsPerPixel;
+            bitPos += bitsPerPixel;
+          } else {
+            missingBits = (bitsPerPixel - bitsLeft);
+            n = (buffer >>> bitPos) & bitMask;//((buffer & bitMask) << missingBits) & bitMask;
+            buffer = src[i++];
+            bitsLeft = 32 - missingBits;
+            n |= (buffer & ((1 << missingBits) - 1)) << (bitsPerPixel - missingBits);
+            bitPos = missingBits;
+          }
+          dest[o] = n;
         }
         return dest;
       }
@@ -715,7 +746,7 @@ Contributors:  Johannes Schmid,
         sum1 = (sum1 & 0xffff) + (sum1 >>> 16);
         sum2 = (sum2 & 0xffff) + (sum2 >>> 16);
 
-        return (sum2 << 16 | sum1) >>>0;
+        return (sum2 << 16 | sum1) >>> 0;
       },
 
       readHeaderInfo: function(input, data) {
@@ -1241,19 +1272,20 @@ Contributors:  Johannes Schmid,
             block.stuffedData = new Uint32Array(arrayBuf);
             data.ptr += dataBytes;
             if (fileVersion >= 3) {
-              lutArr = BitStuffer.unstuffLUT2(block.lutData, block.lutBitsPerElement, block.lutBytes - 1);
+              lutArr = BitStuffer.unstuffLUT2(block.lutData, block.lutBitsPerElement, block.lutBytes - 1, block.offset, scale, data.headerInfo.zMax);
             }
             else {
-              lutArr = BitStuffer.unstuffLUT(block.lutData, block.lutBitsPerElement, block.lutBytes - 1);
+              lutArr = BitStuffer.unstuffLUT(block.lutData, block.lutBitsPerElement, block.lutBytes - 1, block.offset, scale, data.headerInfo.zMax);
             }
-            lutArr.unshift(0);
+            //lutArr.unshift(0);
             block.scale = scale;
             block.lutArr = lutArr;
             if (fileVersion >= 3) {
-              BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
+              //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
+              BitStuffer.unstuff2(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, lutArr);
             }
             else {
-              BitStuffer.unstuff(block, blockDataBuffer, data.headerInfo.zMax);
+              BitStuffer.unstuff(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, lutArr);
             }
           }
           else {
@@ -1272,10 +1304,11 @@ Contributors:  Johannes Schmid,
               block.stuffedData = new Uint32Array(arrayBuf);
               data.ptr += dataBytes;
               if (fileVersion >= 3) {
-                BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
+                //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
+                BitStuffer.unstuff2(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, false, block.offset, scale, data.headerInfo.zMax);
               }
               else {
-                BitStuffer.unstuff(block, blockDataBuffer, data.headerInfo.zMax);
+                BitStuffer.unstuff(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, false, block.offset, scale, data.headerInfo.zMax);
               }
             }
           }
@@ -1306,7 +1339,7 @@ Contributors:  Johannes Schmid,
 
         for (blockY = 0; blockY < numBlocksY; blockY++) {
           thisBlockHeight = (blockY !== numBlocksY - 1) ? microBlockSize : lastBlockHeight;
-          for (blockX = 0; blockX < numBlocksX; blockX++) {            
+          for (blockX = 0; blockX < numBlocksX; blockX++) {
             //console.debug("y" + blockY + " x" + blockX);
             thisBlockWidth = (blockX !== numBlocksX - 1) ? microBlockSize : lastBlockWidth;
 
@@ -1445,19 +1478,27 @@ Contributors:  Johannes Schmid,
                   block.stuffedData = new Uint32Array(arrayBuf);
                   data.ptr += dataBytes;
                   if (fileVersion >= 3) {
-                    lutArr = BitStuffer.unstuffLUT2(block.lutData, block.lutBitsPerElement, block.lutBytes - 1);
+                    lutArr = BitStuffer.unstuffLUT2(block.lutData, block.lutBitsPerElement, block.lutBytes - 1, block.offset, scale, data.headerInfo.zMax);
+                    //lutArr.unshift(0);
+                    //var lutArrBuffer = new ArrayBuffer(block.lutBytes * 8);
+                    //lutArr = new Float64Array(lutArrBuffer, 8);
+                    //BitStuffer.unstuff2(block.stuffedData, lutArr, block.bitsPerPixel, block.numValidPixel, false, block.offset, scale, data.headerInfo.zMax);
+                    //lutArr = new Float64Array(lutArrBuffer);
+                    //lutArr[0] = block.offset;
+                    //console.log("here we go");
                   }
                   else {
-                    lutArr = BitStuffer.unstuffLUT(block.lutData, block.lutBitsPerElement, block.lutBytes - 1);
+                    lutArr = BitStuffer.unstuffLUT(block.lutData, block.lutBitsPerElement, block.lutBytes - 1, block.offset, scale, data.headerInfo.zMax);
                   }
-                  lutArr.unshift(0);
+
                   block.scale = scale;
                   block.lutArr = lutArr;
                   if (fileVersion >= 3) {
-                    BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
+                    //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);                    
+                    BitStuffer.unstuff2(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, lutArr);
                   }
                   else {
-                    BitStuffer.unstuff(block, blockDataBuffer, data.headerInfo.zMax);
+                    BitStuffer.unstuff(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, lutArr);
                   }
                 }
                 else {
@@ -1475,10 +1516,11 @@ Contributors:  Johannes Schmid,
                     block.stuffedData = new Uint32Array(arrayBuf);
                     data.ptr += dataBytes;
                     if (fileVersion >= 3) {
-                      BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
+                      //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
+                      BitStuffer.unstuff2(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, false, block.offset, block.scale, data.headerInfo.zMax);
                     }
                     else {
-                      BitStuffer.unstuff(block, blockDataBuffer, data.headerInfo.zMax);
+                      BitStuffer.unstuff(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, false, block.offset, block.scale, data.headerInfo.zMax);
                     }
                   }
                 }
@@ -1496,7 +1538,7 @@ Contributors:  Johannes Schmid,
                 }
                 else {
                   for (row = 0; row < thisBlockHeight; row++) {
-                    for (col = 0; col < thisBlockWidth; col++) {                      
+                    for (col = 0; col < thisBlockWidth; col++) {
                       data.pixels.resultPixels[outPtr++] = blockDataBuffer[blockPtr++];
                     }
                     outPtr += outStride;
