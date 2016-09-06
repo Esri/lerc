@@ -561,7 +561,7 @@ Contributors:  Johannes Schmid,
           //dest.push(n);
           dest[o] = n < nmax ? offset + n * scale : maxValue;
         }
-        dest.unshift(offset);
+        dest.unshift(offset);//1st one
         return dest;
       },
 
@@ -923,7 +923,7 @@ Contributors:  Johannes Schmid,
           return false;
         }
         var blockDataBuffer = new Uint32Array(i1 - i0);
-        Lerc2Helpers.decodeBits(input, data, blockDataBuffer, OutPixelTypeArray);
+        Lerc2Helpers.decodeBits(input, data, blockDataBuffer);
         var codeTable = []; //size
         var i, j, k, len;
 
@@ -1215,100 +1215,96 @@ Contributors:  Johannes Schmid,
 
       },
 
-      decodeBits: function(input, data, blockDataBuffer, OutPixelTypeArray) {
+      decodeBits: function(input, data, blockDataBuffer, offset) {
         {
           //bitstuff encoding is 3
           var fileVersion = data.headerInfo.fileVersion;
           var block = {};
-          block.ptr = 0;
+          var blockPtr = 0;
           var view = new DataView(input, data.ptr, 5);//to do
           var headerByte = view.getUint8(0);
-          block.ptr++;
+          blockPtr++;
           var bits67 = headerByte >> 6;
           var n = (bits67 === 0) ? 4 : 3 - bits67;
-          block.doLut = (headerByte & 32) > 0 ? true : false;//5th bit
+          var doLut = (headerByte & 32) > 0 ? true : false;//5th bit
           var numBits = headerByte & 31;
           var numElements = 0;
           if (n === 1) {
-            numElements = view.getUint8(block.ptr); block.ptr++;
+            numElements = view.getUint8(blockPtr); blockPtr++;
           } else if (n === 2) {
-            numElements = view.getUint16(block.ptr, true); block.ptr += 2;
+            numElements = view.getUint16(blockPtr, true); blockPtr += 2;
           } else if (n === 4) {
-            numElements = view.getUint32(block.ptr, true); block.ptr += 4;
+            numElements = view.getUint32(blockPtr, true); blockPtr += 4;
           } else {
             throw "Invalid valid pixel count type";
           }
-          block.numValidPixel = numElements;
-          block.offset = 0;
+          offset = offset || 0;
           var scale = 2 * data.headerInfo.maxZError;
-          var arrayBuf, store8, dataBytes, dataWords, lutArr;
+          var stuffedData, arrayBuf, store8, dataBytes, dataWords;
+          var lutArr, lutData, lutBytes, lutBitsPerElement, bitsPerPixel;
 
-          if (block.doLut) {
+          if (doLut) {
             //console.log("lut");
             data.counter.lut++;
-            block.lutBytes = view.getUint8(block.ptr);
-            block.lutBitsPerElement = numBits;
-            block.ptr++;
-            dataBytes = Math.ceil((block.lutBytes - 1) * numBits / 8);
+            lutBytes = view.getUint8(blockPtr);
+            lutBitsPerElement = numBits;
+            blockPtr++;
+            dataBytes = Math.ceil((lutBytes - 1) * numBits / 8);
             dataWords = Math.ceil(dataBytes / 4);
             arrayBuf = new ArrayBuffer(dataWords * 4);
             store8 = new Uint8Array(arrayBuf);
 
-            data.ptr += block.ptr;
+            data.ptr += blockPtr;
             store8.set(new Uint8Array(input, data.ptr, dataBytes));
 
-            block.lutData = new Uint32Array(arrayBuf);
+            lutData = new Uint32Array(arrayBuf);
             data.ptr += dataBytes;
 
-            block.bitsPerPixel = 0;
-            while ((block.lutBytes - 1) >> block.bitsPerPixel) {
-              block.bitsPerPixel++;
+            bitsPerPixel = 0;
+            while ((lutBytes - 1) >>> bitsPerPixel) {
+              bitsPerPixel++;
             }
-            dataBytes = Math.ceil(numElements * block.bitsPerPixel / 8);
+            dataBytes = Math.ceil(numElements * bitsPerPixel / 8);
             dataWords = Math.ceil(dataBytes / 4);
             arrayBuf = new ArrayBuffer(dataWords * 4);
             store8 = new Uint8Array(arrayBuf);
             store8.set(new Uint8Array(input, data.ptr, dataBytes));
-            block.stuffedData = new Uint32Array(arrayBuf);
+            stuffedData = new Uint32Array(arrayBuf);
             data.ptr += dataBytes;
             if (fileVersion >= 3) {
-              lutArr = BitStuffer.unstuffLUT2(block.lutData, block.lutBitsPerElement, block.lutBytes - 1, block.offset, scale, data.headerInfo.zMax);
+              lutArr = BitStuffer.unstuffLUT2(lutData, numBits, lutBytes - 1, offset, scale, data.headerInfo.zMax);
             }
             else {
-              lutArr = BitStuffer.unstuffLUT(block.lutData, block.lutBitsPerElement, block.lutBytes - 1, block.offset, scale, data.headerInfo.zMax);
+              lutArr = BitStuffer.unstuffLUT(lutData, numBits, lutBytes - 1, offset, scale, data.headerInfo.zMax);
             }
             //lutArr.unshift(0);
-            block.scale = scale;
-            block.lutArr = lutArr;
             if (fileVersion >= 3) {
               //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
-              BitStuffer.unstuff2(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, lutArr);
+              BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements, lutArr);
             }
             else {
-              BitStuffer.unstuff(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, lutArr);
+              BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements, lutArr);
             }
           }
           else {
             //console.debug("bitstuffer");
             data.counter.bitstuffer++;
-            block.bitsPerPixel = numBits;
-            block.scale = scale;
-            data.ptr += block.ptr;
-            if (block.bitsPerPixel > 0) {
-
-              dataBytes = Math.ceil(block.numValidPixel * block.bitsPerPixel / 8);
+            bitsPerPixel = numBits;
+            data.ptr += blockPtr;
+            if (bitsPerPixel > 0) {
+              dataBytes = Math.ceil(numElements * bitsPerPixel / 8);
               dataWords = Math.ceil(dataBytes / 4);
               arrayBuf = new ArrayBuffer(dataWords * 4);
               store8 = new Uint8Array(arrayBuf);
               store8.set(new Uint8Array(input, data.ptr, dataBytes));
-              block.stuffedData = new Uint32Array(arrayBuf);
+              stuffedData = new Uint32Array(arrayBuf);
               data.ptr += dataBytes;
               if (fileVersion >= 3) {
                 //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
-                BitStuffer.unstuff2(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, false, block.offset, scale, data.headerInfo.zMax);
+                BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, data.headerInfo.zMax);
               }
               else {
-                BitStuffer.unstuff(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, false, block.offset, scale, data.headerInfo.zMax);
+                BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, data.headerInfo.zMax);
               }
             }
           }
@@ -1329,14 +1325,15 @@ Contributors:  Johannes Schmid,
         data.pixels.numBlocksY = numBlocksY;
         data.pixels.numBlocksX = numBlocksX;
         data.pixels.ptr = 0;
-        var row = 0, col = 0, blockY = 0, blockX = 0, thisBlockHeight = 0, thisBlockWidth = 0, bytesLeft = 0, headerByte = 0, bits67 = 0, testCode = 0, outPtr = 0, outStride = 0, numBytes = 0, bytesleft = 0, z = 0, n = 0, numBits = 0, numElements = 0, blockPtr = 0;
+        var row = 0, col = 0, blockY = 0, blockX = 0, thisBlockHeight = 0, thisBlockWidth = 0, bytesLeft = 0, headerByte = 0, bits67 = 0, testCode = 0, outPtr = 0, outStride = 0, numBytes = 0, bytesleft = 0, z = 0, n = 0, numBits = 0, blockPtr = 0;
         //console.debug("num block x y" + numBlocksX.toString() + " " + numBlocksY.toString());
-        var view, block, arrayBuf, store8, rawData, dataBytes, dataWords, lutArr;
+        var stuffedData, view, block, arrayBuf, store8, rawData, dataBytes, dataWords;
+        var lutArr, lutBytes, lutData, lutBitsPerElement, bitsPerPixel, validPixels, blockEncoding;
         //var blockDataBuffer = new Float32Array(microBlockSize * microBlockSize);
         var blockDataBuffer = new OutPixelTypeArray(microBlockSize * microBlockSize);
         var lastBlockHeight = (height % microBlockSize) || microBlockSize;
         var lastBlockWidth = (width % microBlockSize) || microBlockSize;
-
+        var offsetType, offset, doLut;
         for (blockY = 0; blockY < numBlocksY; blockY++) {
           thisBlockHeight = (blockY !== numBlocksY - 1) ? microBlockSize : lastBlockHeight;
           for (blockX = 0; blockX < numBlocksX; blockX++) {
@@ -1349,9 +1346,9 @@ Contributors:  Johannes Schmid,
             bytesLeft = input.byteLength - data.ptr;
             view = new DataView(input, data.ptr, Math.min(10, bytesLeft));
             block = {};
-            block.ptr = 0;
+            blockPtr = 0;
             headerByte = view.getUint8(0);
-            block.ptr++;
+            blockPtr++;
             bits67 = (headerByte >> 6) & 0xFF;
             testCode = (headerByte >> 2) & 15;    // use bits 2345 for integrity check
             if (testCode !== (((blockX * microBlockSize) >> 3) & 15)) {
@@ -1359,19 +1356,19 @@ Contributors:  Johannes Schmid,
               //return false;
             }
 
-            block.encoding = headerByte & 3;
-            if (block.encoding > 3) {
-              data.ptr += block.ptr;
-              throw "Invalid block encoding (" + block.encoding + ")";
+            blockEncoding = headerByte & 3;
+            if (blockEncoding > 3) {
+              data.ptr += blockPtr;
+              throw "Invalid block encoding (" + blockEncoding + ")";
             }
-            else if (block.encoding === 2) { //constant 0                    
+            else if (blockEncoding === 2) { //constant 0                    
               data.counter.constant++;
-              data.ptr += block.ptr;
+              data.ptr += blockPtr;
               continue;
             }
-            else if (block.encoding === 0) {  //uncompressed
+            else if (blockEncoding === 0) {  //uncompressed
               data.counter.uncompressed++;
-              data.ptr += block.ptr;
+              data.ptr += blockPtr;
               numBytes = thisBlockHeight * thisBlockWidth * Lerc2Helpers.getDateTypeSize(imageType);
               bytesleft = input.byteLength - data.ptr;
               numBytes = numBytes < bytesleft ? numBytes : bytesleft;
@@ -1404,18 +1401,19 @@ Contributors:  Johannes Schmid,
               //console.debug("raw data length,  please investigate");
             }
             else { //1 or 3
-              block.offsetType = Lerc2Helpers.getDataTypeUsed(imageType, bits67);
-              block.offset = Lerc2Helpers.getOnePixel(block, view);
-              if (block.encoding === 3) //constant offset value
+              offsetType = Lerc2Helpers.getDataTypeUsed(imageType, bits67);
+              offset = Lerc2Helpers.getOnePixel(block, blockPtr, offsetType, view);
+              blockPtr += Lerc2Helpers.getDateTypeSize(offsetType);
+              if (blockEncoding === 3) //constant offset value
               {
-                data.ptr += block.ptr;
+                data.ptr += blockPtr;
                 data.counter.constantoffset++;
                 //you can delete the following resultMask case in favor of performance because val is constant and users use nodata mask, otherwise nodatavalue post processing handles it too.
                 if (data.pixels.resultMask) {
                   for (row = 0; row < thisBlockHeight; row++) {
                     for (col = 0; col < thisBlockWidth; col++) {
                       if (data.pixels.resultMask[outPtr]) {
-                        data.pixels.resultPixels[outPtr] = block.offset;
+                        data.pixels.resultPixels[outPtr] = offset;
                       }
                       outPtr++;
                     }
@@ -1425,105 +1423,94 @@ Contributors:  Johannes Schmid,
                 else {
                   for (row = 0; row < thisBlockHeight; row++) {
                     for (col = 0; col < thisBlockWidth; col++) {
-                      data.pixels.resultPixels[outPtr++] = block.offset;
+                      data.pixels.resultPixels[outPtr++] = offset;
                     }
                     outPtr += outStride;
                   }
                 }
               }
               else { //bitstuff encoding is 3
-                headerByte = view.getUint8(block.ptr); block.ptr++;
-                bits67 = headerByte >> 6;
-                n = (bits67 === 0) ? 4 : 3 - bits67;
-                block.doLut = (headerByte & 32) > 0 ? true : false;//5th bit
-                numBits = headerByte & 31;
-                numElements = 0;
-                if (n === 1) {
-                  numElements = view.getUint8(block.ptr); block.ptr++;
-                } else if (n === 2) {
-                  numElements = view.getUint16(block.ptr, true); block.ptr += 2;
-                } else if (n === 4) {
-                  numElements = view.getUint32(block.ptr, true); block.ptr += 4;
-                } else {
-                  throw "Invalid valid pixel count type";
-                }
-                block.numValidPixel = numElements;
+                data.ptr += blockPtr;
+                Lerc2Helpers.decodeBits(input, data, blockDataBuffer, offset);
+                //headerByte = view.getUint8(blockPtr); blockPtr++;
+                //bits67 = headerByte >> 6;
+                //n = (bits67 === 0) ? 4 : 3 - bits67;
+                //doLut = (headerByte & 32) > 0 ? true : false;//5th bit
+                //numBits = headerByte & 31;
+                //validPixels = 0;
+                //if (n === 1) {
+                //  validPixels = view.getUint8(blockPtr); blockPtr++;
+                //} else if (n === 2) {
+                //  validPixels = view.getUint16(blockPtr, true); blockPtr += 2;
+                //} else if (n === 4) {
+                //  validPixels = view.getUint32(blockPtr, true); blockPtr += 4;
+                //} else {
+                //  throw "Invalid valid pixel count type";
+                //}
 
-                if (block.doLut) {
-                  //console.log("lut");
-                  data.counter.lut++;
-                  block.lutBytes = view.getUint8(block.ptr);
-                  block.lutBitsPerElement = numBits;
-                  block.ptr++;
-                  dataBytes = Math.ceil((block.lutBytes - 1) * numBits / 8);
-                  dataWords = Math.ceil(dataBytes / 4);
-                  arrayBuf = new ArrayBuffer(dataWords * 4);
-                  store8 = new Uint8Array(arrayBuf);
+                //if (doLut) {
+                //  //console.log("lut");
+                //  data.counter.lut++;
+                //  lutBytes = view.getUint8(blockPtr);
+                //  lutBitsPerElement = numBits;
+                //  blockPtr++;
+                //  dataBytes = Math.ceil((lutBytes - 1) * numBits / 8);
+                //  dataWords = Math.ceil(dataBytes / 4);
+                //  arrayBuf = new ArrayBuffer(dataWords * 4);
+                //  store8 = new Uint8Array(arrayBuf);
 
-                  data.ptr += block.ptr;
-                  store8.set(new Uint8Array(input, data.ptr, dataBytes));
+                //  data.ptr += blockPtr;
+                //  store8.set(new Uint8Array(input, data.ptr, dataBytes));
 
-                  block.lutData = new Uint32Array(arrayBuf);
-                  data.ptr += dataBytes;
+                //  lutData = new Uint32Array(arrayBuf);
+                //  data.ptr += dataBytes;
 
-                  block.bitsPerPixel = 0;
-                  while ((block.lutBytes - 1) >> block.bitsPerPixel) {
-                    block.bitsPerPixel++;
-                  }
-                  dataBytes = Math.ceil(numElements * block.bitsPerPixel / 8);
-                  dataWords = Math.ceil(dataBytes / 4);
-                  arrayBuf = new ArrayBuffer(dataWords * 4);
-                  store8 = new Uint8Array(arrayBuf);
-                  store8.set(new Uint8Array(input, data.ptr, dataBytes));
-                  block.stuffedData = new Uint32Array(arrayBuf);
-                  data.ptr += dataBytes;
-                  if (fileVersion >= 3) {
-                    lutArr = BitStuffer.unstuffLUT2(block.lutData, block.lutBitsPerElement, block.lutBytes - 1, block.offset, scale, data.headerInfo.zMax);
-                    //lutArr.unshift(0);
-                    //var lutArrBuffer = new ArrayBuffer(block.lutBytes * 8);
-                    //lutArr = new Float64Array(lutArrBuffer, 8);
-                    //BitStuffer.unstuff2(block.stuffedData, lutArr, block.bitsPerPixel, block.numValidPixel, false, block.offset, scale, data.headerInfo.zMax);
-                    //lutArr = new Float64Array(lutArrBuffer);
-                    //lutArr[0] = block.offset;
-                    //console.log("here we go");
-                  }
-                  else {
-                    lutArr = BitStuffer.unstuffLUT(block.lutData, block.lutBitsPerElement, block.lutBytes - 1, block.offset, scale, data.headerInfo.zMax);
-                  }
+                //  bitsPerPixel = 0;
+                //  while ((lutBytes - 1) >>> bitsPerPixel) {
+                //    bitsPerPixel++;
+                //  }
+                //  dataBytes = Math.ceil(validPixels * bitsPerPixel / 8);
+                //  dataWords = Math.ceil(dataBytes / 4);
+                //  arrayBuf = new ArrayBuffer(dataWords * 4);
+                //  store8 = new Uint8Array(arrayBuf);
+                //  store8.set(new Uint8Array(input, data.ptr, dataBytes));
+                //  stuffedData = new Uint32Array(arrayBuf);
+                //  data.ptr += dataBytes;
+                //  if (fileVersion >= 3) {
+                //    lutArr = BitStuffer.unstuffLUT2(lutData, lutBitsPerElement, lutBytes - 1, offset, scale, data.headerInfo.zMax);
+                //  }
+                //  else {
+                //    lutArr = BitStuffer.unstuffLUT(lutData, lutBitsPerElement, lutBytes - 1, offset, scale, data.headerInfo.zMax);
+                //  }
 
-                  block.scale = scale;
-                  block.lutArr = lutArr;
-                  if (fileVersion >= 3) {
-                    //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);                    
-                    BitStuffer.unstuff2(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, lutArr);
-                  }
-                  else {
-                    BitStuffer.unstuff(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, lutArr);
-                  }
-                }
-                else {
-                  data.counter.bitstuffer++;
-                  block.bitsPerPixel = numBits;
-                  block.scale = scale;
-                  data.ptr += block.ptr;
-                  if (block.bitsPerPixel > 0) {
-
-                    dataBytes = Math.ceil(block.numValidPixel * block.bitsPerPixel / 8);
-                    dataWords = Math.ceil(dataBytes / 4);
-                    arrayBuf = new ArrayBuffer(dataWords * 4);
-                    store8 = new Uint8Array(arrayBuf);
-                    store8.set(new Uint8Array(input, data.ptr, dataBytes));
-                    block.stuffedData = new Uint32Array(arrayBuf);
-                    data.ptr += dataBytes;
-                    if (fileVersion >= 3) {
-                      //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
-                      BitStuffer.unstuff2(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, false, block.offset, block.scale, data.headerInfo.zMax);
-                    }
-                    else {
-                      BitStuffer.unstuff(block.stuffedData, blockDataBuffer, block.bitsPerPixel, block.numValidPixel, false, block.offset, block.scale, data.headerInfo.zMax);
-                    }
-                  }
-                }
+                //  if (fileVersion >= 3) {
+                //    //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);                    
+                //    BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, validPixels, lutArr);
+                //  }
+                //  else {
+                //    BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, validPixels, lutArr);
+                //  }
+                //}
+                //else {
+                //  data.counter.bitstuffer++;
+                //  bitsPerPixel = numBits;
+                //  data.ptr += blockPtr;
+                //  if (bitsPerPixel > 0) {
+                //    dataBytes = Math.ceil(validPixels * bitsPerPixel / 8);
+                //    dataWords = Math.ceil(dataBytes / 4);
+                //    arrayBuf = new ArrayBuffer(dataWords * 4);
+                //    store8 = new Uint8Array(arrayBuf);
+                //    store8.set(new Uint8Array(input, data.ptr, dataBytes));
+                //    stuffedData = new Uint32Array(arrayBuf);
+                //    data.ptr += dataBytes;
+                //    if (fileVersion >= 3) {
+                //      BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, validPixels, false, offset, scale, data.headerInfo.zMax);
+                //    }
+                //    else {
+                //      BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, validPixels, false, offset, scale, data.headerInfo.zMax);
+                //    }
+                //  }
+                //}
                 blockPtr = 0;
                 if (data.pixels.resultMask) {
                   for (row = 0; row < thisBlockHeight; row++) {
@@ -1764,43 +1751,35 @@ Contributors:  Johannes Schmid,
         return t;
       },
 
-      getOnePixel: function(block, view) {
+      getOnePixel: function(block, blockPtr, offsetType, view) {
         var temp = 0;
-        switch (block.offsetType) {
+        switch (offsetType) {
           case 0: //char
-            temp = view.getInt8(block.ptr);
-            block.ptr++;
+            temp = view.getInt8(blockPtr);
             break;
           case 1: //byte
-            temp = view.getUint8(block.ptr);
-            block.ptr++;
+            temp = view.getUint8(blockPtr);
             break;
           case 2:
-            temp = view.getInt16(block.ptr, true);
-            block.ptr += 2;
+            temp = view.getInt16(blockPtr, true);
             break;
           case 3:
-            temp = view.getUint16(block.ptr, true);
-            block.ptr += 2;
+            temp = view.getUint16(blockPtr, true);
             break;
           case 4:
-            temp = view.getInt32(block.ptr, true);
-            block.ptr += 4;
+            temp = view.getInt32(blockPtr, true);            
             break;
           case 5:
-            temp = view.getUInt32(block.ptr, true);
-            block.ptr += 4;
+            temp = view.getUInt32(blockPtr, true);            
             break;
           case 6:
-            temp = view.getFloat32(block.ptr, true);
-            block.ptr += 4;
+            temp = view.getFloat32(blockPtr, true);            
             break;
           case 7:
-            //temp = view.getFloat64(block.ptr, true);
-            //block.ptr += 8;
+            //temp = view.getFloat64(blockPtr, true);
+            //blockPtr += 8;
             //lerc2 encoding doesnt handle float 64, force to float32???
-            temp = view.getFloat64(block.ptr, true);
-            block.ptr += 8;
+            temp = view.getFloat64(blockPtr, true);            
             break;
           default:
             throw ("the decoder does not understand this pixel type");
