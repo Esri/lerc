@@ -1,5 +1,5 @@
-/* jshint forin: false, bitwise: false
-
+/* jshint forin: false, bitwise: false */
+/*
 Copyright 2015 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -483,7 +483,7 @@ Contributors:  Johannes Schmid,
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o;
         var bitsLeft = 0;
-        var n, buffer, kk, missingBits, nmax;
+        var n, buffer, missingBits, nmax;
 
         // get rid of trailing bytes that are already part of next block
         var numInvalidTailBytes = src.length * 4 - Math.ceil(bitsPerPixel * numPixels / 8);
@@ -569,7 +569,7 @@ Contributors:  Johannes Schmid,
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o;
         var bitsLeft = 0, bitPos = 0;
-        var n, buffer, kk, missingBits;
+        var n, buffer, missingBits;
         if (lutArr) {
           for (o = 0; o < numPixels; o++) {
             if (bitsLeft === 0) {
@@ -622,7 +622,7 @@ Contributors:  Johannes Schmid,
 
       unstuffLUT2: function(src, bitsPerPixel, numPixels, offset, scale, maxValue) {
         var bitMask = (1 << bitsPerPixel) - 1;
-        var i = 0, o = 0, missingBits = 0, bitsLeft = 0, n = 0, bitPos = 0, bitsUnoccupied = 32 - bitsPerPixel;
+        var i = 0, o = 0, missingBits = 0, bitsLeft = 0, n = 0, bitPos = 0;
         var buffer;
         var dest = [];
         var nmax = Math.ceil((maxValue - offset) / scale);
@@ -656,7 +656,7 @@ Contributors:  Johannes Schmid,
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o;
         var bitsLeft = 0;
-        var n, buffer, kk, missingBits;
+        var n, buffer, missingBits;
 
         // get rid of trailing bytes that are already part of next block
         var numInvalidTailBytes = src.length * 4 - Math.ceil(bitsPerPixel * numPixels / 8);
@@ -687,7 +687,7 @@ Contributors:  Johannes Schmid,
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o;
         var bitsLeft = 0, bitPos = 0;
-        var n, buffer, kk, missingBits, lutArr;
+        var n, buffer, missingBits;
         //micro-optimizations
         for (o = 0; o < numPixels; o++) {
           if (bitsLeft === 0) {
@@ -718,8 +718,7 @@ Contributors:  Johannes Schmid,
     *private static class used by Lerc2Codec
     ******************************************/
     var Lerc2Helpers = {
-      HUFFMAN_LUT_BITS_MAX: 12, //use 2^12 lut
-      HUFFMAN_BUILD_TREE: true, //false to use sparse array - bug?      
+      HUFFMAN_LUT_BITS_MAX: 12, //use 2^12 lut, treat it like constant
       computeChecksumFletcher32: function(input) {
 
         var sum1 = 0xffff, sum2 = 0xffff;
@@ -739,9 +738,9 @@ Contributors:  Johannes Schmid,
         }
 
         // add the straggler byte if it exists
-        if (len & 1)
+        if (len & 1) {
           sum2 += sum1 += (input[i] << 8);
-
+        }
         // second reduction step to reduce sums to 16 bits
         sum1 = (sum1 & 0xffff) + (sum1 >>> 16);
         sum2 = (sum2 & 0xffff) + (sum2 >>> 16);
@@ -786,7 +785,7 @@ Contributors:  Johannes Schmid,
         if (headerInfo.fileVersion >= 3) {
           checksum = this.computeChecksumFletcher32(new Uint8Array(input, ptr - 48, headerInfo.blobSize - 14));
           if (checksum !== headerInfo.checksum) {
-            throw "Checksum failed."
+            throw "Checksum failed.";
           }
         }
         return true;
@@ -890,8 +889,6 @@ Contributors:  Johannes Schmid,
             }
           }
         }
-        //console.debug("raw length " + rawData.length + " data height * width" + numPixels);
-
         ptr += numBytes;
         data.ptr = ptr;       //return data;
         return true;
@@ -901,9 +898,7 @@ Contributors:  Johannes Schmid,
         var headerInfo = data.headerInfo;
         var numPixels = headerInfo.width * headerInfo.height;
         var BITS_MAX = this.HUFFMAN_LUT_BITS_MAX; //8 is slow for the large test image
-        var useTree = this.HUFFMAN_BUILD_TREE;
-        //console.log("use tree" + useTree);
-        var size_max = 1 << BITS_MAX;
+        //var size_max = 1 << BITS_MAX;
         /* ************************
          * reading code table
          *************************/
@@ -916,9 +911,6 @@ Contributors:  Johannes Schmid,
         var size = view.getInt32(4, true);
         var i0 = view.getInt32(8, true);
         var i1 = view.getInt32(12, true);
-        //if (i0 >= i1 || size > size_max) {//we decode
-        //  return false;
-        //}
         if (i0 >= i1) {
           return false;
         }
@@ -937,8 +929,7 @@ Contributors:  Johannes Schmid,
         var arrayBuf = new ArrayBuffer(dataWords * 4);
         var store8 = new Uint8Array(arrayBuf);
         store8.set(new Uint8Array(input, data.ptr, dataBytes));
-        var stuffedData = new Uint32Array(arrayBuf);
-        //var stuffedData = new Uint32Array(input,data.ptr,Math.floor((input.byteLength-data.ptr)/4));
+        var stuffedData = new Uint32Array(arrayBuf); //must start from x*4
         var bitPos = 0, word, srcPtr = 0;
         word = stuffedData[0];
         for (i = i0; i < i1; i++) {
@@ -964,11 +955,7 @@ Contributors:  Johannes Schmid,
           }
         }
 
-        //this could be questionable ???
-        //data.ptr = data.ptr + (srcPtr + 1) * 4 + (bitPos > 1 ? 4 : 0);
-        data.ptr = data.ptr + (srcPtr) * 4 + (bitPos > 0 ? 4 : 0);
         //finished reading code table
-
 
         /* ************************
          * building lut
@@ -985,13 +972,14 @@ Contributors:  Johannes Schmid,
         }
         if (numBitsLUT >= BITS_MAX) {
           numBitsLUTQick = BITS_MAX;
-          console.log("WARning, large NUM LUT BITS IS " + numBitsLUT);
         }
         else {
           numBitsLUTQick = numBitsLUT;
         }
-
-        var decodeLut = [], entry, code, numEntries, decodeLutSparse = [], jj, currentBit, node;
+        if (numBitsLUT >= 30) {
+          console.log("WARning, large NUM LUT BITS IS " + numBitsLUT);
+        }
+        var decodeLut = [], entry, code, numEntries, jj, currentBit, node;
         for (i = i0; i < i1; i++) {
           j = i - (i < size ? 0 : size);//wrap around
           len = codeTable[j].first;
@@ -1004,13 +992,10 @@ Contributors:  Johannes Schmid,
                 decodeLut[code | k] = entry;
               }
             }
-            else if (useTree) {
+            else {
               //build tree
               code = codeTable[j].second;
               node = tree;
-              if (len === 31) {
-                console.log("warning length 31");
-              }
               for (jj = len - 1; jj >= 0; jj--) {
                 currentBit = code >>> jj & 1; //no left shift as length could be 30,31
                 if (currentBit) {
@@ -1030,18 +1015,12 @@ Contributors:  Johannes Schmid,
                 }
               }
             }
-            else { //numBitsLUT > size_max
-              code = codeTable[j].second;// << (numBitsLUT - len);
-              decodeLutSparse[code] = entry;
-            }
           }
         }
-        console.log(numBitsLUT);
-        //console.log(decodeLutSparse);
-        /* ************************
+        /*************************
         *  decode
-        *  *************************/
-        var val, delta, mask = data.pixels.resultMask, valTmp, valTmpQuick, prevVal = 0, ii = 0, tempEntry;
+        ***************************/
+        var val, delta, mask = data.pixels.resultMask, valTmp, valTmpQuick, prevVal = 0, ii = 0;
 
         if (bitPos > 0) {
           srcPtr++;
@@ -1053,7 +1032,6 @@ Contributors:  Johannes Schmid,
         if (data.headerInfo.numValidPixel === width * height) { //all valid
           for (k = 0, i = 0; i < height; i++) {
             for (j = 0; j < width; j++, k++) {
-              //console.log("k "+k +" srcptr"+srcPtr +" word" + word);
               val = 0;
               valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
               valTmpQuick = valTmp;// >>> deltaBits;
@@ -1065,30 +1043,6 @@ Contributors:  Johannes Schmid,
               {
                 val = decodeLut[valTmpQuick][1];
                 bitPos += decodeLut[valTmpQuick][0];
-                //console.log("val " + val + " bitPos" + bitPos);
-              }
-              else if (useTree) {
-                valTmp = (word << bitPos) >>> (32 - numBitsLUT);
-                valTmpQuick = valTmp;// >>> deltaBits;
-                if (32 - bitPos < numBitsLUT) {
-                  valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
-                  valTmpQuick = valTmp;// >>> deltaBits;
-                }
-                node = tree;
-                if (numBitsLUT === 31) {
-                  console.log("warning length 31");
-                }
-                for (ii = 0; ii < numBitsLUT; ii++) {
-                  //currentBit = (valTmp & (1 <<(numBitsLUT-ii-1)))>>> (numBitsLUT-ii-1);
-                  currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
-                  node = currentBit ? node.right : node.left;
-                  //console.log(node);
-                  if (!(node.left || node.right)) {
-                    val = node.val;
-                    bitPos = bitPos + ii + 1;
-                    break;
-                  }
-                }
               }
               else {
                 valTmp = (word << bitPos) >>> (32 - numBitsLUT);
@@ -1097,16 +1051,18 @@ Contributors:  Johannes Schmid,
                   valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
                   valTmpQuick = valTmp;// >>> deltaBits;
                 }
-                for (ii = BITS_MAX + 1; ii <= numBitsLUT; ii++) {
-                  tempEntry = decodeLutSparse[valTmp >>> (numBitsLUT - ii)];
-                  if (tempEntry) {
-                    val = tempEntry[1];
-                    bitPos += tempEntry[0];
-                    //bitPos += ii;
+                node = tree;
+                for (ii = 0; ii < numBitsLUT; ii++) {
+                  currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
+                  node = currentBit ? node.right : node.left;
+                  if (!(node.left || node.right)) {
+                    val = node.val;
+                    bitPos = bitPos + ii + 1;
                     break;
                   }
                 }
               }
+
               if (bitPos >= 32) {
                 bitPos -= 32;
                 srcPtr++;
@@ -1123,18 +1079,15 @@ Contributors:  Johannes Schmid,
                 delta += prevVal;
 
               delta &= 0xFF; //overflow
-              //console.log(delta + " " + k);
               resultPixels[k] = delta;//overflow
               prevVal = delta;
             }
           }
-          //goes here
         }
         else { //not all valid, use mask
           for (k = 0, i = 0; i < height; i++) {
             for (j = 0; j < width; j++, k++) {
               if (mask[k]) {
-                //console.log("k "+k +" srcptr"+srcPtr +" word" + word);
                 val = 0;
                 valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
                 valTmpQuick = valTmp;// >>> deltaBits;
@@ -1146,29 +1099,6 @@ Contributors:  Johannes Schmid,
                 {
                   val = decodeLut[valTmpQuick][1];
                   bitPos += decodeLut[valTmpQuick][0];
-                  //console.log("val " + val + " bitPos" + bitPos);
-                }
-                else if (useTree) {
-                  valTmp = (word << bitPos) >>> (32 - numBitsLUT);
-                  valTmpQuick = valTmp;// >>> deltaBits;
-                  if (32 - bitPos < numBitsLUT) {
-                    valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
-                    valTmpQuick = valTmp;// >>> deltaBits;
-                  }
-                  node = tree;
-                  if (numBitsLUT === 31) {
-                    console.log("warning length 31");
-                  }
-                  for (ii = 0; ii < numBitsLUT; ii++) {
-                    currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
-                    node = currentBit ? node.right : node.left;
-                    //console.log(node);
-                    if (!(node.left || node.right)) {
-                      val = node.val;
-                      bitPos = bitPos + ii + 1;
-                      break;
-                    }
-                  }
                 }
                 else {
                   valTmp = (word << bitPos) >>> (32 - numBitsLUT);
@@ -1177,16 +1107,18 @@ Contributors:  Johannes Schmid,
                     valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
                     valTmpQuick = valTmp;// >>> deltaBits;
                   }
-                  for (ii = BITS_MAX + 1; ii <= numBitsLUT; ii++) {
-                    tempEntry = decodeLutSparse[valTmp >>> (numBitsLUT - ii)];
-                    if (tempEntry) {
-                      val = tempEntry[1];
-                      bitPos += tempEntry[0];
-                      //bitPos += ii;
+                  node = tree;
+                  for (ii = 0; ii < numBitsLUT; ii++) {
+                    currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
+                    node = currentBit ? node.right : node.left;
+                    if (!(node.left || node.right)) {
+                      val = node.val;
+                      bitPos = bitPos + ii + 1;
                       break;
                     }
                   }
                 }
+
                 if (bitPos >= 32) {
                   bitPos -= 32;
                   srcPtr++;
@@ -1203,7 +1135,6 @@ Contributors:  Johannes Schmid,
                   delta += prevVal;
 
                 delta &= 0xFF; //overflow
-                //console.log(delta + " " + k);               
                 resultPixels[k] = delta;//overflow
                 prevVal = delta;
               }
@@ -1211,15 +1142,14 @@ Contributors:  Johannes Schmid,
           }
         }
         data.pixels.resultPixels = resultPixels;
-        data.ptr = data.ptr + (srcPtr) * 4 + (bitPos > 1 ? 4 : 0);
-
+        data.ptr = data.ptr + (srcPtr + 1) * 4 + (bitPos > 0 ? 4 : 0);
       },
 
       decodeBits: function(input, data, blockDataBuffer, offset) {
         {
           //bitstuff encoding is 3
           var fileVersion = data.headerInfo.fileVersion;
-          var block = {};
+          //var block = {};
           var blockPtr = 0;
           var view = new DataView(input, data.ptr, 5);//to do
           var headerByte = view.getUint8(0);
@@ -1244,7 +1174,6 @@ Contributors:  Johannes Schmid,
           var lutArr, lutData, lutBytes, lutBitsPerElement, bitsPerPixel;
 
           if (doLut) {
-            //console.log("lut");
             data.counter.lut++;
             lutBytes = view.getUint8(blockPtr);
             lutBitsPerElement = numBits;
@@ -1316,24 +1245,20 @@ Contributors:  Johannes Schmid,
         var headerInfo = data.headerInfo;
         var width = headerInfo.width;
         var height = headerInfo.height;
-        var fileVersion = headerInfo.fileVersion;
         var microBlockSize = headerInfo.microBlockSize;
         var imageType = headerInfo.imageType;
-        var scale = 2 * headerInfo.maxZError;
         var numBlocksX = Math.ceil(width / microBlockSize);
         var numBlocksY = Math.ceil(height / microBlockSize);
         data.pixels.numBlocksY = numBlocksY;
         data.pixels.numBlocksX = numBlocksX;
         data.pixels.ptr = 0;
-        var row = 0, col = 0, blockY = 0, blockX = 0, thisBlockHeight = 0, thisBlockWidth = 0, bytesLeft = 0, headerByte = 0, bits67 = 0, testCode = 0, outPtr = 0, outStride = 0, numBytes = 0, bytesleft = 0, z = 0, n = 0, numBits = 0, blockPtr = 0;
-        //console.debug("num block x y" + numBlocksX.toString() + " " + numBlocksY.toString());
-        var stuffedData, view, block, arrayBuf, store8, rawData, dataBytes, dataWords;
-        var lutArr, lutBytes, lutData, lutBitsPerElement, bitsPerPixel, validPixels, blockEncoding;
-        //var blockDataBuffer = new Float32Array(microBlockSize * microBlockSize);
+        var row = 0, col = 0, blockY = 0, blockX = 0, thisBlockHeight = 0, thisBlockWidth = 0, bytesLeft = 0, headerByte = 0, bits67 = 0, testCode = 0, outPtr = 0, outStride = 0, numBytes = 0, bytesleft = 0, z = 0, blockPtr = 0;
+        var view, block, arrayBuf, store8, rawData;
+        var blockEncoding;
         var blockDataBuffer = new OutPixelTypeArray(microBlockSize * microBlockSize);
         var lastBlockHeight = (height % microBlockSize) || microBlockSize;
         var lastBlockWidth = (width % microBlockSize) || microBlockSize;
-        var offsetType, offset, doLut;
+        var offsetType, offset;
         for (blockY = 0; blockY < numBlocksY; blockY++) {
           thisBlockHeight = (blockY !== numBlocksY - 1) ? microBlockSize : lastBlockHeight;
           for (blockX = 0; blockX < numBlocksX; blockX++) {
@@ -1361,7 +1286,7 @@ Contributors:  Johannes Schmid,
               data.ptr += blockPtr;
               throw "Invalid block encoding (" + blockEncoding + ")";
             }
-            else if (blockEncoding === 2) { //constant 0                    
+            else if (blockEncoding === 2) { //constant 0 
               data.counter.constant++;
               data.ptr += blockPtr;
               continue;
@@ -1397,8 +1322,6 @@ Contributors:  Johannes Schmid,
                 }
               }
               data.ptr += z * Lerc2Helpers.getDateTypeSize(imageType);
-              //if (rawData.length !== z * Lerc2Helpers.getDateTypeSize(imageType))
-              //console.debug("raw data length,  please investigate");
             }
             else { //1 or 3
               offsetType = Lerc2Helpers.getDataTypeUsed(imageType, bits67);
@@ -1409,6 +1332,7 @@ Contributors:  Johannes Schmid,
                 data.ptr += blockPtr;
                 data.counter.constantoffset++;
                 //you can delete the following resultMask case in favor of performance because val is constant and users use nodata mask, otherwise nodatavalue post processing handles it too.
+                //while the above statement is true, we're not doing it as we want to keep invalid pixel value at 0 rather than arbitrary values
                 if (data.pixels.resultMask) {
                   for (row = 0; row < thisBlockHeight; row++) {
                     for (col = 0; col < thisBlockWidth; col++) {
@@ -1431,86 +1355,8 @@ Contributors:  Johannes Schmid,
               }
               else { //bitstuff encoding is 3
                 data.ptr += blockPtr;
+                //heavy lifting
                 Lerc2Helpers.decodeBits(input, data, blockDataBuffer, offset);
-                //headerByte = view.getUint8(blockPtr); blockPtr++;
-                //bits67 = headerByte >> 6;
-                //n = (bits67 === 0) ? 4 : 3 - bits67;
-                //doLut = (headerByte & 32) > 0 ? true : false;//5th bit
-                //numBits = headerByte & 31;
-                //validPixels = 0;
-                //if (n === 1) {
-                //  validPixels = view.getUint8(blockPtr); blockPtr++;
-                //} else if (n === 2) {
-                //  validPixels = view.getUint16(blockPtr, true); blockPtr += 2;
-                //} else if (n === 4) {
-                //  validPixels = view.getUint32(blockPtr, true); blockPtr += 4;
-                //} else {
-                //  throw "Invalid valid pixel count type";
-                //}
-
-                //if (doLut) {
-                //  //console.log("lut");
-                //  data.counter.lut++;
-                //  lutBytes = view.getUint8(blockPtr);
-                //  lutBitsPerElement = numBits;
-                //  blockPtr++;
-                //  dataBytes = Math.ceil((lutBytes - 1) * numBits / 8);
-                //  dataWords = Math.ceil(dataBytes / 4);
-                //  arrayBuf = new ArrayBuffer(dataWords * 4);
-                //  store8 = new Uint8Array(arrayBuf);
-
-                //  data.ptr += blockPtr;
-                //  store8.set(new Uint8Array(input, data.ptr, dataBytes));
-
-                //  lutData = new Uint32Array(arrayBuf);
-                //  data.ptr += dataBytes;
-
-                //  bitsPerPixel = 0;
-                //  while ((lutBytes - 1) >>> bitsPerPixel) {
-                //    bitsPerPixel++;
-                //  }
-                //  dataBytes = Math.ceil(validPixels * bitsPerPixel / 8);
-                //  dataWords = Math.ceil(dataBytes / 4);
-                //  arrayBuf = new ArrayBuffer(dataWords * 4);
-                //  store8 = new Uint8Array(arrayBuf);
-                //  store8.set(new Uint8Array(input, data.ptr, dataBytes));
-                //  stuffedData = new Uint32Array(arrayBuf);
-                //  data.ptr += dataBytes;
-                //  if (fileVersion >= 3) {
-                //    lutArr = BitStuffer.unstuffLUT2(lutData, lutBitsPerElement, lutBytes - 1, offset, scale, data.headerInfo.zMax);
-                //  }
-                //  else {
-                //    lutArr = BitStuffer.unstuffLUT(lutData, lutBitsPerElement, lutBytes - 1, offset, scale, data.headerInfo.zMax);
-                //  }
-
-                //  if (fileVersion >= 3) {
-                //    //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);                    
-                //    BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, validPixels, lutArr);
-                //  }
-                //  else {
-                //    BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, validPixels, lutArr);
-                //  }
-                //}
-                //else {
-                //  data.counter.bitstuffer++;
-                //  bitsPerPixel = numBits;
-                //  data.ptr += blockPtr;
-                //  if (bitsPerPixel > 0) {
-                //    dataBytes = Math.ceil(validPixels * bitsPerPixel / 8);
-                //    dataWords = Math.ceil(dataBytes / 4);
-                //    arrayBuf = new ArrayBuffer(dataWords * 4);
-                //    store8 = new Uint8Array(arrayBuf);
-                //    store8.set(new Uint8Array(input, data.ptr, dataBytes));
-                //    stuffedData = new Uint32Array(arrayBuf);
-                //    data.ptr += dataBytes;
-                //    if (fileVersion >= 3) {
-                //      BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, validPixels, false, offset, scale, data.headerInfo.zMax);
-                //    }
-                //    else {
-                //      BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, validPixels, false, offset, scale, data.headerInfo.zMax);
-                //    }
-                //  }
-                //}
                 blockPtr = 0;
                 if (data.pixels.resultMask) {
                   for (row = 0; row < thisBlockHeight; row++) {
@@ -1767,19 +1613,19 @@ Contributors:  Johannes Schmid,
             temp = view.getUint16(blockPtr, true);
             break;
           case 4:
-            temp = view.getInt32(blockPtr, true);            
+            temp = view.getInt32(blockPtr, true);
             break;
           case 5:
-            temp = view.getUInt32(blockPtr, true);            
+            temp = view.getUInt32(blockPtr, true);
             break;
           case 6:
-            temp = view.getFloat32(blockPtr, true);            
+            temp = view.getFloat32(blockPtr, true);
             break;
           case 7:
             //temp = view.getFloat64(blockPtr, true);
             //blockPtr += 8;
             //lerc2 encoding doesnt handle float 64, force to float32???
-            temp = view.getFloat64(blockPtr, true);            
+            temp = view.getFloat64(blockPtr, true);
             break;
           default:
             throw ("the decoder does not understand this pixel type");
@@ -1809,15 +1655,13 @@ Contributors:  Johannes Schmid,
        * @config {boolean} [returnFileInfo = false]
        *        If true, the return value will have a fileInfo property that contains metadata obtained from the
        *        LERC headers and the decoding process.
-       * @config {boolean} [buildHuffmanTree = false]
-       *        If true, the Huffman encoded data will be resolved through Huffman tree instead of sparse arrays for if tree depth>=12.
        *
-       * ********removed options compared to LERC1. We can bring some of them back if needed. 
+       * ********removed options compared to LERC1. We can bring some of them back if needed.
        * removed pixel type. LERC2 is typed and doesn't require user to give pixel type
        * changed encodedMaskData to maskData. LERC2 's js version make it faster to use maskData directly.
        * removed returnMask. mask is used by LERC2 internally and is cost free. In case of user input mask, it's returned as well and has neglible cost.
        * removed nodatavalue. Because LERC2 pixels are typed, nodatavalue will sacrify a useful value for many types (8bit, 16bit) etc,
-       *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now. 
+       *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now.
        *       We can add it back later if their's a clear requirement.
        * removed encodedMask. This option was not implemented in LercCodec. It can be done after decoding (less efficient)
        * removed computeUsedBitDepths.
@@ -1835,14 +1679,12 @@ Contributors:  Johannes Schmid,
       *  public properties
       ******************/
       //HUFFMAN_LUT_BITS_MAX: 12, //use 2^12 lut, not configurable
-      //HUFFMAN_BUILD_TREE: false, //use sparse array or tree
 
       /*****************
       *  public methods
       *****************/
       decode: function(/*byte array*/ input, /*object*/ options) {
         //currently there's a bug in the sparse array, so please do not set to false
-        Lerc2Helpers.HUFFMAN_BUILD_TREE = options.buildHuffmanTree !== false;
         options = options || {};
         var skipMask = options.maskData || (options.maskData === null);
         var noDataValue = options.noDataValue;
@@ -1898,20 +1740,23 @@ Contributors:  Johannes Schmid,
             }
             else {
               //lerc2.1: //bitstuffing + lut
-              //lerc2.2: //bitstuffing + lut + huffman 
+              //lerc2.2: //bitstuffing + lut + huffman
               //lerc2.3: new bitstuffer
               if (headerInfo.fileVersion > 1 && headerInfo.imageType <= 1 && Math.abs(headerInfo.maxZError - 0.5) < 0.00001) {
+                //this is 2.x plus 8 bit (unsigned and signed) data, possiblity of Huffman
                 var bReadHuffman = view.getUint8(1, true);
                 data.ptr++;
                 if (bReadHuffman) {//1
-                  console.log("Huffman");
+                  //console.log("Huffman");
                   Lerc2Helpers.readHuffman(input, data, OutPixelTypeArray);
                 }
                 else {
+                  //console.log("Tiles");
                   Lerc2Helpers.readTiles(input, data, OutPixelTypeArray);
                 }
               }
-              else {
+              else { //lerc2.x non-8 bit data
+                //console.log("Tiles");
                 Lerc2Helpers.readTiles(input, data, OutPixelTypeArray);
               }
             }
@@ -2024,8 +1869,7 @@ Contributors:  Johannes Schmid,
           returnEncodedMask: iPlane === 0 ? true : false,//lerc1 only
           returnFileInfo: true,//for both lerc1 and lerc2
           pixelType: options.pixelType || null,//lerc1 only
-          noDataValue: options.noDataValue || null,//lerc1 only
-          buildHuffmanTree: options.buildHuffmanTree
+          noDataValue: options.noDataValue || null//lerc1 only
         });
 
         inputOffset = result.fileInfo.eofOffset;
@@ -2036,7 +1880,7 @@ Contributors:  Johannes Schmid,
           decodedPixelBlock.height = result.height;
           decodedPixelBlock.pixelType = result.pixelType || result.fileInfo.pixelType;
           decodedPixelBlock.mask = result.maskData;
-        };
+        }
 
         iPlane++;
         decodedPixelBlock.pixels.push(result.pixelData),
@@ -2050,11 +1894,18 @@ Contributors:  Johannes Schmid,
     }
   };
 
-  //amd loader such as dojo and requireJS
   if (typeof define === 'function' && define.amd) {
+    //amd loaders such as dojo and requireJS
+    //http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition
     define([], function() { return Lerc; });
   }
-  else {//assign to this, most likely window
+  else if (typeof module !== 'undefined' && module.exports) {
+    //commonJS module 1.0/1.1/1.1.1 systems, such as nodeJS
+    //http://wiki.commonjs.org/wiki/Modules
+    module.exports = Lerc;
+  }
+  else {
+    //assign to this, most likely window
     this.Lerc = Lerc;
   }
 })();
