@@ -236,6 +236,32 @@ ErrCode Lerc::Decode(const Byte* pLercBlob,
 }
 
 // -------------------------------------------------------------------------- ;
+
+ErrCode Lerc::ConvertToDouble(const void* pDataIn,
+  const BitMask* pBitMask,
+  int nCols, int nRows, int nBands,
+  DataType dt,
+  double* pDataOut)
+{
+  switch (dt)
+  {
+  case DT_Char:    return ConvertToDoubleTempl((const char*)pDataIn, pBitMask, nCols, nRows, nBands, pDataOut);
+  case DT_Byte:    return ConvertToDoubleTempl((const Byte*)pDataIn, pBitMask, nCols, nRows, nBands, pDataOut);
+  case DT_Short:   return ConvertToDoubleTempl((const short*)pDataIn, pBitMask, nCols, nRows, nBands, pDataOut);
+  case DT_UShort:  return ConvertToDoubleTempl((const unsigned short*)pDataIn, pBitMask, nCols, nRows, nBands, pDataOut);
+  case DT_Int:     return ConvertToDoubleTempl((const int*)pDataIn, pBitMask, nCols, nRows, nBands, pDataOut);
+  case DT_UInt:    return ConvertToDoubleTempl((const unsigned int*)pDataIn, pBitMask, nCols, nRows, nBands, pDataOut);
+  case DT_Float:   return ConvertToDoubleTempl((const float*)pDataIn, pBitMask, nCols, nRows, nBands, pDataOut);
+  //case DT_Double:  no convert double to double
+
+  default:
+    return ErrCode::WrongParam;
+  }
+
+  return ErrCode::Ok;
+}
+
+// -------------------------------------------------------------------------- ;
 // -------------------------------------------------------------------------- ;
 
 template<class T>
@@ -508,6 +534,43 @@ bool Lerc::Convert(const CntZImage& zImg, T* arr, BitMask* pBitMask)
   }
 
   return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+template<class T>
+ErrCode Lerc::ConvertToDoubleTempl(const T* pDataIn,
+  const BitMask* pBitMask,
+  int nCols, int nRows, int nBands,
+  double* pDataOut)
+{
+  if (!pDataIn || nCols <= 0 || nRows <= 0 || nBands <= 0 || !pDataOut)
+    return ErrCode::WrongParam;
+
+  if (pBitMask && (pBitMask->GetHeight() != nRows || pBitMask->GetWidth() != nCols))
+    return ErrCode::WrongParam;
+
+  for (int iBand = 0; iBand < nBands; iBand++)
+  {
+    const T* arrIn = pDataIn + nCols * nRows * iBand;
+    double* arrOut = pDataOut + nCols * nRows * iBand;
+
+    if (pBitMask)
+    {
+      for (int k = 0, i = 0; i < nRows; i++)
+        for (int j = 0; j < nCols; j++, k++)
+          if (pBitMask->IsValid(k))
+            arrOut[k] = arrIn[k];
+    }
+    else
+    {
+      for (int k = 0, i = 0; i < nRows; i++)
+        for (int j = 0; j < nCols; j++, k++)
+          arrOut[k] = arrIn[k];
+    }
+  }
+
+  return ErrCode::Ok;
 }
 
 // -------------------------------------------------------------------------- ;

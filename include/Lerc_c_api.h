@@ -104,12 +104,27 @@ extern "C" {
 
   LERCDLL_API
   lerc_status lerc_decode(
-    const unsigned char* pLercBlob,     // Lerc blob to decode
-    unsigned int blobSize,              // blob size in bytes
-    unsigned char* pValidBytes,         // gets filled if not null ptr, even if all valid
-    int nCols, int nRows, int nBands,   // number of columns, rows, bands
-    unsigned int dataType,              // data type of outgoing array
-    void* pData);                       // outgoing data array
+    const unsigned char* pLercBlob,      // Lerc blob to decode
+    unsigned int blobSize,               // blob size in bytes
+    unsigned char* pValidBytes,          // gets filled if not null ptr, even if all valid
+    int nCols, int nRows, int nBands,    // number of columns, rows, bands
+    unsigned int dataType,               // data type of outgoing array
+    void* pData);                        // outgoing data array
+
+
+  //! Same as above, but decode into double array independent of compressed data type.
+  //! Wasteful in memory, but convenient if a caller from C# or Python does not want to deal with 
+  //! data type conversion, templating, or casting. 
+  //! Should this api be extended to new data types that don't fit into a double such as int64, 
+  //! then this function will fail for such compressed data types. 
+
+  LERCDLL_API
+    lerc_status lerc_decodeToDouble(
+    const unsigned char* pLercBlob,
+    unsigned int blobSize,
+    unsigned char* pValidBytes,
+    int nCols, int nRows, int nBands,
+    double* pData);                      // outgoing data array
 
 
 #ifdef __cplusplus

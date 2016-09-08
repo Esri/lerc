@@ -167,3 +167,60 @@ lerc_status lerc_decode(
 
 // -------------------------------------------------------------------------- ;
 
+lerc_status lerc_decodeToDouble(
+  const unsigned char* pLercBlob,
+  unsigned int blobSize,
+  unsigned char* pValidBytes,
+  int nCols, int nRows, int nBands,
+  double* pData)
+{
+  if (!pLercBlob || !blobSize || !pData || nCols <= 0 || nRows <= 0 || nBands <= 0)
+    return (lerc_status)ErrCode::WrongParam;
+
+  Lerc::LercInfo lercInfo;
+  ErrCode errCode;
+  if ((errCode = Lerc::GetLercInfo(pLercBlob, blobSize, lercInfo)) != ErrCode::Ok)
+    return (lerc_status)errCode;
+
+  Lerc::DataType dt = lercInfo.dt;
+  if (dt > Lerc::DT_Double)
+    return (lerc_status)ErrCode::Failed;
+
+  BitMask bitMask;
+  if (pValidBytes)
+  {
+    bitMask.SetSize(nCols, nRows);
+    bitMask.SetAllInvalid();
+  }
+  BitMask* pBitMask = pValidBytes ? &bitMask : 0;
+
+  if (dt == Lerc::DT_Double)
+  {
+    if ((errCode = Lerc::Decode(pLercBlob, blobSize, pBitMask, nCols, nRows, nBands, dt, pData)) != ErrCode::Ok)
+      return (lerc_status)errCode;
+  }
+  else
+  {
+    // use the buffer passed for in place decode and convert
+    int sizeofDt[] = { 1, 1, 2, 2, 4, 4, 4, 8 };
+    void* ptrDec = (Byte*)pData + nCols * nRows * nBands * (sizeof(double) - sizeofDt[dt]);
+
+    if ((errCode = Lerc::Decode(pLercBlob, blobSize, pBitMask, nCols, nRows, nBands, dt, ptrDec)) != ErrCode::Ok)
+      return (lerc_status)errCode;
+
+    if ((errCode = Lerc::ConvertToDouble(ptrDec, pBitMask, nCols, nRows, nBands, dt, pData)) != ErrCode::Ok)
+      return (lerc_status)errCode;
+  }
+
+  if (pValidBytes)
+  {
+    for (int k = 0, i = 0; i < nRows; i++)
+      for (int j = 0; j < nCols; j++, k++)
+        pValidBytes[k] = bitMask.IsValid(k);
+  }
+
+  return (lerc_status)ErrCode::Ok;
+}
+
+// -------------------------------------------------------------------------- ;
+

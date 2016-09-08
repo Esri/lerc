@@ -122,6 +122,13 @@ namespace LercNS
       void* pData);                                  // outgoing data bands
 
 
+    static ErrCode ConvertToDouble(const void* pDataIn,    // pixel data of image tile of data type dt (< double)
+      const BitMask* pBitMask, 
+      int nCols, int nRows, int nBands, 
+      DataType dt, 
+      double* pDataOut);                                   // pixel data converted to double
+
+
     // same as functions above, but data templated instead of using void pointers
 
     template<class T> static
@@ -160,5 +167,8 @@ namespace LercNS
   private:
     static void FreeBuffer(std::vector<Byte*>& bufferVec);
     template<class T> static bool Convert(const CntZImage& zImg, T* arr, BitMask* pBitMask);
+
+    template<class T> static
+    ErrCode ConvertToDoubleTempl(const T* pDataIn, const BitMask* pBitMask, int nCols, int nRows, int nBands, double* pDataOut);
   };
 }    // namespace LercNS
