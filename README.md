@@ -46,9 +46,9 @@ LERC can also be used as a compression for the MRF format via [GDAL](http://gdal
 ### Windows
 
 - Open `Lerc/build/Windows/MS_VS201X/Lerc.sln` with Microsoft Visual Studio. We have used MSVS 2013 and 2015.
-- Build the `Lerc.dll`. Pick x64. Copy the resulting `Lerc.lib` into the `lib/` folder.
+- Build the `Lerc.dll`. Pick x64 or win32. Copy the resulting `Lerc.lib` into the `lib/` folder.
 - Open `LercTest/build/Windows/MS_VS201X/LercTest.sln`.
-- Build the test application `LercTest.exe`. Pick x64.
+- Build the test application `LercTest.exe`. Pick x64 or win32.
 - Copy the `Lerc.dll` from above next to `LercTest.exe`.
 - Run it.
 
