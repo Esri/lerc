@@ -69,7 +69,7 @@ protected:
 inline PerfTimer::PerfTimer()
 {
   QueryPerformanceFrequency(&m_freq);
-  LARGE_INTEGER zero = {0}, mOne = {-1, -1};
+  LARGE_INTEGER zero = {0}, mOne = {0, -1};
   m_begin = zero;
   m_end = mOne;
 }
