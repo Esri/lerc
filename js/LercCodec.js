@@ -1832,12 +1832,14 @@ Contributors:  Johannes Schmid,
    * This is a wrapper on top of the basic lerc stream decoding
    *      used to decode multi band pixel blocks for various pixel types.
    * decodeLercRaster(xhr.response)
-   * decodeLercRaster(xhr.response, {pixelType:"U8"}); leave pixelType out in favor of F32 
+   * decodeLercRaster(xhr.response, {pixelType:"U8"}); leave pixelType out in favor of F32 for lerc1
+   * decodeLercRaster(xhr.response, {inputOffset:10}); lerc start from the 10th byte
    * ***********************************************************/
   var Lerc = {
     decode: function(encodedData, options) {
       options = options || {};
-      var fileIdView = new Uint8Array(encodedData, 0, 10);
+      var inputOffset = options.inputOffset || 0;
+      var fileIdView = new Uint8Array(encodedData, inputOffset, 10);
       var fileIdentifierString = String.fromCharCode.apply(null, fileIdView);
       var lerc;
       if (fileIdentifierString.trim() === "CntZImage") {
@@ -1850,7 +1852,7 @@ Contributors:  Johannes Schmid,
         throw "Unexpected file identifier string: " + fileIdentifierString;
       }
 
-      var iPlane = 0, inputOffset = 0, eof = encodedData.byteLength - 10, encodedMaskData, maskData;
+      var iPlane = 0, eof = encodedData.byteLength - 10, encodedMaskData, maskData;
       var decodedPixelBlock = {
         width: 0,
         height: 0,
