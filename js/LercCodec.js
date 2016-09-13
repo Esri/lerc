@@ -1071,13 +1071,15 @@ Contributors:  Johannes Schmid,
 
               delta = val - offset;
 
-              if (j > 0)
+              if (j > 0) {
                 delta += prevVal;    // use overflow
-              else if (i > 0)
+              }
+              else if (i > 0) {
                 delta += resultPixels[k - width];
-              else
+              }
+              else {
                 delta += prevVal;
-
+              }
               delta &= 0xFF; //overflow
               resultPixels[k] = delta;//overflow
               prevVal = delta;
@@ -1127,12 +1129,15 @@ Contributors:  Johannes Schmid,
 
                 delta = val - offset;
 
-                if (j > 0 && mask[k - 1])
+                if (j > 0 && mask[k - 1]) {
                   delta += prevVal;    // use overflow
-                else if (i > 0 && mask[k - width])
+                }
+                else if (i > 0 && mask[k - width]) {
                   delta += resultPixels[k - width];
-                else
+                }
+                else {
                   delta += prevVal;
+                }
 
                 delta &= 0xFF; //overflow
                 resultPixels[k] = delta;//overflow
