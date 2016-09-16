@@ -10,21 +10,21 @@ namespace Lerc2015
 {
     class Program
     {
-        [DllImport("Lerc.dll")]
+        [DllImport("Lerc32.dll")]
         public static extern UInt32 lerc_getBlobInfo(byte[] pLercBlob, UInt32 blobSize, UInt32[] infoArray, double[] dataRangeArray, int infoArraySize, int dataRangeArraySize);
 
         // if you know the compressed data type, such as float in elevation service, or uchar (= byte) for RGB image, 
         // then declare your image array of that type and call the proper decode function. 
 
-        [DllImport("Lerc.dll")]
+        [DllImport("Lerc32.dll")]
         public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nCols, int nRows, int nBands, int dataType, byte[] pData);
-        [DllImport("Lerc.dll")]
+        [DllImport("Lerc32.dll")]
         public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nCols, int nRows, int nBands, int dataType, float[] pData);
 
         // if you don't know the compressed data type, the next function can be convenient: 
         // it reads the pixel values into a tile of data type double. 
 
-        [DllImport("Lerc.dll")]
+        [DllImport("Lerc32.dll")]
         public static extern UInt32 lerc_decodeToDouble(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nCols, int nRows, int nBands, double[] pData);
 
         enum LercDataType { dt_char, dt_uchar, dt_short, dt_ushort, dt_int, dt_uint, dt_float, dt_double };
@@ -32,7 +32,7 @@ namespace Lerc2015
 
         static void Main(string[] args)
         {
-            byte[] pLercBlob = File.ReadAllBytes(@"testall_w1922_h1083_float.lerc2");
+            byte[] pLercBlob = File.ReadAllBytes(@"california_400x400.lerc2");
 
             UInt32[] infoArray = new UInt32[10];
             double[] dataRangeArray = new double[10];

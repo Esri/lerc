@@ -119,7 +119,7 @@ extern "C" {
   //! then this function will fail for such compressed data types. 
 
   LERCDLL_API
-    lerc_status lerc_decodeToDouble(
+  lerc_status lerc_decodeToDouble(
     const unsigned char* pLercBlob,
     unsigned int blobSize,
     unsigned char* pValidBytes,
@@ -131,4 +131,4 @@ extern "C" {
 }
 #endif
 
-#endif //LERC_API_INCLUDE_GUARD
+#endif  // LERC_API_INCLUDE_GUARD
