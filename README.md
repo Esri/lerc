@@ -4,17 +4,17 @@
 
 LERC is an open-source image or raster format which supports rapid encoding and decoding for any pixel type (not just RGB or Byte). Users set the maximum compression error per pixel while encoding, so the precision of the original input image is preserved (within user defined error bounds).
 
-This repository contains both a C++ library for encoding/decoding images and JavaScript and Python codecs for decoding LERC files.
+This repository contains both a C++ library for encoding/decoding images and JavaScript, C#, and Python codecs for decoding LERC files.
 
 ## The LERC C API
 
 Function | Description
 --- | ---
 `uint lerc_computeCompressedSize(...)` | Computes the buffer size that needs to be allocated so the image can be Lerc compressed into that buffer. The size is accurate to the byte. This function is optional. It is faster than `lerc_encode(...)`. It can also be called to decide whether an image or image tile should be encoded by Lerc or another method.
-`uint lerc_encode(...)` | Compresses a given image into a pre-allocated buffer. If that buffer is too small, the function fails with the corresponding error code. The function returns the number of bytes written.
+`uint lerc_encode(...)` | Compresses a given image into a pre-allocated buffer. If that buffer is too small, the function fails with the corresponding error code. The function also returns the number of bytes written.
 `uint lerc_getBlobInfo(...)` | Looks into a given Lerc byte blob and returns an array with all the header info. From this, the image to be decoded can be allocated and constructed. This function is optional. You don't need to call it if you already know the image properties such as tile size and data type.
 `uint lerc_decode(...)` | Uncompresses a given Lerc byte blob into a pre-allocated image. If the data found in the Lerc byte blob does not fit the specified image properties, the function fails with the corresponding error code. 
-
+`uint lerc_decodeToDouble(...)` | Uncompresses a given Lerc byte blob into a pre-allocated image of type double independent of the compressed data type. This function was added mainly to be called from other languages such as C# and Python. 
 
 To support the case that not all image pixels are valid, a mask image can be passed. It has one byte per pixel, 1 for valid, 0 for invalid. 
 
@@ -40,7 +40,7 @@ In a nutshell, if .jpeg is good enough for your images, use .jpeg. If not, if yo
 
 ## How to use
 
-Lerc can be run anywhere without external dependencies.  This project includes a test sample of how to use LERC directly.
+Lerc can be run anywhere without external dependencies. This project includes test samples of how to use LERC directly, currently for C++, C#, and Python. We have added a small data sample under `testData/` and a precompiled 32 bit dll `Lerc32.dll` under `bin/`. This way the C# and python test programs should run without having to rebuild the Lerc dll and without further modifications. These test programs can be found in `OtherLanguages/`. 
 LERC can also be used as a compression for the MRF format via [GDAL](http://gdal.org) release 2.1 or newer.  
 
 ### Windows
@@ -117,4 +117,4 @@ A local copy of the license and additional notices are located with the source d
 http://github.com/Esri/lerc/
 
 [](Esri Tags: raster, image, encoding, encoded, compression, codec, lerc)
-[](Esri Language: C++, C)
+[](Esri Language: C++, C, C#, Python)
