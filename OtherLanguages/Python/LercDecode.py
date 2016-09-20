@@ -1,5 +1,6 @@
-import ctypes
 import array
+import ctypes
+import sys
 from timeit import default_timer as timer
 
 lercDll = ctypes.CDLL ("D:/GitHub/LercOpenSource/bin/Lerc32.dll")
@@ -66,11 +67,54 @@ def lercGetBlobInfo(compressedBytes, infoArr, dataRangeArr):
 
 #-------------------------------------------------------------------------------
 #
-#  // Decode the compressed Lerc blob into a double data array (independent of compressed data type). 
-#  // The data array must have been allocated to size (nCols * nRows * nBands * sizeof(double)).
-#  // The valid bytes array, if not 0, must have been allocated to size (nCols * nRows).
-#  // Wasteful in memory, but convenient if a caller from C# or Python does not want to deal with 
-#  // data type conversion, templating, or casting.
+# // Decode the compressed Lerc blob into a raw data array.
+# // The data array must have been allocated to size (nCols * nRows * nBands * sizeof(dataType)).
+# // The valid bytes array, if not 0, must have been allocated to size (nCols * nRows).
+#
+# lerc_status lerc_decode(  const unsigned char* pLercBlob,
+#                           unsigned int blobSize,
+#                           unsigned char* pValidBytes,
+#                           int nCols,
+#                           int nRows,
+#                           int nBands,
+#                           unsigned int dataType,    // data type of outgoing array
+#                           void* pData);             // outgoing data array
+#
+#-------------------------------------------------------------------------------
+
+lercDll.lerc_decode.restype = ctypes.c_uint
+
+lercDll.lerc_decode.argtypes = (ctypes.c_char_p,
+                                ctypes.c_uint,
+                                ctypes.c_char_p,
+                                ctypes.c_int,
+                                ctypes.c_int,
+                                ctypes.c_int,
+                                ctypes.c_uint,
+                                ctypes.c_void_p)
+
+def lercDecode(lercBlob, cpValidBytes, nCols, nRows, nBands, dataType, cpData):
+    global lercDll
+    start = timer()
+    result = lercDll.lerc_decode(ctypes.c_char_p(lercBlob),
+                                 ctypes.c_uint(len(lercBlob)),
+                                 cpValidBytes,
+                                 ctypes.c_int(nCols),
+                                 ctypes.c_int(nRows),
+                                 ctypes.c_int(nBands),
+                                 ctypes.c_uint(dataType),
+                                 cpData)
+    end = timer()
+    print ('time lerc decode: ', (end - start))
+    return result
+
+#-------------------------------------------------------------------------------
+#
+# // Decode the compressed Lerc blob into a double data array (independent of compressed data type). 
+# // The data array must have been allocated to size (nCols * nRows * nBands * sizeof(double)).
+# // The valid bytes array, if not 0, must have been allocated to size (nCols * nRows).
+# // Wasteful in memory, but convenient if a caller from C# or Python does not want to deal with 
+# // data type conversion, templating, or casting.
 #
 # lerc_status lerc_decodeToDouble(  const unsigned char* pLercBlob,
 #                                   unsigned int blobSize,
@@ -78,7 +122,7 @@ def lercGetBlobInfo(compressedBytes, infoArr, dataRangeArr):
 #                                   int nCols,
 #                                   int nRows,
 #                                   int nBands,
-#                                   double* pData);     // outgoing data array
+#                                   double* pData);    // outgoing data array
 #
 #-------------------------------------------------------------------------------
 
@@ -110,7 +154,8 @@ def lercDecodeToDouble(lercBlob, cpValidBytes, nCols, nRows, nBands, cpData):
 #-------------------------------------------------------------------------------
 
 def lercDecodeFunction():
-    bytesRead = open("D:/GitHub/LercOpenSource/testData/california_400x400.lerc2", "rb").read()
+    #bytesRead = open("D:/GitHub/LercOpenSource/testData/california_400x400.lerc2", "rb").read()
+    bytesRead = open("D:/GitHub/LercOpenSource/testData/bluemarble_256_256_0.lerc2", "rb").read()
     
     infoArr = array.array('L', (0,) * 7)
     dataRangeArr = array.array('d', (0,) * 3)
@@ -127,53 +172,109 @@ def lercDecodeFunction():
     for i in range(len(dataRangeArr)):
         print (dataRange[i], dataRangeArr[i])
 
+    version = infoArr[0]
+    dataType = infoArr[1]
     nCols = infoArr[2]
     nRows = infoArr[3]
     nBands = infoArr[4]
     nValidPixels = infoArr[5]
 
     cpValidMask = None
+    c00 = '\x00'
     
     if nValidPixels != nCols * nRows:    # not all pixels are valid, need mask
         cpValidMask = ctypes.create_string_buffer(nCols * nRows)
-    
-    cpData = ctypes.create_string_buffer(nCols * nRows * nBands * ctypes.sizeof(ctypes.c_double))
-    cpData = ctypes.cast(cpData, ctypes.POINTER(ctypes.c_double))
 
-    result = lercDecodeToDouble(bytesRead, cpValidMask, nCols, nRows, nBands, cpData)
-    if result > 0:
-        print ('Error in lercDecodeToDouble(): error code = ', result)
-        return result
+
+    # Here we show 2 options for Lerc decode, lercDecode() and lercDecodeToDouble().
+    # We use the first for the integer types, the second for the floating point types.
+    # This is for illustration only. You can use each decode function on all data types.
+    # lercDecode() is closer to the native data types, uses less memory, but you need
+    # to cast the pointers around.
+    # lercDecodeToDouble() is more convenient to call, but a waste of memory esp if
+    # the compressed data type is only byte or char. 
+
+    if dataType < 6:    # integer types  [char, uchar, short, ushort, int, uint]
+        
+        if dataType == 0 or dataType == 1:      # char or uchar
+            sizeOfData = 1
+        elif dataType == 2 or dataType == 3:    # short or ushort
+            sizeOfData = 2
+        else:
+            sizeOfData = 4
+
+        dataStr = ctypes.create_string_buffer(nCols * nRows * nBands * sizeOfData)
+        cpData = ctypes.cast(dataStr, ctypes.c_void_p)
+
+        result = lercDecode(bytesRead, cpValidMask, nCols, nRows, nBands, dataType, cpData)
+        if result > 0:
+            print ('Error in lercDecode(): error code = ', result)
+            return result
+
+        # cast to proper pointer type
+        
+        if dataType == 0:
+            cpData = ctypes.cast(dataStr, ctypes.c_char_p)
+        elif dataType == 1:
+            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_ubyte))
+        elif dataType == 2:
+            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_short))
+        elif dataType == 3:
+            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_ushort))
+        elif dataType == 4:
+            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_int))
+        elif dataType == 5:
+            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_uint))
+
+        zMin = sys.maxint
+        zMax = -zMin
+
+
+    else:    # floating point types  [float, double]
+        
+        dataStr = ctypes.create_string_buffer(nCols * nRows * nBands * ctypes.sizeof(ctypes.c_double))
+        cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_double))
+
+        result = lercDecodeToDouble(bytesRead, cpValidMask, nCols, nRows, nBands, cpData)
+        if result > 0:
+            print ('Error in lercDecodeToDouble(): error code = ', result)
+            return result
+
+        # btw you can convert the ctypes arrays back into regular python arrays,
+        # but not much advantage here for the price of an extra copy
+        
+        #validByteArr = array.array('b')
+        #validByteArr.fromstring(cpValidMask)
+        #dataArr = array.array('d')
+        #dataArr.fromstring(dataStr)
+
+        zMin = float("inf")
+        zMax = -zMin
+
 
     # access the pixels: find the range [zMin, zMax] and compare to the above
 
     start = timer()
     
-    zMin = +float("inf")
-    zMax = -float("inf")
-
-    if cpValidMask != None:     # not all pixels are valid, use the mask
-        for m in range(nBands):
-            for i in range(nRows):
-                k = (m * nRows + i) * nCols
+    for m in range(nBands):
+        i0 = m * nRows * nCols
+        for i in range(nRows):
+            j0 = i * nCols
+            if cpValidMask != None:    # not all pixels are valid, use the mask
                 for j in range(nCols):
-                    if cpValidMask[k + j] != '\x00':
-                        z = cpData[k + j]
+                    if cpValidMask[j0 + j] != c00:
+                        z = cpData[i0 + j0 + j]
                         zMin = min(zMin, z)
                         zMax = max(zMax, z)
-                        
-    else:                       # all pixels are valid, no mask needed
-        for m in range(nBands):
-            for i in range(nRows):
-                k = (m * nRows + i) * nCols
+            else:                      # all pixels are valid, no mask needed
                 for j in range(nCols):
-                    z = cpData[k + j]
+                    z = cpData[i0 + j0 + j]
                     zMin = min(zMin, z)
                     zMax = max(zMax, z)
 
-    print ('data range found = ', zMin, zMax)
-
     end = timer()
+    
+    print ('data range found = ', zMin, zMax)
     print ('time pixel loop in python: ', (end - start))
     
     return result
