@@ -1,10 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿/*
+Copyright 2016 Esri
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+A local copy of the license and additional notices are located with the
+source distribution at:
+
+http://github.com/Esri/lerc/
+
+Contributors:  Thomas Maurer, Wenxue Ju
+*/
+
+using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.IO;
 
@@ -14,12 +33,39 @@ namespace Lerc2015
     {
         const string lercDll = "../../../../bin/Lerc32.dll";
 
+        // from Lerc_c_api.h :
+        // 
+        // typedef unsigned int lerc_status;
+        //
+        // // Call this function to get info about the compressed Lerc blob. Optional. 
+        // // Info returned in infoArray is { version, dataType, nCols, nRows, nBands, nValidPixels, blobSize }, see Lerc_types.h .
+        // // Info returned in dataRangeArray is { zMin, zMax, maxZErrorUsed }, see Lerc_types.h .
+        // // If more than 1 band the data range [zMin, zMax] is over all bands. 
+        //
+        // lerc_status lerc_getBlobInfo(const unsigned char* pLercBlob, unsigned int blobSize, 
+        //   unsigned int* infoArray, double* dataRangeArray, int infoArraySize, int dataRangeArraySize);
+
         [DllImport(lercDll)]
         public static extern UInt32 lerc_getBlobInfo(byte[] pLercBlob, UInt32 blobSize, UInt32[] infoArray, double[] dataRangeArray, int infoArraySize, int dataRangeArraySize);
 
         public enum DataType { dt_char, dt_uchar, dt_short, dt_ushort, dt_int, dt_uint, dt_float, dt_double }
 
         // Lerc decode functions for all Lerc compressed data types
+
+        // from Lerc_c_api.h :
+        // 
+        // // Decode the compressed Lerc blob into a raw data array.
+        // // The data array must have been allocated to size (nCols * nRows * nBands * sizeof(dataType)).
+        // // The valid bytes array, if not 0, must have been allocated to size (nCols * nRows). 
+        //
+        // lerc_status lerc_decode(
+        //   const unsigned char* pLercBlob,      // Lerc blob to decode
+        //   unsigned int blobSize,               // blob size in bytes
+        //   unsigned char* pValidBytes,          // gets filled if not null ptr, even if all valid
+        //   int nCols, int nRows, int nBands,    // number of columns, rows, bands
+        //   unsigned int dataType,               // data type of outgoing array
+        //   void* pData);                        // outgoing data array
+
         [DllImport(lercDll)]
         public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nCols, int nRows, int nBands, int dataType, sbyte[] pData);
         [DllImport(lercDll)]
@@ -39,9 +85,9 @@ namespace Lerc2015
 
         // if you are lazy, don't want to deal with generic / templated code, and don't care about wasting memory: 
         // this function decodes the pixel values into a tile of data type double, independent of the compressed data type.
+
         [DllImport(lercDll)]
         public static extern UInt32 lerc_decodeToDouble(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nCols, int nRows, int nBands, double[] pData);
-
     }
 
     class GenericPixelLoop<T>
@@ -73,8 +119,8 @@ namespace Lerc2015
     {
         static void Main(string[] args)
         {
-            byte[] pLercBlob = File.ReadAllBytes(@"../../../../testData/california_400x400.lerc2");
-            //byte[] pLercBlob = File.ReadAllBytes(@"../../../../testData/bluemarble_256_256_0.lerc2");
+            byte[] pLercBlob = File.ReadAllBytes(@"../../../../testData/california_400_400_1_float.lerc2");
+            //byte[] pLercBlob = File.ReadAllBytes(@"../../../../testData/bluemarble_256_256_3_byte.lerc2");
 
             String[] infoLabels = { "version", "data type", "nCols", "nRows", "nBands", "num valid pixels", "blob size" };
             String[] dataRangeLabels = { "zMin", "zMax", "maxZErrorUsed" };
@@ -104,10 +150,7 @@ namespace Lerc2015
             int nRows = (int)infoArr[3];
             int nBands = (int)infoArr[4];
 
-            double zMin = dataRangeArr[0];
-            double zMax = dataRangeArr[1];
-
-            Console.WriteLine("[zMin, zMax] = [{0}, {1}]", zMin, zMax);
+            Console.WriteLine("[zMin, zMax] = [{0}, {1}]", dataRangeArr[0], dataRangeArr[1]);
 
             byte[] pValidBytes = new byte[nCols * nRows];
             uint nValues = (uint)(nCols * nRows * nBands);

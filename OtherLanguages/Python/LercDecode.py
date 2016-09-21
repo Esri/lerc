@@ -1,3 +1,27 @@
+#-------------------------------------------------------------------------------
+#   Copyright 2016 Esri
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   A copy of the license and additional notices are located with the
+#   source distribution at:
+#
+#   http://github.com/Esri/lerc/
+#
+#   Contributors:  Thomas Maurer
+#
+#-------------------------------------------------------------------------------
+
 import array
 import ctypes
 import sys
@@ -154,9 +178,11 @@ def lercDecodeToDouble(lercBlob, cpValidBytes, nCols, nRows, nBands, cpData):
 #-------------------------------------------------------------------------------
 
 def lercDecodeFunction():
-    #bytesRead = open("D:/GitHub/LercOpenSource/testData/california_400x400.lerc2", "rb").read()
-    bytesRead = open("D:/GitHub/LercOpenSource/testData/bluemarble_256_256_0.lerc2", "rb").read()
-    
+    bytesRead = open("D:/GitHub/LercOpenSource/testData/california_400_400_1_float.lerc2", "rb").read()
+    #bytesRead = open("D:/GitHub/LercOpenSource/testData/bluemarble_256_256_3_byte.lerc2", "rb").read()
+    #bytesRead = open("D:/GitHub/LercOpenSource/testData/landsat_512_512_6_byte.lerc2", "rb").read()
+    #bytesRead = open("D:/GitHub/LercOpenSource/py/world.lerc", "rb").read()
+
     infoArr = array.array('L', (0,) * 7)
     dataRangeArr = array.array('d', (0,) * 3)
 
