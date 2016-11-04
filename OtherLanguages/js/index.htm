@@ -37,7 +37,8 @@
       xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
           var t0 = new Date();
-          var decodedPixelBlock = Lerc.decode(xhr.response, {returnMask: true });
+          var decodedPixelBlock = Lerc.decode(xhr.response, { returnMask: true });
+          var duration = (new Date()) - t0;
           width = decodedPixelBlock.width;
           height = decodedPixelBlock.height;
           pixels = decodedPixelBlock.pixels;
@@ -109,7 +110,6 @@
             }
           }
           context.putImageData(imageData, 0, 0);
-          var duration = ((new Date()) - t0);
           div_Info.innerHTML = "max: " + max + ", min: " + min + ", width: " + width + ", height: " + height + ", planes: " + planes + ", decode time:" + duration;
 
         }

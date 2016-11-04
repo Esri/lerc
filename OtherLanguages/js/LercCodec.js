@@ -19,9 +19,9 @@ source distribution at:
 
 http://github.com/Esri/lerc/
 
-Contributors:  Johannes Schmid,
-               Chayanika Khatua,
-               Wenxue Ju
+Contributors:  Johannes Schmid, (LERC v1)
+               Chayanika Khatua, (LERC v1)
+               Wenxue Ju (LERC v1, v2.x)
 
 */
 
@@ -86,7 +86,7 @@ Contributors:  Johannes Schmid,
         width: parsedData.width,
         height: parsedData.height,
         pixelData: uncompressedData.resultPixels,
-        minValue: parsedData.pixels.minValue,
+        minValue: uncompressedData.minValue,
         maxValue: parsedData.pixels.maxValue,
         noDataValue: noDataValue
       };
@@ -116,6 +116,7 @@ Contributors:  Johannes Schmid,
       var blockWidth = Math.floor(data.width / numX);
       var blockHeight = Math.floor(data.height / numY);
       var scale = 2 * data.maxZError;
+      var minValue = Number.MAX_VALUE, currentValue;
       maskBitset = maskBitset || ((data.mask) ? data.mask.bitset : null);
 
       var resultPixels, resultMask;
@@ -182,7 +183,9 @@ Contributors:  Johannes Schmid,
                   if (resultMask) {
                     resultMask[outPtr] = 1;
                   }
-                  resultPixels[outPtr++] = (block.encoding < 2) ? blockData[blockPtr++] : constValue;
+                  currentValue = (block.encoding < 2) ? blockData[blockPtr++] : constValue;
+                  minValue = minValue > currentValue ? currentValue : minValue;
+                  resultPixels[outPtr++] = currentValue;
                 } else {
                   // pixel data not present
                   if (resultMask) {
@@ -201,13 +204,16 @@ Contributors:  Johannes Schmid,
               // blockData case:
               for (yy = 0; yy < thisBlockHeight; yy++) {
                 for (xx = 0; xx < thisBlockWidth; xx++) {
-                  resultPixels[outPtr++] = blockData[blockPtr++];
+                  currentValue = blockData[blockPtr++]
+                  minValue = minValue > currentValue ? currentValue : minValue;
+                  resultPixels[outPtr++] = currentValue;
                 }
                 outPtr += outStride;
               }
             }
             else {
               // constValue case:
+              minValue = minValue > constValue ? constValue : minValue;
               for (yy = 0; yy < thisBlockHeight; yy++) {
                 for (xx = 0; xx < thisBlockWidth; xx++) {
                   resultPixels[outPtr++] = constValue;
@@ -225,7 +231,8 @@ Contributors:  Johannes Schmid,
 
       return {
         resultPixels: resultPixels,
-        resultMask: resultMask
+        resultMask: resultMask,
+        minValue: minValue
       };
     };
 
@@ -249,7 +256,6 @@ Contributors:  Johannes Schmid,
           "numBlocksY": data.pixels.numBlocksY,
           "numBytes": data.pixels.numBytes,
           "maxValue": data.pixels.maxValue,
-          "minValue": data.pixels.minValue,
           "noDataValue": data.noDataValue
         }
       };
@@ -345,7 +351,6 @@ Contributors:  Johannes Schmid,
       var actualNumBlocksX = numBlocksX + ((data.width % numBlocksX) > 0 ? 1 : 0);
       var actualNumBlocksY = numBlocksY + ((data.height % numBlocksY) > 0 ? 1 : 0);
       data.pixels.blocks = new Array(actualNumBlocksX * actualNumBlocksY);
-      var minValue = 1000000000;
       var blockI = 0;
       for (var blockY = 0; blockY < actualNumBlocksY; blockY++) {
         for (var blockX = 0; blockX < actualNumBlocksX; blockX++) {
@@ -363,7 +368,6 @@ Contributors:  Johannes Schmid,
           }
           if (block.encoding === 2) {
             fp++;
-            minValue = Math.min(minValue, 0);
             continue;
           }
           if ((headerByte !== 0) && (headerByte !== 2)) {
@@ -378,7 +382,6 @@ Contributors:  Johannes Schmid,
             } else {
               throw "Invalid block offset type";
             }
-            minValue = Math.min(block.offset, minValue);
 
             if (block.encoding === 1) {
               headerByte = view.getUint8(size); size++;
@@ -412,9 +415,6 @@ Contributors:  Johannes Schmid,
             store8 = new Uint8Array(arrayBuf);
             store8.set(new Uint8Array(input, fp, numPixels * 4));
             var rawData = new Float32Array(arrayBuf);
-            for (var j = 0; j < rawData.length; j++) {
-              minValue = Math.min(minValue, rawData[j]);
-            }
             block.rawData = rawData;
             fp += numPixels * 4;
           } else if (block.encoding === 1) {
@@ -428,7 +428,6 @@ Contributors:  Johannes Schmid,
           }
         }
       }
-      data.pixels.minValue = minValue;
       data.eofOffset = fp;
       return data;
     };
