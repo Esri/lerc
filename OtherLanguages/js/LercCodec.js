@@ -204,7 +204,7 @@ Contributors:  Johannes Schmid, (LERC v1)
               // blockData case:
               for (yy = 0; yy < thisBlockHeight; yy++) {
                 for (xx = 0; xx < thisBlockWidth; xx++) {
-                  currentValue = blockData[blockPtr++]
+                  currentValue = blockData[blockPtr++];
                   minValue = minValue > currentValue ? currentValue : minValue;
                   resultPixels[outPtr++] = currentValue;
                 }
@@ -329,7 +329,7 @@ Contributors:  Johannes Schmid, (LERC v1)
           data.mask.bitset = bitset;
           fp += data.mask.numBytes;
         }
-        else if ((data.mask.numBytes | data.mask.numBlocksY | data.mask.maxValue) == 0) {  // Special case, all nodata
+        else if ((data.mask.numBytes | data.mask.numBlocksY | data.mask.maxValue) === 0) {  // Special case, all nodata
           data.mask.bitset = new Uint8Array(Math.ceil(data.width * data.height / 8));
         }
       }
@@ -1899,19 +1899,20 @@ Contributors:  Johannes Schmid, (LERC v1)
       return decodedPixelBlock;
     }
   };
-
-  if (typeof define === 'function' && define.amd) {
+  
+  if (typeof define === 'function' && define.amd) {/* jshint ignore:line */
     //amd loaders such as dojo and requireJS
     //http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition
-    define([], function() { return Lerc; });
+    define([], function() { return Lerc; });/* jshint ignore:line */
   }
-  else if (typeof module !== 'undefined' && module.exports) {
+  else if (typeof module !== 'undefined' && module.exports) {/* jshint ignore:line */
     //commonJS module 1.0/1.1/1.1.1 systems, such as nodeJS
     //http://wiki.commonjs.org/wiki/Modules
-    module.exports = Lerc;
+    module.exports = Lerc;/* jshint ignore:line */
   }
   else {
     //assign to this, most likely window
     this.Lerc = Lerc;
   }
+
 })();
