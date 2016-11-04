@@ -143,6 +143,9 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
   unsigned int numBytesHeader = CntZImage::computeNumBytesNeededToReadHeader();
   Byte* pByte = const_cast<Byte*>(pLercBlob);
 
+  lercInfo.zMin =  FLT_MAX;
+  lercInfo.zMax = -FLT_MAX;
+
   CntZImage cntZImg;
   if (numBytesHeader <= numBytesBlob && cntZImg.read(&pByte, 1e12, true))    // read just the header
   {

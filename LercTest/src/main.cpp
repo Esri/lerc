@@ -344,6 +344,8 @@ int main(int argc, char* arcv[])
       int h = infoArr[3];
       int nBands = infoArr[4];
       uint32 dt = infoArr[1];
+      float zMin = (float)dataRangeArr[0];
+      float zMax = (float)dataRangeArr[1];
 
       pt.start();
 
@@ -353,7 +355,7 @@ int main(int argc, char* arcv[])
 
       pt.stop();
 
-      printf("w = %4d, h = %4d, nBands = %2d, dt = %2d, time = %4d ms,  %s :  %s\n", w, h, nBands, dt, pt.ms(), resultMsg.c_str(), fnVec[n].c_str());
+      printf("w = %4d, h = %4d, nBands = %1d, dt = %1d, min = %7.2f, max = %7.2f, time = %2d ms,  %s :  %s\n", w, h, nBands, dt, zMin, zMax, pt.ms(), resultMsg.c_str(), fnVec[n].c_str());
     }
   }
 
