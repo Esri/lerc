@@ -27,8 +27,8 @@ Contributors:  Johannes Schmid, (LERC v1)
 
 
 (function() {
-  //the original LercCodec for Version 1.
-  var LercCodec = (function() {
+  //the original LercDecode for Version 1.
+  var LercDecode = (function() {
 
     // WARNING: This decoder version can only read old version 1 Lerc blobs. Use with caution.
     // A new, updated js Lerc decoder is in the works.
@@ -467,13 +467,13 @@ Contributors:  Johannes Schmid, (LERC v1)
   })();
 
   //version 2. Supports 2.1, 2.2, 2.3
-  var Lerc2Codec = (function() {
+  var Lerc2Decode = (function() {
     "use strict";
     // Note: currently, this module only has an implementation for decoding LERC data, not encoding. The name of
-    // the class was chosen to be future proof, following LercCodec.
+    // the class was chosen to be future proof, following LercDecode.
 
     /*****************************************
-    * private static class bitsutffer used by Lerc2Codec
+    * private static class bitsutffer used by Lerc2Decode
     *******************************************/
     var BitStuffer = {
       //methods ending with 2 are for the new byte order used by Lerc2.3 and above.
@@ -714,7 +714,7 @@ Contributors:  Johannes Schmid, (LERC v1)
     };
 
     /*****************************************
-    *private static class used by Lerc2Codec
+    *private static class used by Lerc2Decode
     ******************************************/
     var Lerc2Helpers = {
       HUFFMAN_LUT_BITS_MAX: 12, //use 2^12 lut, treat it like constant
@@ -1647,7 +1647,7 @@ Contributors:  Johannes Schmid, (LERC v1)
       this.right = right;
     };
 
-    var Lerc2Codec = {
+    var Lerc2Decode = {
       /**
        * Decode a LERC2 byte stream and return an object containing the pixel data and some required and optional
        * information about it, such as the image's width and height.
@@ -1667,7 +1667,7 @@ Contributors:  Johannes Schmid, (LERC v1)
        * removed nodatavalue. Because LERC2 pixels are typed, nodatavalue will sacrify a useful value for many types (8bit, 16bit) etc,
        *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now.
        *       We can add it back later if their's a clear requirement.
-       * removed encodedMask. This option was not implemented in LercCodec. It can be done after decoding (less efficient)
+       * removed encodedMask. This option was not implemented in LercDecode. It can be done after decoding (less efficient)
        * removed computeUsedBitDepths.
        *
        *
@@ -1828,7 +1828,7 @@ Contributors:  Johannes Schmid, (LERC v1)
       }
     };
 
-    return Lerc2Codec;
+    return Lerc2Decode;
   })();
 
 
@@ -1847,10 +1847,10 @@ Contributors:  Johannes Schmid, (LERC v1)
       var fileIdentifierString = String.fromCharCode.apply(null, fileIdView);
       var lerc;
       if (fileIdentifierString.trim() === "CntZImage") {
-        lerc = LercCodec;
+        lerc = LercDecode;
       }
       else if (fileIdentifierString.substring(0, 5) === "Lerc2") {
-        lerc = Lerc2Codec;
+        lerc = Lerc2Decode;
       }
       else {
         throw "Unexpected file identifier string: " + fileIdentifierString;
