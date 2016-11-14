@@ -4,7 +4,7 @@
 
 LERC is an open-source image or raster format which supports rapid encoding and decoding for any pixel type (not just RGB or Byte). Users set the maximum compression error per pixel while encoding, so the precision of the original input image is preserved (within user defined error bounds).
 
-This repository contains both a C++ library for encoding/decoding images and JavaScript, C#, and Python codecs for decoding LERC files.
+This repository contains both a C++ library for encoding/decoding images and JavaScript, C#, and Python decoders. 
 
 ## The LERC C API
 
@@ -27,7 +27,7 @@ One more comment about multiple bands. You can either store each band into its o
 In image or raster compression, there are two different options:
 
 - compress an image as much as possible but so it still looks ok
-  (.jpeg and relatives). The max coding error per pixel can be large.
+  (jpeg and relatives). The max coding error per pixel can be large.
 
 - prioritize control over the max coding error per pixel (elevation,
   scientific data, medical image data, ...).
@@ -36,14 +36,19 @@ In the second case, data is often compressed using lossless methods, such as LZW
 
 Lerc allows you to set the max coding error per pixel allowed, called `"MaxZError"`. You can specify any number from `0` (lossless) to a number so large that the decoded image may come out flat.
 
-In a nutshell, if .jpeg is good enough for your images, use .jpeg. If not, if you would use .png instead, or .gzip, then you may want to try out Lerc.
+In a nutshell, if jpeg is good enough for your images, use jpeg. If not, if you would use png instead, or gzip, then you may want to try out Lerc.
 
 ## How to use
 
-Lerc can be run anywhere without external dependencies. This project includes test samples of how to use LERC directly, currently for C++, C#, and Python. We have added a small data sample under `testData/` and a precompiled 32 bit dll `Lerc32.dll` under `bin/`. This way the C# and python test programs should run without having to rebuild the Lerc dll and without further modifications. These test programs can be found in `OtherLanguages/`. 
-LERC can also be used as a compression for the MRF format via [GDAL](http://gdal.org) release 2.1 or newer.  
+Lerc can be run anywhere without external dependencies. This project includes test samples of how to use LERC directly, currently for C++, C#, JavaScript, and Python. We have added a few small data samples under `testData/`. There is also a precompiled Windows dll and a Linux .so file under `bin/`. 
 
-### Windows
+### How to use without compiling LERC
+
+Check out the Lerc decoders in `OtherLanguages/`. You may need to adjust the paths to input data and the dll or .so file. Other than that they should just work. 
+
+### How to compile LERC and the C++ test program
+
+#### Windows
 
 - Open `Lerc/build/Windows/MS_VS201X/Lerc.sln` with Microsoft Visual Studio. We have used MSVS 2013 and 2015.
 - Build the `Lerc.dll`. Pick x64 or win32. Copy the resulting `Lerc.lib` into the `lib/` folder.
@@ -52,7 +57,7 @@ LERC can also be used as a compression for the MRF format via [GDAL](http://gdal
 - Copy the `Lerc.dll` from above next to `LercTest.exe`.
 - Run it.
 
-### Linux
+#### Linux
 
 - Open `Lerc/build/Linux/CodeBlocks/Lerc_dll/Lerc_dll.cbp` using the free Code::Blocks IDE for Linux. 
 - Build it. Should create `libLerc_dll.so`.
@@ -60,14 +65,16 @@ LERC can also be used as a compression for the MRF format via [GDAL](http://gdal
 - Build it. Should create `LercTest`.
 - Run it.
 
-## Lerc Properties
+LERC can also be used as a compression mode for the MRF format via [GDAL](http://gdal.org) release 2.1 or newer. 
+
+## LERC Properties
 
 - works on any common data type, not just 8 bit:
   char, byte, short, ushort, int, uint, float, double.
 
 - works with any given MaxZError or max coding error per pixel.
 
-- can work with a bit mask that specifies which pixels are valid
+- can work with a byte mask that specifies which pixels are valid
   and which ones are not.
 
 - is very fast: encoding time is about 20-30 ms per MegaPixel per band, decoding time is about 5 ms per MegaPixel per band.
@@ -116,5 +123,5 @@ A local copy of the license and additional notices are located with the source d
 
 http://github.com/Esri/lerc/
 
-[](Esri Tags: raster, image, encoding, encoded, compression, codec, lerc)
-[](Esri Language: C++, C, C#, Python)
+[](Esri Tags: raster, image, encoding, encoded, decoding, decoded, compression, codec, lerc)
+[](Esri Language: C++, C, C#, JS, JavaScript, Python)
