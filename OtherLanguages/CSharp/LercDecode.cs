@@ -31,7 +31,7 @@ namespace Lerc2015
 {
     class LercDecode
     {
-        const string lercDll = "../../../../bin/Lerc32.dll";
+        const string lercDll = "../../../../bin/Windows/Lerc32.dll";
 
         // from Lerc_c_api.h :
         // 
