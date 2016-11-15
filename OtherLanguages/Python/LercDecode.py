@@ -27,8 +27,8 @@ import ctypes
 import sys
 from timeit import default_timer as timer
 
-lercDll = ctypes.CDLL ("D:/GitHub/LercOpenSource/bin/Windows/Lerc32.dll")    # windows
-#lercDll = ctypes.CDLL ("../../bin/Linux/Lerc32.so")    # linux
+#lercDll = ctypes.CDLL ("D:/GitHub/LercOpenSource/bin/Windows/Lerc32.dll")    # windows
+lercDll = ctypes.CDLL ("../../bin/Linux/Lerc64.so")    # linux
 
 #-------------------------------------------------------------------------------
 #
