@@ -27,8 +27,8 @@ import ctypes
 import sys
 from timeit import default_timer as timer
 
-#lercDll = ctypes.CDLL ("D:/GitHub/LercOpenSource/bin/Windows/Lerc32.dll")    # windows
-lercDll = ctypes.CDLL ("../../bin/Linux/Lerc64.so")    # linux
+lercDll = ctypes.CDLL ("D:/GitHub/LercOpenSource/bin/Windows/Lerc32.dll")    # windows
+#lercDll = ctypes.CDLL ("../../bin/Linux/Lerc64.so")    # linux
 
 #-------------------------------------------------------------------------------
 #
@@ -207,7 +207,7 @@ def lercDecodeFunction():
     nValidPixels = infoArr[5]
 
     cpValidMask = None
-    c00 = '\x00'
+    c00 = b'\x00'
     
     if nValidPixels != nCols * nRows:    # not all pixels are valid, need mask
         cpValidMask = ctypes.create_string_buffer(nCols * nRows)
