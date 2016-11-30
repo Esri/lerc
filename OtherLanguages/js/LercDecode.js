@@ -1889,7 +1889,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         }
 
         iPlane++;
-        decodedPixelBlock.pixels.push(result.pixelData),
+        decodedPixelBlock.pixels.push(result.pixelData);
         decodedPixelBlock.statistics.push({
           minValue: result.minValue,
           maxValue: result.maxValue,
