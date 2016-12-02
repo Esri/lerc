@@ -22,16 +22,19 @@ http://github.com/Esri/lerc/
 Contributors:  Johannes Schmid, (LERC v1)
                Chayanika Khatua, (LERC v1)
                Wenxue Ju (LERC v1, v2.x)
-
 */
 
+/* Copyright 2015 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
 
+/**
+ * a module for decoding LERC blobs
+ * @module Lerc
+ */
 (function() {
-  //the original LercDecode for Version 1.
+  //the original LercDecode for Version 1
   var LercDecode = (function() {
 
     // WARNING: This decoder version can only read old version 1 Lerc blobs. Use with caution.
-    // A new, updated js Lerc decoder is in the works.
 
     // Note: currently, this module only has an implementation for decoding LERC data, not encoding. The name of
     // the class was chosen to be future proof.
@@ -69,7 +72,7 @@ Contributors:  Johannes Schmid, (LERC v1)
      * @config {boolean} [computeUsedBitDepths = false]
      *        If true, the fileInfo property in the return value will contain the set of all block bit depths
      *        encountered during decoding. Will only have an effect if returnFileInfo option is true.
-     * @returns {{width, height, pixelData, minValue, maxValue, noDataValue, [maskData], [encodedMaskData], [fileInfo]}}
+     * @returns {{width, height, pixelData, minValue, maxValue, noDataValue, maskData, encodedMaskData, fileInfo}}
      */
     CntZImage.decode = function(input, options) {
       options = options || {};
@@ -1290,7 +1293,7 @@ Contributors:  Johannes Schmid, (LERC v1)
               data.ptr += blockPtr;
               throw "Invalid block encoding (" + blockEncoding + ")";
             }
-            else if (blockEncoding === 2) { //constant 0 
+            else if (blockEncoding === 2) { //constant 0
               data.counter.constant++;
               data.ptr += blockPtr;
               continue;
@@ -1648,37 +1651,6 @@ Contributors:  Johannes Schmid, (LERC v1)
     };
 
     var Lerc2Decode = {
-      /**
-       * Decode a LERC2 byte stream and return an object containing the pixel data and some required and optional
-       * information about it, such as the image's width and height.
-       *
-       * @param {ArrayBuffer} input The LERC input byte stream
-       * @param {object} [options] Decoding options, containing any of the following properties:
-       * @config {number} [inputOffset = 0]
-       *        Skip the first inputOffset bytes of the input byte stream. A valid LERC file is expected at that position.
-       * @config {boolean} [returnFileInfo = false]
-       *        If true, the return value will have a fileInfo property that contains metadata obtained from the
-       *        LERC headers and the decoding process.
-       *
-       * ********removed options compared to LERC1. We can bring some of them back if needed.
-       * removed pixel type. LERC2 is typed and doesn't require user to give pixel type
-       * changed encodedMaskData to maskData. LERC2 's js version make it faster to use maskData directly.
-       * removed returnMask. mask is used by LERC2 internally and is cost free. In case of user input mask, it's returned as well and has neglible cost.
-       * removed nodatavalue. Because LERC2 pixels are typed, nodatavalue will sacrify a useful value for many types (8bit, 16bit) etc,
-       *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now.
-       *       We can add it back later if their's a clear requirement.
-       * removed encodedMask. This option was not implemented in LercDecode. It can be done after decoding (less efficient)
-       * removed computeUsedBitDepths.
-       *
-       *
-       * response changes compared to LERC1
-       * 1. encodedMaskData is not available
-       * 2. noDataValue is optional (returns only if user's noDataValue is with in the valid data type range)
-       * 3. maskData is always available
-       * @returns {{width, height, pixelData, minValue, maxValue, maskData, [fileInfo]}}
-       */
-
-
       /*****************
       *  public properties
       ******************/
@@ -1687,6 +1659,24 @@ Contributors:  Johannes Schmid, (LERC v1)
       /*****************
       *  public methods
       *****************/
+
+      /**
+       * Decode a LERC2 byte stream and return an object containing the pixel data and optional metadata.
+       *
+       * @alias module:Lerc
+       * @param {ArrayBuffer} input The LERC input byte stream
+       * @param {object} [options] options Decoding options
+       * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid LERC file is expected at that position
+       * @param {boolean} [options.returnFileInfo] If true, the return value will have a fileInfo property that contains metadata obtained from the LERC headers and the decoding process
+       * @returns {{width, height, pixelData, minValue, maxValue, maskData, fileInfo}}
+         * @property {number} width Width of decoded image
+         * @property {number} height Height of decoded image
+         * @property {object} pixelData The actual decoded image
+         * @property {number} minValue Minimum pixel value detected in decoded image
+         * @property {number} maxValue Maximum pixel value detected in decoded image
+         * @property {maskData} maskData
+         * @property {object} [fileInfo]
+       */
       decode: function(/*byte array*/ input, /*object*/ options) {
         //currently there's a bug in the sparse array, so please do not set to false
         options = options || {};
@@ -1811,7 +1801,23 @@ Contributors:  Johannes Schmid, (LERC v1)
         }
         return result;
       },
-
+      /*
+      * ********removed options compared to LERC1. We can bring some of them back if needed.
+       * removed pixel type. LERC2 is typed and doesn't require user to give pixel type
+       * changed encodedMaskData to maskData. LERC2 's js version make it faster to use maskData directly.
+       * removed returnMask. mask is used by LERC2 internally and is cost free. In case of user input mask, it's returned as well and has neglible cost.
+       * removed nodatavalue. Because LERC2 pixels are typed, nodatavalue will sacrify a useful value for many types (8bit, 16bit) etc,
+       *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now.
+       *       We can add it back later if their's a clear requirement.
+       * removed encodedMask. This option was not implemented in LercDecode. It can be done after decoding (less efficient)
+       * removed computeUsedBitDepths.
+       *
+       *
+       * response changes compared to LERC1
+       * 1. encodedMaskData is not available
+       * 2. noDataValue is optional (returns only if user's noDataValue is with in the valid data type range)
+       * 3. maskData is always available
+      */
       getBandCount: function(/*byte array*/ input) {
         var count = 0;
         var i = 0;
@@ -1899,7 +1905,7 @@ Contributors:  Johannes Schmid, (LERC v1)
       return decodedPixelBlock;
     }
   };
-  
+
   if (typeof define === 'function' && define.amd) {/* jshint ignore:line */
     //amd loaders such as dojo and requireJS
     //http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition

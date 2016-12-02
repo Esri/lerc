@@ -4,12 +4,12 @@
 <head>
   <meta charset="utf-8" />
   <title></title>
-  <script type="text/javascript" src="./LercDecode.min.js"></script>
+  <script type="text/javascript" src="./LercDecode.js"></script>
 </head>
 <body>
   <div id="imageInfo">Image Header Info</div>
   <div id="currentPV">Hover over to see current pixel value</div>
-  <input id="mapUrl" type="text" style="width:90%" value="http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0" onchange="showTile()">
+  <input id="mapUrl" type="text" style="width:90%" value="https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0" onchange="showTile()">
   <div>
     <canvas width="100" height="100" id="imageCanvas"></canvas>
   </div>
@@ -47,7 +47,7 @@
           imageCanvas.height = height;
 
           var imageData = context.createImageData(width, height);
-          var data = imageData.data;          
+          var data = imageData.data;
           var pv = 0;
           var index = 0;
           var nPixels = width * height;
@@ -133,8 +133,6 @@
         }
       }
     }
-
-
   </script>
 </body>
 </html>
