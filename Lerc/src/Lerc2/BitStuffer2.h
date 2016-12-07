@@ -46,9 +46,8 @@ public:
   bool EncodeLut(Byte** ppByte, const std::vector<std::pair<unsigned int, unsigned int> >& sortedDataVec) const;
   bool Decode(const Byte** ppByte, std::vector<unsigned int>& dataVec, int lerc2Version) const;
 
-  unsigned int ComputeNumBytesNeededSimple(unsigned int numElem, unsigned int maxElem) const;
-  unsigned int ComputeNumBytesNeededLut(const std::vector<std::pair<unsigned int, unsigned int> >& sortedDataVec,
-    bool& doLut) const;
+  static unsigned int ComputeNumBytesNeededSimple(unsigned int numElem, unsigned int maxElem);
+  static unsigned int ComputeNumBytesNeededLut(const std::vector<std::pair<unsigned int, unsigned int> >& sortedDataVec, bool& doLut);
 
 private:
   mutable std::vector<unsigned int>  m_tmpLutVec, m_tmpIndexVec, m_tmpBitStuffVec;
@@ -56,15 +55,16 @@ private:
   void BitUnStuff_Before_Lerc2v3(const Byte** ppByte, std::vector<unsigned int>& dataVec, unsigned int numElements, int numBits) const;
   void BitStuff(Byte** ppByte, const std::vector<unsigned int>& dataVec, int numBits) const;
   void BitUnStuff(const Byte** ppByte, std::vector<unsigned int>& dataVec, unsigned int numElements, int numBits) const;
-  bool EncodeUInt(Byte** ppByte, unsigned int k, int numBytes) const;     // numBytes = 1, 2, or 4
-  bool DecodeUInt(const Byte** ppByte, unsigned int& k, int numBytes) const;
-  int NumBytesUInt(unsigned int k) const  { return (k < 256) ? 1 : (k < (1 << 16)) ? 2 : 4; }
-  unsigned int NumTailBytesNotNeeded(unsigned int numElem, int numBits) const;
+
+  static bool EncodeUInt(Byte** ppByte, unsigned int k, int numBytes);     // numBytes = 1, 2, or 4
+  static bool DecodeUInt(const Byte** ppByte, unsigned int& k, int numBytes);
+  static int NumBytesUInt(unsigned int k)  { return (k < 256) ? 1 : (k < (1 << 16)) ? 2 : 4; }
+  static unsigned int NumTailBytesNotNeeded(unsigned int numElem, int numBits);
 };
 
 // -------------------------------------------------------------------------- ;
 
-inline unsigned int BitStuffer2::ComputeNumBytesNeededSimple(unsigned int numElem, unsigned int maxElem) const
+inline unsigned int BitStuffer2::ComputeNumBytesNeededSimple(unsigned int numElem, unsigned int maxElem)
 {
   int numBits = 0;
   while ((numBits < 32) && (maxElem >> numBits))
@@ -74,7 +74,7 @@ inline unsigned int BitStuffer2::ComputeNumBytesNeededSimple(unsigned int numEle
 
 // -------------------------------------------------------------------------- ;
 
-inline bool BitStuffer2::EncodeUInt(Byte** ppByte, unsigned int k, int numBytes) const
+inline bool BitStuffer2::EncodeUInt(Byte** ppByte, unsigned int k, int numBytes)
 {
   Byte* ptr = *ppByte;
 
@@ -96,7 +96,7 @@ inline bool BitStuffer2::EncodeUInt(Byte** ppByte, unsigned int k, int numBytes)
 
 // -------------------------------------------------------------------------- ;
 
-inline bool BitStuffer2::DecodeUInt(const Byte** ppByte, unsigned int& k, int numBytes) const
+inline bool BitStuffer2::DecodeUInt(const Byte** ppByte, unsigned int& k, int numBytes)
 {
   const Byte* ptr = *ppByte;
 
@@ -119,7 +119,7 @@ inline bool BitStuffer2::DecodeUInt(const Byte** ppByte, unsigned int& k, int nu
 
 // -------------------------------------------------------------------------- ;
 
-inline unsigned int BitStuffer2::NumTailBytesNotNeeded(unsigned int numElem, int numBits) const
+inline unsigned int BitStuffer2::NumTailBytesNotNeeded(unsigned int numElem, int numBits)
 {
   int numBitsTail = (numElem * numBits) & 31;
   int numBytesTail = (numBitsTail + 7) >> 3;

@@ -54,16 +54,16 @@ public:
 
   // when done, call
   // delete[] *arr;
-  bool decompress(const Byte* arrRLE, Byte** arr, size_t& numBytes) const;
+  static bool decompress(const Byte* arrRLE, Byte** arr, size_t& numBytes);
 
   // arr already allocated, just fill
-  bool decompress(const Byte* arrRLE, Byte* arr) const;
+  static bool decompress(const Byte* arrRLE, Byte* arr);
 
 protected:
   int m_minNumEven;
 
-  void writeCount(short cnt, Byte** ppCnt, Byte** ppDst) const;
-  short readCount(const Byte** ppCnt) const;
+  static void writeCount(short cnt, Byte** ppCnt, Byte** ppDst);
+  static short readCount(const Byte** ppCnt);
 };
 
 NAMESPACE_LERC_END

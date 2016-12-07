@@ -371,7 +371,7 @@ struct MyLessThanOp
 // -------------------------------------------------------------------------- ;
 
 void Lerc2::SortQuantArray(const std::vector<unsigned int>& quantVec,
-                           std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const
+                           std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec)
 {
   int numElem = (int)quantVec.size();
   sortedQuantVec.resize(numElem);

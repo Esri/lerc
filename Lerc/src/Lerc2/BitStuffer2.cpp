@@ -206,8 +206,7 @@ bool BitStuffer2::Decode(const Byte** ppByte, vector<unsigned int>& dataVec, int
 
 // -------------------------------------------------------------------------- ;
 
-unsigned int BitStuffer2::ComputeNumBytesNeededLut(const vector<pair<unsigned int, unsigned int> >& sortedDataVec,
-                                                    bool& doLut) const
+unsigned int BitStuffer2::ComputeNumBytesNeededLut(const vector<pair<unsigned int, unsigned int> >& sortedDataVec, bool& doLut)
 {
   unsigned int maxElem = sortedDataVec.back().first;
   unsigned int numElem = (unsigned int)sortedDataVec.size();

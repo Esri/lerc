@@ -151,7 +151,7 @@ private:
   bool ComputeStats(const T* data, int i0, int i1, int j0, int j1,
                     T& zMinA, T& zMaxA, int& numValidPixelA, bool& tryLutA) const;
 
-  double ComputeMaxVal(double zMin, double zMax, double maxZError) const;
+  static double ComputeMaxVal(double zMin, double zMax, double maxZError);
 
   template<class T>
   bool NeedToQuantize(int numValidPixel, T zMin, T zMax) const;
@@ -179,17 +179,17 @@ private:
 
   DataType GetDataTypeUsed(int typeCode) const;
 
-  bool WriteVariableDataType(Byte** ppByte, double z, DataType dtUsed) const;
+  static bool WriteVariableDataType(Byte** ppByte, double z, DataType dtUsed);
   
-  double ReadVariableDataType(const Byte** ppByte, DataType dtUsed) const;
+  static double ReadVariableDataType(const Byte** ppByte, DataType dtUsed);
 
   template<class T>
   DataType GetDataType(T z) const;
 
-  unsigned int GetMaxValToQuantize(DataType dt) const;
+  static unsigned int GetMaxValToQuantize(DataType dt);
 
-  void SortQuantArray(const std::vector<unsigned int>& quantVec,
-                      std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const;
+  static void SortQuantArray(const std::vector<unsigned int>& quantVec,
+         std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec);
 
   template<class T>
   bool ComputeHistoForHuffman(const T* data, std::vector<int>& histo) const;
@@ -729,7 +729,7 @@ bool Lerc2::ComputeStats(const T* data, int i0, int i1, int j0, int j1,
 
 // -------------------------------------------------------------------------- ;
 
-inline double Lerc2::ComputeMaxVal(double zMin, double zMax, double maxZError) const
+inline double Lerc2::ComputeMaxVal(double zMin, double zMax, double maxZError)
 {
   double fac = 1 / (2 * maxZError);
   return (zMax - zMin) * fac;
@@ -1132,7 +1132,7 @@ Lerc2::DataType Lerc2::GetDataTypeUsed(int tc) const
 // -------------------------------------------------------------------------- ;
 
 inline
-bool Lerc2::WriteVariableDataType(Byte** ppByte, double z, DataType dtUsed) const
+bool Lerc2::WriteVariableDataType(Byte** ppByte, double z, DataType dtUsed)
 {
   Byte* ptr = *ppByte;
 
@@ -1203,7 +1203,7 @@ bool Lerc2::WriteVariableDataType(Byte** ppByte, double z, DataType dtUsed) cons
 // -------------------------------------------------------------------------- ;
 
 inline
-double Lerc2::ReadVariableDataType(const Byte** ppByte, DataType dtUsed) const
+double Lerc2::ReadVariableDataType(const Byte** ppByte, DataType dtUsed)
 {
   const Byte* ptr = *ppByte;
 
@@ -1294,7 +1294,7 @@ Lerc2::DataType Lerc2::GetDataType(T z) const
 // -------------------------------------------------------------------------- ;
 
 inline
-unsigned int Lerc2::GetMaxValToQuantize(Lerc2::DataType dt) const
+unsigned int Lerc2::GetMaxValToQuantize(Lerc2::DataType dt)
 {
   switch (dt)
   {

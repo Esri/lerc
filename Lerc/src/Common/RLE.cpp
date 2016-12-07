@@ -254,7 +254,7 @@ bool RLE::compress(const Byte* arr, size_t numBytes,
 
 // -------------------------------------------------------------------------- ;
 
-bool RLE::decompress(const Byte* arrRLE, Byte** arr, size_t& numBytes) const
+bool RLE::decompress(const Byte* arrRLE, Byte** arr, size_t& numBytes)
 {
   if (!arrRLE)
     return false;
@@ -287,7 +287,7 @@ bool RLE::decompress(const Byte* arrRLE, Byte** arr, size_t& numBytes) const
 
 // -------------------------------------------------------------------------- ;
 
-bool RLE::decompress(const Byte* arrRLE, Byte* arr) const
+bool RLE::decompress(const Byte* arrRLE, Byte* arr)
 {
   if (!arrRLE || !arr)
     return false;
@@ -313,7 +313,7 @@ bool RLE::decompress(const Byte* arrRLE, Byte* arr) const
 
 // -------------------------------------------------------------------------- ;
 
-void RLE::writeCount(short cnt, Byte** ppCnt, Byte** ppDst) const
+void RLE::writeCount(short cnt, Byte** ppCnt, Byte** ppDst)
 {
   SWAP_2(cnt);    // write short's in little endian byte order, always
   memcpy(*ppCnt, &cnt, sizeof(short));
@@ -323,7 +323,7 @@ void RLE::writeCount(short cnt, Byte** ppCnt, Byte** ppDst) const
 
 // -------------------------------------------------------------------------- ;
 
-short RLE::readCount(const Byte** ppCnt) const
+short RLE::readCount(const Byte** ppCnt)
 {
   short cnt;
   memcpy(&cnt, *ppCnt, sizeof(short));
