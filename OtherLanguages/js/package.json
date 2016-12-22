@@ -1,0 +1,33 @@
+{
+  "name": "lerc",
+  "browser": "LercDecode.js",
+  "bugs": {
+    "url": "https://github.com/esri/lerc"
+  },
+  "description": "Rapid decoding for any pixel type, not just rgb or byte",
+  "version": "1.0.0",
+  "author": "Esri <dev_tools@esri.com> (http://developers.arcgis.com)",
+  "contributors": [
+    "Johannes Schmid",
+    "Chayanika Khatua",
+    "Wenxue Ju"
+  ],
+  "devDependencies": {
+    "jsdoc-to-markdown": "^2.0.1",
+    "jshint": "^2.9.4",
+    "uglify-js": "^2.7.5"
+  },
+  "homepage": "https://github.com/Esri/lerc",
+  "license": "Apache-2.0",
+  "main": "LercDecode.js",
+  "readmeFilename": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com:Esri/lerc.git"
+  },
+  "scripts": {
+    "lint": "jshint LercDecode.js",
+    "build": "uglifyjs LercDecode.js -o LercDecode.min.js --comments",
+    "docs": "jsdoc2md --template README.hbs --files LercDecode.js"
+  }
+}
