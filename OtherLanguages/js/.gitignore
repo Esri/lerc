@@ -2,3 +2,5 @@ node_modules
 
 # built library
 LercDecode.min.js
+
+npm-debug.log

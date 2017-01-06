@@ -7,18 +7,40 @@
 
 > Rapid decoding of Lerc compressed raster data for any standard pixel type, not just rgb or byte
 
-## Usage
+## Browser
+
+```js
+Lerc.decode(xhrResponse, {
+  pixelType: "U8", // leave pixelType out in favor of F32 for lerc1
+  inputOffset: 10 // start from the 10th byte
+});
+```
+
+## Node
 
 ```js
 npm install 'lerc'
 ```
 ```js
-var Lerc = require('lerc');
+var http = require('http');
+var Lerc = require('./LercDecode');
 
-Lerc.decode(xhrResponse, {
-  pixelType: "U8", // leave pixelType out in favor of F32 for lerc1
-  inputOffset: 10 // start from the 10th byte
+http.get('http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0', function (res) {
+  var data = [];
+  res.on('data', function (chunk) {
+    // append each chunk to a list of buffer objects
+    data.push(chunk);
+  })
+  res.on('end', function () {
+    // turn the list into one large Buffer
+    data = Buffer.concat(data);
+    // because the decoder expects an ArrayBuffer
+    var image = Lerc.decode(data.buffer);
+    console.log("width of output is: " + image.width);
+  })
 });
+
+// more info: https://github.com/dcodeIO/protobuf.js/wiki/How-to-read-binary-data-in-the-browser-or-under-node.js%3F
 ```
 
 ## API Reference
