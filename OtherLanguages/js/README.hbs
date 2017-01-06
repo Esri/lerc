@@ -5,7 +5,7 @@
 
 # Lerc JS
 
-> Rapid decoding for any pixel type, not just rgb or byte
+> Rapid decoding of Lerc compressed raster data for any standard pixel type, not just rgb or byte
 
 ## Usage
 
@@ -15,7 +15,10 @@ npm install 'lerc'
 ```js
 var Lerc = require('lerc');
 
-Lerc.decode(xhr.response, { returnFileInfo: true });
+Lerc.decode(xhrResponse, {
+  pixelType: "U8", // leave pixelType out in favor of F32 for lerc1
+  inputOffset: 10 // start from the 10th byte
+});
 ```
 
 ## API Reference

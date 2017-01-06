@@ -1663,19 +1663,10 @@ Contributors:  Johannes Schmid, (LERC v1)
       /**
        * Decode a LERC2 byte stream and return an object containing the pixel data and optional metadata.
        *
-       * @alias module:Lerc
        * @param {ArrayBuffer} input The LERC input byte stream
        * @param {object} [options] options Decoding options
        * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid LERC file is expected at that position
        * @param {boolean} [options.returnFileInfo] If true, the return value will have a fileInfo property that contains metadata obtained from the LERC headers and the decoding process
-       * @returns {{width, height, pixelData, minValue, maxValue, maskData, fileInfo}}
-         * @property {number} width Width of decoded image
-         * @property {number} height Height of decoded image
-         * @property {object} pixelData The actual decoded image
-         * @property {number} minValue Minimum pixel value detected in decoded image
-         * @property {number} maxValue Maximum pixel value detected in decoded image
-         * @property {maskData} maskData
-         * @property {object} [fileInfo]
        */
       decode: function(/*byte array*/ input, /*object*/ options) {
         //currently there's a bug in the sparse array, so please do not set to false
@@ -1837,15 +1828,25 @@ Contributors:  Johannes Schmid, (LERC v1)
     return Lerc2Decode;
   })();
 
-
-  /************wrapper**********************************************
-   * This is a wrapper on top of the basic lerc stream decoding
-   *      used to decode multi band pixel blocks for various pixel types.
-   * decodeLercRaster(xhr.response)
-   * decodeLercRaster(xhr.response, {pixelType:"U8"}); leave pixelType out in favor of F32 for lerc1
-   * decodeLercRaster(xhr.response, {inputOffset:10}); lerc start from the 10th byte
-   * ***********************************************************/
   var Lerc = {
+    /************wrapper**********************************************/
+    /**
+     * A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling multiband pixel blocks for various pixel types.
+     *
+     * @alias module:Lerc
+     * @param {ArrayBuffer} input The LERC input byte stream
+     * @param {object} [options] The decoding options below are optional.
+     * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
+     * @param {string} [options.pixelType] (LERC1 only) Default value is F32. Valid pixel types for input are U8/S8/S16/U16/S32/U32/F32.
+     * @param {number} [options.noDataValue] (LERC1 only). It is recommended to use the returned mask instead of setting this value.
+     * @returns {{width, height, pixels, pixelType, mask, statistics}}
+       * @property {number} width Width of decoded image.
+       * @property {number} height Height of decoded image.
+       * @property {array} pixels [band1, band2, …] Each band is a typed array of width*height.
+       * @property {string} pixelType The type of pixels represented in the output.
+       * @property {mask} mask Typed array with a size of width*height, or null if all pixels are valid.
+       * @property {array} statistics [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values
+    **/
     decode: function(encodedData, options) {
       options = options || {};
       var inputOffset = options.inputOffset || 0;
