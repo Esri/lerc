@@ -2,9 +2,9 @@
   "name": "lerc",
   "browser": "LercDecode.js",
   "bugs": {
-    "url": "https://github.com/esri/lerc"
+    "url": "https://github.com/esri/lerc/issues"
   },
-  "description": "Rapid decoding for any pixel type, not just rgb or byte",
+  "description": "Rapid decoding of Lerc compressed raster data for any standard pixel type.",
   "version": "1.0.0",
   "author": "Esri <dev_tools@esri.com> (http://developers.arcgis.com)",
   "contributors": [

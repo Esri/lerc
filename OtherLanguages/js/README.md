@@ -5,7 +5,7 @@
 
 # Lerc JS
 
-> Rapid decoding for any pixel type, not just rgb or byte
+> Rapid decoding of Lerc compressed raster data for any standard pixel type, not just rgb or byte
 
 ## Usage
 
@@ -15,7 +15,10 @@ npm install 'lerc'
 ```js
 var Lerc = require('lerc');
 
-Lerc.decode(xhr.response, { returnFileInfo: true });
+Lerc.decode(xhrResponse, {
+  pixelType: "U8", // leave pixelType out in favor of F32 for lerc1
+  inputOffset: 10 // start from the 10th byte
+});
 ```
 
 ## API Reference
@@ -28,28 +31,28 @@ a module for decoding LERC blobs
 <a name="exp_module_Lerc--decode"></a>
 
 ### decode(input, [options]) ⇒ <code>Object</code> ⏏
-Decode a LERC2 byte stream and return an object containing the pixel data and optional metadata.
+A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling multiband pixel blocks for various pixel types.
 
 **Kind**: Exported function
 
 | Param | Type | Description |
 | --- | --- | --- |
 | input | <code>ArrayBuffer</code> | The LERC input byte stream |
-| [options] | <code>object</code> | options Decoding options |
-| [options.inputOffset] | <code>number</code> | The number of bytes to skip in the input byte stream. A valid LERC file is expected at that position |
-| [options.returnFileInfo] | <code>boolean</code> | If true, the return value will have a fileInfo property that contains metadata obtained from the LERC headers and the decoding process |
+| [options] | <code>object</code> | The decoding options below are optional. |
+| [options.inputOffset] | <code>number</code> | The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position. |
+| [options.pixelType] | <code>string</code> | (LERC1 only) Default value is F32. Valid pixel types for input are U8/S8/S16/U16/S32/U32/F32. |
+| [options.noDataValue] | <code>number</code> | (LERC1 only). It is recommended to use the returned mask instead of setting this value. |
 
-**Result Object Properties**
+**Result Object**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| width | <code>number</code> | Width of decoded image |
-| height | <code>number</code> | Height of decoded image |
-| pixelData | <code>object</code> | The actual decoded image |
-| minValue | <code>number</code> | Minimum pixel value detected in decoded image |
-| maxValue | <code>number</code> | Maximum pixel value detected in decoded image |
-| maskData | <code>maskData</code> |  |
-| fileInfo | <code>object</code> |  |
+| width | <code>number</code> | Width of decoded image. |
+| height | <code>number</code> | Height of decoded image. |
+| pixels | <code>array</code> | [band1, band2, …] Each band is a typed array of width*height. |
+| pixelType | <code>string</code> | The type of pixels represented in the output. |
+| mask | <code>mask</code> | Typed array with a size of width*height, or null if all pixels are valid. |
+| statistics | <code>array</code> | [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values |
 
 * * *
 
