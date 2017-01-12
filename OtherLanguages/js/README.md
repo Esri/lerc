@@ -9,6 +9,9 @@
 
 ## Browser
 
+```html
+<script type="text/javascript" src="./LercDecode.js"></script>
+```
 ```js
 Lerc.decode(xhrResponse, {
   pixelType: "U8", // leave pixelType out in favor of F32 for lerc1
@@ -23,7 +26,7 @@ npm install 'lerc'
 ```
 ```js
 var http = require('http');
-var Lerc = require('./LercDecode');
+var Lerc = require('lerc');
 
 http.get('http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0', function (res) {
   var data = [];
