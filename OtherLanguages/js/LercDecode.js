@@ -480,7 +480,7 @@ Contributors:  Johannes Schmid, (LERC v1)
     *******************************************/
     var BitStuffer = {
       //methods ending with 2 are for the new byte order used by Lerc2.3 and above.
-      //original is listed here but not used. code is duplicated to unstuffx and unstuffLUTx for performance reasons.
+      //originalUnstuff is used to unpack Huffman code table. code is duplicated to unstuffx for performance reasons.
       unstuff: function(src, dest, bitsPerPixel, numPixels, lutArr, offset, scale, maxValue) {
         var bitMask = (1 << bitsPerPixel) - 1;
         var i = 0, o;
@@ -1175,7 +1175,8 @@ Contributors:  Johannes Schmid, (LERC v1)
           } else {
             throw "Invalid valid pixel count type";
           }
-          offset = offset || 0;
+          //fix: huffman codes are bit stuffed, but not bound by data's max value, so need to use originalUnstuff
+          //offset = offset || 0;
           var scale = 2 * data.headerInfo.maxZError;
           var stuffedData, arrayBuf, store8, dataBytes, dataWords;
           var lutArr, lutData, lutBytes, lutBitsPerElement, bitsPerPixel;
@@ -1236,11 +1237,20 @@ Contributors:  Johannes Schmid, (LERC v1)
               stuffedData = new Uint32Array(arrayBuf);
               data.ptr += dataBytes;
               if (fileVersion >= 3) {
-                //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
-                BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, data.headerInfo.zMax);
+                if (offset === undefined || offset === null) {
+                  BitStuffer.originalUnstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements);
+                }
+                else {
+                  BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, data.headerInfo.zMax);
+                }
               }
               else {
-                BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, data.headerInfo.zMax);
+                if (offset === undefined || offset === null) {
+                  BitStuffer.originalUnstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements);
+                }
+                else {
+                  BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, data.headerInfo.zMax);
+                }
               }
             }
           }
