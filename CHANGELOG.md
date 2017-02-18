@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### No entries yet
 
+### Fixed - 2017-02-18
+
+* resolved a Huffman code table parsing issue in JavaScript decoder [#31](https://github.com/Esri/lerc/pull/31)
+
 ## 1.0 - 2016-11-30
 
 ### Milestones reached
