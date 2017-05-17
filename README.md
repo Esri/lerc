@@ -123,5 +123,3 @@ A local copy of the license and additional notices are located with the source d
 
 http://github.com/Esri/lerc/
 
-[](Esri Tags: raster, image, encoding, encoded, decoding, decoded, compression, codec, lerc)
-[](Esri Language: C++, C, C#, JS, JavaScript, Python)
