@@ -123,9 +123,11 @@ TImage< Element >& TImage< Element >::operator = (const TImage& tImg)
   if (!resize(tImg.getWidth(), tImg.getHeight()))
     return *this;    // return empty image if resize fails
 
-  memcpy(getData(), tImg.getData(), getSize() * sizeof(Element));
-
-  Image::operator=(tImg);
+  if (data_ && tImg.data_)
+  {
+    memcpy(data_, tImg.data_, getSize() * sizeof(Element));
+    Image::operator=(tImg);
+  }
 
   return *this;
 }
