@@ -49,6 +49,9 @@ public:
   /// read succeeds only if maxZError on file <= maxZError requested
   bool read(Byte** ppByte, double maxZError, bool onlyHeader = false, bool onlyZPart = false);
 
+  template <class T>
+  bool ConvertToMemBlock(T* arr, T noDataValue) const;
+
 protected:
 
   struct InfoFromComputeNumBytes
@@ -79,6 +82,36 @@ protected:
   std::vector<unsigned int>  m_tmpDataVec;             // used in read fcts
   bool                       m_bDecoderCanIgnoreMask;  // "
 };
+
+template <class T>
+bool CntZImage::ConvertToMemBlock(T* arr, T noDataValue) const
+{
+  if (!arr)
+  {
+    return false;
+  }
+
+  const CntZ* srcPtr = getData();
+  T* dstPtr = arr;
+
+  for (int32_t i = 0; i < height_; i++)
+  {
+    for (int32_t j = 0; j < width_; j++)
+    {
+      if (srcPtr->cnt > 0)
+      {
+        *dstPtr++ = (T)srcPtr->z;
+      }
+      else
+      {
+        *dstPtr++ = noDataValue;
+      }
+      srcPtr++;
+    }
+  }
+
+  return true;
+}
 
 NAMESPACE_LERC_END
 #endif
