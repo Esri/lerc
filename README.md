@@ -20,7 +20,7 @@ To support the case that not all image pixels are valid, a mask image can be pas
 
 See the sample program `LercTest/src/main.cpp` which demonstrates how the above functions are called and used. Also see the two header files in the `include/` folder and the comments in there.
 
-One more comment about multiple bands. You can either store each band into its own Lerc byte blob which allows you to access / decode each band individually. Lerc also allows to stack bands together into one single Lerc byte blob. This can be useful if the bands are always used together anyway.
+About multiple bands, or multiple values per pixel. This has changed with Lerc version 2.4. Before, you could either store each band into its own Lerc byte blob which allowed you to access / decode each band individually. Lerc also allowed to stack bands together into one single Lerc byte blob. This could be useful if the bands are always used together anyway. Now, since Lerc version 2.4, you can additionally store multiple values per pixel interleaved, meaning an array of values for pixel 1, next array of values for pixel 2, and so forth. We have added a new parameter "nDim" for this number of values per pixel. 
 
 ## When to use
 
@@ -50,20 +50,16 @@ Check out the Lerc decoders in `OtherLanguages/`. You may need to adjust the pat
 
 #### Windows
 
-- Open `Lerc/build/Windows/MS_VS201X/Lerc.sln` with Microsoft Visual Studio. We have used MSVS 2013 and 2015.
-- Build the `Lerc.dll`. Pick x64 or win32. Copy the resulting `Lerc.lib` into the `lib/` folder.
-- Open `LercTest/build/Windows/MS_VS201X/LercTest.sln`.
-- Build the test application `LercTest.exe`. Pick x64 or win32.
-- Copy the `Lerc.dll` from above next to `LercTest.exe`.
-- Run it.
+- Open `build/Windows/MS_VS201X/Lerc.sln` with Microsoft Visual Studio. We have upgraded to VS2017. 
+- Pick x64 (dflt) or win32. 
+- Build and run. 
 
 #### Linux
 
-- Open `Lerc/build/Linux/CodeBlocks/Lerc_dll/Lerc_dll.cbp` using the free Code::Blocks IDE for Linux. 
-- Build it. Should create `libLerc_dll.so`.
-- Open `LercTest/build/Linux/CodeBlocks/LercTest/LercTest.cbp`.
-- Build it. Should create `LercTest`.
-- Run it.
+- Open `build/Linux/CodeBlocks/Lerc/Lerc_so.cbp` using the free Code::Blocks IDE for Linux. 
+- Build it. Should create `libLerc_so.so`.
+- Open `build/Linux/CodeBlocks/Test/Test.cbp`.
+- Build and run. 
 
 LERC can also be used as a compression mode for the MRF format via [GDAL](http://gdal.org) release 2.1 or newer. 
 
@@ -89,7 +85,7 @@ LERC can also be used as a compression mode for the MRF format via [GDAL](http:/
   the error allowed, the stronger the compression.
   Compression factors larger than 100x have been reported.
 
-- this Lerc package can read all (legacy) versions of Lerc, such as Lerc1, Lerc2 v1, v2, and the current Lerc2 v3. It always writes the latest stable version.
+- this Lerc package can read all (legacy) versions of Lerc, such as Lerc1, Lerc2 v1, v2, v3, and the current Lerc2 v4. It always writes the latest stable version.
 
 The main principle of Lerc and history can be found in [doc/MORE.md](doc/MORE.md)
 
@@ -100,7 +96,7 @@ Some benchmarks are in
 
 ## Bugs?
 
-The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level modules are very unlikely. The top level layer that wraps the different Lerc versions is newer. So if this package shows a bug, it is most likely in that layer.
+The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level modules are very unlikely. New in Lerc version 2.4 is more rigorous checking against buffer overrun during decoding. If those checks contain a bug then this might trigger the decoder to fail unexpectedly. 
 
 ## Contact
 
