@@ -21,9 +21,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\LercTest\main.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\..\src\LercTest\PerfTimer.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{113FE1AF-80D1-4201-9299-5C5456DC0661}</ProjectGuid>

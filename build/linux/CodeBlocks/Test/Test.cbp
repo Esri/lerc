@@ -16,7 +16,7 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add library="../Lerc_so/bin/Debug/libLerc_so.so" />
+					<Add library="../Lerc/bin/Debug/libLerc_so.so" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -30,7 +30,7 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
-					<Add library="../Lerc_so/bin/Release/libLerc_so.so" />
+					<Add library="../Lerc/bin/Release/libLerc_so.so" />
 				</Linker>
 			</Target>
 		</Build>
@@ -38,7 +38,6 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
-		<Unit filename="../../../../src/LercTest/LinuxTimer.h" />
 		<Unit filename="../../../../src/LercTest/main.cpp" />
 		<Extensions>
 			<code_completion />
