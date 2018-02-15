@@ -3,7 +3,4 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\LercTest\main.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\..\src\LercTest\PerfTimer.h" />
-  </ItemGroup>
 </Project>

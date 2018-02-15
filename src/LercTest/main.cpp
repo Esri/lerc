@@ -5,19 +5,14 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include <chrono>
 #include "../LercLib/Lerc_c_api.h"
 //#include "../../include/Lerc_c_api.h"
 
 //#include "Lerc_types.h"    // see for error codes, data types, etc
 
-#if defined(_MSC_VER)
-  #include "PerfTimer.h"
-#else
-  #include "LinuxTimer.h"
-//  class PerfTimer { public: void start(){}; void stop(){}; int ms(){return 0;} };
-#endif
-
 using namespace std;
+using namespace std::chrono;
 
 //#define TestLegacyData
 
@@ -81,7 +76,6 @@ int main(int argc, char* arcv[])
 
   uint32 numBytesNeeded = 0;
   uint32 numBytesWritten = 0;
-  PerfTimer pt;
 
   hr = lerc_computeCompressedSize((void*)zImg,    // raw image data, row by row, band by band
     (uint32)dt_float, 1, w, h, 1,
@@ -95,7 +89,7 @@ int main(int argc, char* arcv[])
   uint32 numBytesBlob = numBytesNeeded;
   Byte* pLercBlob = new Byte[numBytesBlob];
 
-  pt.start();
+  high_resolution_clock::time_point t0 = high_resolution_clock::now();
 
   hr = lerc_encode((void*)zImg,    // raw image data, row by row, band by band
     (uint32)dt_float, 1, w, h, 1,
@@ -108,10 +102,11 @@ int main(int argc, char* arcv[])
   if (hr)
     cout << "lerc_encode(...) failed" << endl;
 
-  pt.stop();
+  high_resolution_clock::time_point t1 = high_resolution_clock::now();
+  auto duration = duration_cast<milliseconds>(t1 - t0).count();
 
   double ratio = w * h * (0.125 + sizeof(float)) / numBytesBlob;
-  cout << "sample 1 compression ratio = " << ratio << ", encode time = " << pt.ms() << " ms" << endl;
+  cout << "sample 1 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
 
 
   // decompress
@@ -134,13 +129,14 @@ int main(int argc, char* arcv[])
   Byte* maskByteImg3 = new Byte[w * h];
   memset(maskByteImg3, 0, w * h);
 
-  pt.start();
+  t0 = high_resolution_clock::now();
 
   hr = lerc_decode(pLercBlob, numBytesBlob, maskByteImg3, 1, w, h, 1, (uint32)dt_float, (void*)zImg3);
   if (hr)
     cout << "lerc_decode(...) failed" << endl;
 
-  pt.stop();
+  t1 = high_resolution_clock::now();
+  duration = duration_cast<milliseconds>(t1 - t0).count();
 
 
   // compare to orig
@@ -162,7 +158,7 @@ int main(int argc, char* arcv[])
     }
   }
 
-  cout << "max z error per pixel = " << maxDelta << ", decode time = " << pt.ms() << " ms" << endl;
+  cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
   cout << endl;
 
   delete[] zImg;
@@ -202,7 +198,7 @@ int main(int argc, char* arcv[])
   numBytesBlob = numBytesNeeded;
   pLercBlob = new Byte[numBytesBlob];
 
-  pt.start();
+  t0 = high_resolution_clock::now();
 
   hr = lerc_encode((void*)byteImg,    // raw image data: nDim values per pixel, row by row, band by band
     (uint32)dt_uchar, 3, w, h, 1,
@@ -215,10 +211,11 @@ int main(int argc, char* arcv[])
   if (hr)
     cout << "lerc_encode(...) failed" << endl;
 
-  pt.stop();
+  t1 = high_resolution_clock::now();
+  duration = duration_cast<milliseconds>(t1 - t0).count();
 
   ratio = 3 * w * h / (double)numBytesBlob;
-  cout << "sample 2 compression ratio = " << ratio << ", encode time = " << pt.ms() << " ms" << endl;
+  cout << "sample 2 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
 
 
   // decode
@@ -236,13 +233,14 @@ int main(int argc, char* arcv[])
   Byte* byteImg3 = new Byte[3 * w * h];
   memset(byteImg3, 0, 3 * w * h);
 
-  pt.start();
+  t0 = high_resolution_clock::now();
 
   hr = lerc_decode(pLercBlob, numBytesBlob, 0, 3, w, h, 1, (uint32)dt_uchar, (void*)byteImg3);
   if (hr)
     cout << "lerc_decode(...) failed" << endl;
 
-  pt.stop();
+  t1 = high_resolution_clock::now();
+  duration = duration_cast<milliseconds>(t1 - t0).count();
 
   // compare to orig
 
@@ -256,7 +254,7 @@ int main(int argc, char* arcv[])
           maxDelta = delta;
       }
 
-  cout << "max z error per pixel = " << maxDelta << ", decode time = " << pt.ms() << " ms" << endl;
+  cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
   cout << endl;
 
   delete[] byteImg;
@@ -348,16 +346,17 @@ int main(int argc, char* arcv[])
       double zMin = dataRangeArr[0];
       double zMax = dataRangeArr[1];
 
-      pt.start();
+      t0 = high_resolution_clock::now();
 
       std::string resultMsg = "ok";
       if (0 != lerc_decode(pLercBuffer, (uint32)fileSize, pValidBytes, nDim, w, h, nBands, dt, (void*)pDstArr))
         resultMsg = "FAILED";
 
-      pt.stop();
+      t1 = high_resolution_clock::now();
+      duration = duration_cast<milliseconds>(t1 - t0).count();
 
-      printf("nDim = %1d, w = %4d, h = %4d, nBands = %1d, dt = %1d, min = %10.4f, max = %16.4f, time = %3d ms,  %s :  %s\n",
-          nDim, w, h, nBands, dt, zMin, zMax, pt.ms(), resultMsg.c_str(), fnVec[n].c_str());
+      printf("nDim = %1d, w = %4d, h = %4d, nBands = %1d, dt = %1d, min = %10.4f, max = %16.4f, time = %3lld ms,  %s :  %s\n",
+          nDim, w, h, nBands, dt, zMin, zMax, duration, resultMsg.c_str(), fnVec[n].c_str());
     }
   }
 
