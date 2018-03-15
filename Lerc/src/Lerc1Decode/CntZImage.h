@@ -47,7 +47,7 @@ public:
   static unsigned int computeNumBytesNeededToReadHeader();
 
   /// read succeeds only if maxZError on file <= maxZError requested
-  bool read(Byte** ppByte, double maxZError, bool onlyHeader = false, bool onlyZPart = false);
+  bool read(Byte** ppByte, bool& hasInvalidData, double maxZError, bool onlyHeader = false, bool onlyZPart = false);
 
   template <class T>
   bool ConvertToMemBlock(T* arr, T noDataValue) const;

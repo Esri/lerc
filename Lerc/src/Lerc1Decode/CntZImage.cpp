@@ -68,7 +68,7 @@ unsigned int CntZImage::computeNumBytesNeededToReadHeader()
 
 // -------------------------------------------------------------------------- ;
 
-bool CntZImage::read(Byte** ppByte, double maxZError, bool onlyHeader, bool onlyZPart)
+bool CntZImage::read(Byte** ppByte, bool& hasInvalidData, double maxZError, bool onlyHeader, bool onlyZPart)
 {
   if (!ppByte || !*ppByte)
     return false;
@@ -80,6 +80,8 @@ bool CntZImage::read(Byte** ppByte, double maxZError, bool onlyHeader, bool only
 
   if (typeStr != getTypeString())
     return false;
+
+  hasInvalidData = false;
 
   int version = 0, type = 0, width = 0, height = 0;
   double maxZErrorInFile = 0;
@@ -116,6 +118,7 @@ bool CntZImage::read(Byte** ppByte, double maxZError, bool onlyHeader, bool only
     return false;
 
   m_bDecoderCanIgnoreMask = false;
+  bool max_val_is_zero = false;
 
   for (int iPart = 0; iPart < 2; iPart++)
   {
@@ -146,6 +149,10 @@ bool CntZImage::read(Byte** ppByte, double maxZError, bool onlyHeader, bool only
     {
       if (numBytes == 0)    // cnt part is const
       {
+        if (0.0f == maxValInImg)
+        {
+          max_val_is_zero = true;
+        }
         CntZ* dstPtr = getData();
         for (int i = 0; i < height_; i++)
           for (int j = 0; j < width_; j++)
@@ -160,6 +167,8 @@ bool CntZImage::read(Byte** ppByte, double maxZError, bool onlyHeader, bool only
 
       if (numBytes > 0)    // cnt part is binary mask, use fast RLE class
       {
+        hasInvalidData = true;
+
         // decompress to bit mask
         BitMask bitMask(width_, height_);
         RLE rle;
@@ -177,6 +186,8 @@ bool CntZImage::read(Byte** ppByte, double maxZError, bool onlyHeader, bool only
 
     *ppByte += numBytes;
   }
+
+  if (max_val_is_zero) return false;
 
   m_tmpDataVec.clear();
   return true;
