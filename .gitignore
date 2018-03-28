@@ -1,22 +1,45 @@
-**/obj/
-**/Release/
-**/Debug/
-**/ipch/
-*.bak*
-*.db
-*.exp
-*.hpj
-*.hpj
-*.ncb
-*.olb
-*.opensdf
-*.pyc
-*.sdf
+# Premake generated files #
+###########################
+*.vcxproj*
+*.sln
+Makefile
+*.make
+*.xcworkspace
+*.xcodeproj
+compile_commands.json
+
+# OS generated files #
+######################
+.DS_Store*
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.project
+
+# VS generated files #
+######################
+ipch/
 *.suo
-*.tlb
-*.tor
+*.opensdf
+*.sdf
+*.vcxproj
+*.filters
 *.user
-*_h.h
-*_i.c
-*_p.c
-.svn
+*.cso
+.vscode
+*.code-workspace
+
+# Qt files #
+############
+*.config
+*.creator*
+*.files
+*.includes
+*.user*
+moc/
+
+# git noise #
+#############
+**/*.orig
