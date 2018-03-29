@@ -147,7 +147,8 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
   lercInfo.zMax = -FLT_MAX;
 
   CntZImage cntZImg;
-  if (numBytesHeader <= numBytesBlob && cntZImg.read(&pByte, 1e12, true))    // read just the header
+  bool hasInvalidData = false;
+  if (numBytesHeader <= numBytesBlob && cntZImg.read(&pByte, hasInvalidData, 1e12, true))    // read just the header
   {
     size_t nBytesRead = pByte - pLercBlob;
     size_t nBytesNeeded = 10 + 4 * sizeof(int) + 1 * sizeof(double);
@@ -175,7 +176,7 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
 
     while (lercInfo.blobSize + numBytesHeader < numBytesBlob)    // means there could be another band
     {
-      if (!cntZImg.read(&pByte, 1e12, false, onlyZPart))
+      if (!cntZImg.read(&pByte, hasInvalidData, 1e12, false, onlyZPart))
         return (lercInfo.nBands > 0) ? ErrCode::Ok : ErrCode::Failed;    // no other band, we are done
 
       onlyZPart = true;
@@ -474,7 +475,8 @@ ErrCode Lerc::DecodeTempl(T* pData,    // outgoing data bands
         return ErrCode::BufferTooSmall;
 
       bool onlyZPart = iBand > 0;
-      if (!zImg.read(&pByte1, 1e12, false, onlyZPart))
+      bool hasInvalidData = false;
+      if (!zImg.read(&pByte1, hasInvalidData, 1e12, false, onlyZPart))
         return ErrCode::Failed;
 
       if (zImg.getWidth() != nCols || zImg.getHeight() != nRows)
