@@ -83,7 +83,7 @@ A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling mul
 
 ## Licensing
 
-Copyright 2017 Esri
+Copyright 2018 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -97,6 +97,3 @@ See the License for the specific language governing permissions and limitations 
 A local copy of the license and additional notices are located with the source distribution at:
 
 http://github.com/Esri/lerc/
-
-[](Esri Tags: raster, image, encoding, encoded, decoding, decoded, compression, codec, lerc)
-[](Esri Language: JS, JavaScript, Python)
