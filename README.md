@@ -104,7 +104,7 @@ Send an email to <a href="mailto:tmaurer@esri.com">tmaurer@esri.com</a>
 
 ## Licensing
 
-Copyright 2018 Esri
+Copyright 2015-2018 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

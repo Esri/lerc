@@ -83,7 +83,7 @@ A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling mul
 
 ## Licensing
 
-Copyright 2018 Esri
+Copyright 2017-2018 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
