@@ -866,7 +866,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         var headerInfo = data.headerInfo;
         var numPixels = headerInfo.width * headerInfo.height;
         var imageType = headerInfo.imageType;
-        var numBytes = headerInfo.numValidPixel * Lerc2Helpers.getDateTypeSize(imageType);
+        var numBytes = headerInfo.numValidPixel * Lerc2Helpers.getDataTypeSize(imageType);
         //data.pixels.numBytes = numBytes;
         var rawData;
         if (OutPixelTypeArray === Uint8Array) {
@@ -1264,6 +1264,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         var height = headerInfo.height;
         var microBlockSize = headerInfo.microBlockSize;
         var imageType = headerInfo.imageType;
+        var dataTypeSize = Lerc2Helpers.getDataTypeSize(imageType);
         var numBlocksX = Math.ceil(width / microBlockSize);
         var numBlocksY = Math.ceil(height / microBlockSize);
         data.pixels.numBlocksY = numBlocksY;
@@ -1311,10 +1312,11 @@ Contributors:  Johannes Schmid, (LERC v1)
             else if (blockEncoding === 0) {  //uncompressed
               data.counter.uncompressed++;
               data.ptr += blockPtr;
-              numBytes = thisBlockHeight * thisBlockWidth * Lerc2Helpers.getDateTypeSize(imageType);
+              numBytes = thisBlockHeight * thisBlockWidth * dataTypeSize;
               bytesleft = input.byteLength - data.ptr;
               numBytes = numBytes < bytesleft ? numBytes : bytesleft;
-              arrayBuf = new ArrayBuffer(numBytes);
+              //bit alignment
+              arrayBuf = new ArrayBuffer((numBytes % dataTypeSize) === 0 ? numBytes : (numBytes + dataTypeSize - numBytes % dataTypeSize));
               store8 = new Uint8Array(arrayBuf);
               store8.set(new Uint8Array(input, data.ptr, numBytes));
               rawData = new OutPixelTypeArray(arrayBuf);
@@ -1338,12 +1340,12 @@ Contributors:  Johannes Schmid, (LERC v1)
                   outPtr += outStride;
                 }
               }
-              data.ptr += z * Lerc2Helpers.getDateTypeSize(imageType);
+              data.ptr += z * dataTypeSize;
             }
             else { //1 or 3
               offsetType = Lerc2Helpers.getDataTypeUsed(imageType, bits67);
               offset = Lerc2Helpers.getOnePixel(block, blockPtr, offsetType, view);
-              blockPtr += Lerc2Helpers.getDateTypeSize(offsetType);
+              blockPtr += Lerc2Helpers.getDataTypeSize(offsetType);
               if (blockEncoding === 3) //constant offset value
               {
                 data.ptr += blockPtr;
@@ -1552,7 +1554,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         return isValid;
       },
 
-      getDateTypeSize: function(t) {
+      getDataTypeSize: function(t) {
         var s = 0;
         switch (t) {
           case 0: //ubyte
