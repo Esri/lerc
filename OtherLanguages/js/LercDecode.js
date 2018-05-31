@@ -810,8 +810,8 @@ Contributors:  Johannes Schmid, (LERC v1)
         var headerInfo = data.headerInfo;
         var OutPixelTypeArray = this.getDataTypeArray(headerInfo.imageType);
         var rangeBytes = headerInfo.numDims * this.getDataTypeSize(headerInfo.imageType);
-        var minValues = this.readSubArray(input, data.ptr, rangeBytes);
-        var maxValues = this.readSubArray(input, data.ptr + rangeBytes, rangeBytes);
+        var minValues = this.readSubArray(input, data.ptr, OutPixelTypeArray, rangeBytes);
+        var maxValues = this.readSubArray(input, data.ptr + rangeBytes, OutPixelTypeArray, rangeBytes);
         data.ptr += (2 * rangeBytes);
         var i, equal = true;
         for (i = 0; i < headerInfo.numDims; i++) {
