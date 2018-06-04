@@ -1119,7 +1119,7 @@ Contributors:  Johannes Schmid, (LERC v1)
           }
           if (data.headerInfo.numValidPixel === width * height) { //all valid
             for (k = 0, i = 0; i < height; i++) {
-              for (j = 0; j < width; j++ , k++) {
+              for (j = 0; j < width; j++, k++) {
                 val = 0;
                 valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
                 valTmpQuick = valTmp;// >>> deltaBits;
@@ -1180,7 +1180,7 @@ Contributors:  Johannes Schmid, (LERC v1)
           }
           else { //not all valid, use mask
             for (k = 0, i = 0; i < height; i++) {
-              for (j = 0; j < width; j++ , k++) {
+              for (j = 0; j < width; j++, k++) {
                 if (mask[k]) {
                   val = 0;
                   valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
@@ -1333,7 +1333,7 @@ Contributors:  Johannes Schmid, (LERC v1)
               stuffedData = new Uint32Array(arrayBuf);
               data.ptr += dataBytes;
               if (fileVersion >= 3) {
-                if (offset === undefined || offset === null) {
+                if (offset == null) {
                   BitStuffer.originalUnstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements);
                 }
                 else {
@@ -1341,7 +1341,7 @@ Contributors:  Johannes Schmid, (LERC v1)
                 }
               }
               else {
-                if (offset === undefined || offset === null) {
+                if (offset == null) {
                   BitStuffer.originalUnstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements);
                 }
                 else {
@@ -1630,7 +1630,7 @@ Contributors:  Johannes Schmid, (LERC v1)
       },
 
       isValidPixelValue: function(t, val) {
-        if (val === null || val === undefined) {
+        if (val == null) {
           return false;
         }
         var isValid;
@@ -1794,7 +1794,6 @@ Contributors:  Johannes Schmid, (LERC v1)
       decode: function(/*byte array*/ input, /*object*/ options) {
         //currently there's a bug in the sparse array, so please do not set to false
         options = options || {};
-        var skipMask = options.maskData || (options.maskData === null);
         var noDataValue = options.noDataValue;
 
         //initialize
@@ -1811,15 +1810,9 @@ Contributors:  Johannes Schmid, (LERC v1)
         var OutPixelTypeArray = Lerc2Helpers.getDataTypeArray(headerInfo.imageType);
 
         // Mask Header
-        if (skipMask) {
+        Lerc2Helpers.readMask(input, data);
+        if (headerInfo.numValidPixel !== headerInfo.width * headerInfo.height && data.mask.numBytes === 0) {
           data.pixels.resultMask = options.maskData;
-          data.ptr += 4;
-        }
-        else {
-          if (!Lerc2Helpers.readMask(input, data)) {
-            //invalid mask
-            return;
-          }
         }
 
         var numPixels = headerInfo.width * headerInfo.height;
@@ -2003,18 +1996,20 @@ Contributors:  Johannes Schmid, (LERC v1)
       var inputOffset = options.inputOffset || 0;
       var fileIdView = new Uint8Array(encodedData, inputOffset, 10);
       var fileIdentifierString = String.fromCharCode.apply(null, fileIdView);
-      var lerc;
+      var lerc, majorVersion;
       if (fileIdentifierString.trim() === "CntZImage") {
         lerc = LercDecode;
+        majorVersion = 1;
       }
       else if (fileIdentifierString.substring(0, 5) === "Lerc2") {
         lerc = Lerc2Decode;
+        majorVersion = 2;
       }
       else {
         throw "Unexpected file identifier string: " + fileIdentifierString;
       }
 
-      var iPlane = 0, eof = encodedData.byteLength - 10, encodedMaskData, maskData;
+      var iPlane = 0, eof = encodedData.byteLength - 10, encodedMaskData, bandMasks = [], bandMask, maskData;
       var decodedPixelBlock = {
         width: 0,
         height: 0,
@@ -2047,6 +2042,9 @@ Contributors:  Johannes Schmid, (LERC v1)
           decodedPixelBlock.pixelType = result.pixelType || result.fileInfo.pixelType;
           decodedPixelBlock.mask = result.maskData;
         }
+        if (majorVersion >1 && result.fileInfo.mask && result.fileInfo.mask.numBytes > 0) {
+          bandMasks.push(result.maskData);
+        }
 
         iPlane++;
         decodedPixelBlock.pixels.push(result.pixelData);
@@ -2057,6 +2055,20 @@ Contributors:  Johannes Schmid, (LERC v1)
           dimStats: result.dimStats
         });
       }
+      var i, j, numPixels = decodedPixelBlock.mask.length;
+      if (majorVersion > 1 && bandMasks.length > 1) {
+        decodedPixelBlock.bandMasks = bandMasks;
+        maskData = new Uint8Array(numPixels);
+        maskData.set(bandMasks[0]);
+        for (i = 1; i < bandMasks.length; i++) {
+          bandMask = bandMasks[i];
+          for (j = 0; j < numPixels; j++) {
+            maskData[j] = maskData[j] && bandMask[j] ? 1 : 0;
+          }
+        }
+        decodedPixelBlock.maskData = maskData;
+      }
+
       return decodedPixelBlock;
     }
   };
