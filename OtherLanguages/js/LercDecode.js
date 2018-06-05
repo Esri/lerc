@@ -2035,7 +2035,7 @@ Contributors:  Johannes Schmid, (LERC v1)
           maskData = result.maskData;//lerc2
           decodedPixelBlock.width = result.width;
           decodedPixelBlock.height = result.height;
-          decodedPixelBlock.dimCount = decodedPixelBlock.dimCount || 1;
+          decodedPixelBlock.dimCount = result.dimCount || 1;
           //decodedPixelBlock.dimStats = decodedPixelBlock.dimStats;
           decodedPixelBlock.pixelType = result.pixelType || result.fileInfo.pixelType;
           decodedPixelBlock.mask = result.maskData;
@@ -2053,8 +2053,9 @@ Contributors:  Johannes Schmid, (LERC v1)
           dimStats: result.dimStats
         });
       }
-      var i, j, numPixels = decodedPixelBlock.mask.length;
+      var i, j, numPixels;
       if (majorVersion > 1 && bandMasks.length > 1) {
+        numPixels = decodedPixelBlock.width * decodedPixelBlock.height;
         decodedPixelBlock.bandMasks = bandMasks;
         maskData = new Uint8Array(numPixels);
         maskData.set(bandMasks[0]);
