@@ -943,9 +943,6 @@ Contributors:  Johannes Schmid, (LERC v1)
       },
 
       readHuffmanTree: function(input, data) {
-        var headerInfo = data.headerInfo;
-        var numDims = headerInfo.numDims;
-        var numPixels = headerInfo.width * headerInfo.height;
         var BITS_MAX = this.HUFFMAN_LUT_BITS_MAX; //8 is slow for the large test image
         //var size_max = 1 << BITS_MAX;
         /* ************************
@@ -1009,8 +1006,6 @@ Contributors:  Johannes Schmid, (LERC v1)
         /* ************************
          * building lut
          *************************/
-        var height = data.headerInfo.height;
-        var width = data.headerInfo.width;
         var numBitsLUT = 0, numBitsLUTQick = 0;
         var tree = new TreeNode();
         for (i = 0; i < codeTable.length; i++) {
