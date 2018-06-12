@@ -42,8 +42,8 @@ NAMESPACE_LERC_START
 class RLE
 {
 public:
-  RLE() : m_minNumEven(5) {};
-  virtual ~RLE() {};
+  RLE() : m_minNumEven(5) {}
+  virtual ~RLE() {}
 
   size_t computeNumBytesRLE(const Byte* arr, size_t numBytes) const;
 
@@ -57,7 +57,7 @@ public:
   static bool decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte** arr, size_t& numBytes);
 
   // arr already allocated, just fill
-  static bool decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte* arr);
+  static bool decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte* arr, size_t arrSize);
 
 protected:
   int m_minNumEven;

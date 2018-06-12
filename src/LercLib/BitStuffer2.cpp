@@ -82,8 +82,7 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
   unsigned int indexLut = 0;
 
   m_tmpLutVec.resize(0);    // omit the 0 throughout that corresponds to min
-  m_tmpIndexVec.resize(numElem);
-  memset(&m_tmpIndexVec[0], 0, numElem * sizeof(unsigned int));
+  m_tmpIndexVec.assign(numElem, 0);
 
   for (unsigned int i = 1; i < numElem; i++)
   {
@@ -261,7 +260,7 @@ unsigned int BitStuffer2::ComputeNumBytesNeededLut(const vector<pair<unsigned in
 // -------------------------------------------------------------------------- ;
 
 bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesRemaining, 
-    vector<unsigned int>& dataVec, unsigned int numElements, int numBits) const
+    vector<unsigned int>& dataVec, unsigned int numElements, int numBits)
 {
   dataVec.resize(numElements, 0);    // init with 0
 
@@ -279,9 +278,8 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
   srcPtr--;
   unsigned int lastUInt = *srcPtr;
   unsigned int numBytesNotNeeded = NumTailBytesNotNeeded(numElements, numBits);
-  unsigned int n = numBytesNotNeeded;
 
-  while (n--)
+  for (unsigned int n = numBytesNotNeeded; n; n--)
   {
     unsigned int val;
     memcpy(&val, srcPtr, sizeof(unsigned int));
@@ -303,6 +301,7 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
       unsigned int n = val << bitPos;
       *dstPtr++ = n >> (32 - numBits);
       bitPos += numBits;
+
       if (bitPos == 32)    // shift >= 32 is undefined
       {
         bitPos = 0;

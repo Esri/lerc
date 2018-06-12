@@ -30,7 +30,7 @@ using namespace LercNS;
 
 size_t RLE::computeNumBytesRLE(const Byte* arr, size_t numBytes) const
 {
-  if (arr == 0 || numBytes == 0)
+  if (arr == nullptr || numBytes == 0)
     return 0;
 
   const Byte* ptr = arr;
@@ -50,7 +50,6 @@ size_t RLE::computeNumBytesRLE(const Byte* arr, size_t numBytes) const
       }
       else    // switch to odd mode
       {
-        cntEven++;
         sum += 2 + 1;
         bOdd = true;
         cntOdd = 0;
@@ -112,7 +111,6 @@ size_t RLE::computeNumBytesRLE(const Byte* arr, size_t numBytes) const
   }
   else
   {
-    cntEven++;
     sum += 2 + 1;
   }
 
@@ -124,7 +122,7 @@ size_t RLE::computeNumBytesRLE(const Byte* arr, size_t numBytes) const
 bool RLE::compress(const Byte* arr, size_t numBytes,
                    Byte** arrRLE, size_t& numBytesRLE, bool verify) const
 {
-  if (arr == 0 || numBytes == 0)
+  if (arr == nullptr || numBytes == 0)
     return false;
 
   numBytesRLE = computeNumBytesRLE(arr, numBytes);
@@ -136,7 +134,7 @@ bool RLE::compress(const Byte* arr, size_t numBytes,
   const Byte* srcPtr = arr;
   Byte* cntPtr = *arrRLE;
   Byte* dstPtr = cntPtr + 2;
-  size_t sum = 0;
+  //size_t sum = 0;
   size_t cntOdd = 0;
   size_t cntEven = 0;
   size_t cntTotal = 0;
@@ -155,7 +153,7 @@ bool RLE::compress(const Byte* arr, size_t numBytes,
       {
         cntEven++;
         writeCount(-(short)cntEven, &cntPtr, &dstPtr);    // - sign for even cnts
-        sum += 2 + 1;
+        //sum += 2 + 1;
         bOdd = true;
         cntOdd = 0;
         cntEven = 0;
@@ -188,7 +186,7 @@ bool RLE::compress(const Byte* arr, size_t numBytes,
           if (cntOdd > 0)
           {
             writeCount((short)cntOdd, &cntPtr, &dstPtr);    // + sign for odd cnts
-            sum += 2 + cntOdd;
+            //sum += 2 + cntOdd;
           }
           bOdd = false;
           cntOdd = 0;
@@ -201,14 +199,14 @@ bool RLE::compress(const Byte* arr, size_t numBytes,
     if (cntOdd == 32767)    // prevent short counters from overflow
     {
       writeCount((short)cntOdd, &cntPtr, &dstPtr);
-      sum += 2 + 32767;
+      //sum += 2 + 32767;
       cntOdd = 0;
     }
     if (cntEven == 32767)
     {
       *dstPtr++ = *srcPtr;
       writeCount(-(short)cntEven, &cntPtr, &dstPtr);
-      sum += 2 + 1;
+      //sum += 2 + 1;
       cntEven = 0;
     }
 
@@ -222,21 +220,21 @@ bool RLE::compress(const Byte* arr, size_t numBytes,
   {
     cntOdd++;
     writeCount((short)cntOdd, &cntPtr, &dstPtr);
-    sum += 2 + cntOdd;
+    //sum += 2 + cntOdd;
   }
   else
   {
     cntEven++;
     writeCount(-(short)cntEven, &cntPtr, &dstPtr);
-    sum += 2 + 1;
+    //sum += 2 + 1;
   }
 
   writeCount(-32768, &cntPtr, &dstPtr);    // write end of stream symbol
-  sum += 2;
+  //sum += 2;
 
   if (verify)
   {
-    Byte* arr2 = 0;
+    Byte* arr2 = nullptr;
     size_t numBytes2 = 0;
     if (!decompress(*arrRLE, numBytesRLE, &arr2, numBytes2) || numBytes2 != numBytes)
     {
@@ -283,7 +281,7 @@ bool RLE::decompress(const Byte* arrRLE, size_t nBytesRemainingIn, Byte** arr, s
 
   if (numBytes == 0)
   {
-    *arr = 0;
+    *arr = nullptr;
     return false;
   }
 
@@ -291,43 +289,40 @@ bool RLE::decompress(const Byte* arrRLE, size_t nBytesRemainingIn, Byte** arr, s
   if (!*arr)
     return false;
 
-  return decompress(arrRLE, nBytesRemainingIn, *arr);
+  return decompress(arrRLE, nBytesRemainingIn, *arr, numBytes);
 }
 
 // -------------------------------------------------------------------------- ;
 
-bool RLE::decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte* arr)
+bool RLE::decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte* arr, size_t arrSize)
 {
   if (!arrRLE || !arr || nBytesRemaining < 2)
     return false;
 
   const Byte* srcPtr = arrRLE;
-  Byte* dstPtr = arr;
+  size_t arrIdx = 0;
   nBytesRemaining -= 2;
 
   short cnt = readCount(&srcPtr);
   while (cnt != -32768)
   {
-    int i = cnt < 0 ? -cnt : cnt;
+    size_t i = cnt < 0 ? -cnt : cnt;
+    size_t m = cnt < 0 ? 1 : i;
+
+    if (nBytesRemaining < m + 2 || arrIdx + i > arrSize)
+      return false;
+
     if (cnt > 0)
     {
-      if (nBytesRemaining < static_cast<size_t>(i + 2))
-        return false;
-
-      while (i--) *dstPtr++ = *srcPtr++;
-
-      nBytesRemaining -= i + 2;
+      while (i--) arr[arrIdx++] = *srcPtr++;
     }
     else
     {
-      if (nBytesRemaining < 1 + 2)
-        return false;
-
       Byte b = *srcPtr++;
-      while (i--) *dstPtr++ = b;
-
-      nBytesRemaining -= 1 + 2;
+      while (i--) arr[arrIdx++] = b;
     }
+
+    nBytesRemaining -= m + 2;
     cnt = readCount(&srcPtr);
   }
 

@@ -69,10 +69,10 @@ class Lerc2
 {
 public:
   Lerc2();
-  Lerc2(int nDim, int nCols, int nRows, const Byte* pMaskBits = 0);    // valid / invalid bits as byte array
+  Lerc2(int nDim, int nCols, int nRows, const Byte* pMaskBits = nullptr);    // valid / invalid bits as byte array
   virtual ~Lerc2()  {}
 
-  bool Set(int nDim, int nCols, int nRows, const Byte* pMaskBits = 0);
+  bool Set(int nDim, int nCols, int nRows, const Byte* pMaskBits = nullptr);
   //bool Set(int nDim, const BitMask& bitMask);
 
   template<class T>
@@ -113,7 +113,7 @@ public:
 
   /// dst buffer already allocated;  byte ptr is moved like a file pointer
   template<class T>
-  bool Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* pMaskBits = 0);    // if mask ptr is not 0, mask bits are returned (even if all valid or same as previous)
+  bool Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* pMaskBits = nullptr);    // if mask ptr is not 0, mask bits are returned (even if all valid or same as previous)
 
 private:
   static const int kCurrVersion = 4;    // 2: added Huffman coding to 8 bit types DT_Char, DT_Byte;
@@ -149,7 +149,7 @@ private:
   bool ReadMask(const Byte** ppByte, size_t& nBytesRemaining);
 
   bool DoChecksOnEncode(Byte* pBlobBegin, Byte* pBlobEnd) const;
-  unsigned int ComputeChecksumFletcher32(const Byte* pByte, int len) const;
+  static unsigned int ComputeChecksumFletcher32(const Byte* pByte, int len);
 
   static void AddUIntToCounts(int* pCounts, unsigned int val, int nBits);
   static void AddIntToCounts(int* pCounts, int val, int nBits);
@@ -203,8 +203,7 @@ private:
 
   static double ReadVariableDataType(const Byte** ppByte, DataType dtUsed);
 
-  template<class T>
-  DataType GetDataType(T z) const;
+  template<class T> DataType GetDataType(T z) const;
 
   static unsigned int GetMaxValToQuantize(DataType dt);
 
@@ -300,7 +299,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
 
   m_maxValToQuantize = GetMaxValToQuantize(m_headerInfo.dt);
 
-  Byte* ptr = 0;    // only emulate the writing and just count the bytes needed
+  Byte* ptr = nullptr;    // only emulate the writing and just count the bytes needed
   int nBytesTiling = 0;
 
   if (!WriteTiles(arr, &ptr, nBytesTiling, m_zMinVec, m_zMaxVec))    // also fills the min max ranges
@@ -726,7 +725,7 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
       //printf("  %.4f +- %.4f  ", (float)(2 * m), (float)(2 * stdDev));
       if (printAll) printf("  %.4f ", (float)(2 * m));
 
-      if (abs(1 - 2 * m) >= eps)
+      if (fabs(1 - 2 * m) >= eps)
         bCrit = false;
     }
     if (printAll) printf("\n");
@@ -1343,13 +1342,13 @@ int Lerc2::TypeCode(T z, DataType& dtUsed) const
       char c = (char)z;
       int tc = (T)c == z ? 2 : (T)b == z ? 1 : 0;
       dtUsed = (DataType)(dt - tc);
-		  return tc;
+      return tc;
     }
     case DT_UShort:
     {
       int tc = (T)b == z ? 1 : 0;
       dtUsed = (DataType)(dt - 2 * tc);
-		  return tc;
+      return tc;
     }
     case DT_Int:
     {
