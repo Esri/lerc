@@ -163,7 +163,7 @@ bool CntZImage::read(Byte** ppByte, double maxZError, bool onlyHeader, bool only
         // decompress to bit mask
         BitMask bitMask(width_, height_);
         RLE rle;
-        if (!rle.decompress(bArr, width_ * height_ * 2, (Byte*)bitMask.Bits()))
+        if (!rle.decompress(bArr, width_ * height_ * 2, (Byte*)bitMask.Bits(), bitMask.Size()))
           return false;
 
         CntZ* dstPtr = getData();
