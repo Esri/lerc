@@ -31,7 +31,7 @@ using namespace LercNS;
 
 // if you change Encode(...) / Decode(...), don't forget to update ComputeNumBytesNeeded(...)
 
-bool BitStuffer2::EncodeSimple(Byte** ppByte, const vector<unsigned int>& dataVec) const
+bool BitStuffer2::EncodeSimple(Byte** ppByte, const vector<unsigned int>& dataVec, int lerc2Version) const
 {
   if (!ppByte || dataVec.empty())
     return false;
@@ -62,14 +62,19 @@ bool BitStuffer2::EncodeSimple(Byte** ppByte, const vector<unsigned int>& dataVe
     return false;
 
   if (numUInts > 0)    // numBits can be 0, then we only write the header
-    BitStuff(ppByte, dataVec, numBits);
+  {
+    if (lerc2Version >= 3)
+      BitStuff(ppByte, dataVec, numBits);
+    else
+      BitStuff_Before_Lerc2v3(ppByte, dataVec, numBits);
+  }
 
   return true;
 }
 
 // -------------------------------------------------------------------------- ;
 
-bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsigned int> >& sortedDataVec) const
+bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsigned int> >& sortedDataVec, int lerc2Version) const
 {
   if (!ppByte || sortedDataVec.empty())
     return false;
@@ -128,13 +133,19 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
   **ppByte = (Byte)nLut + 1;    // size of lut, incl the 0
   (*ppByte)++;
 
-  BitStuff(ppByte, m_tmpLutVec, numBits);    // lut
+  if (lerc2Version >= 3)
+    BitStuff(ppByte, m_tmpLutVec, numBits);    // lut
+  else
+    BitStuff_Before_Lerc2v3(ppByte, m_tmpLutVec, numBits);
 
   int nBitsLut = 0;
   while (nLut >> nBitsLut)    // indexes are in [0 .. nLut]
     nBitsLut++;
 
-  BitStuff(ppByte, m_tmpIndexVec, nBitsLut);    // indexes
+  if (lerc2Version >= 3)
+    BitStuff(ppByte, m_tmpIndexVec, nBitsLut);    // indexes
+  else
+    BitStuff_Before_Lerc2v3(ppByte, m_tmpIndexVec, nBitsLut);
 
   return true;
 }
@@ -257,6 +268,66 @@ unsigned int BitStuffer2::ComputeNumBytesNeededLut(const vector<pair<unsigned in
 }
 
 // -------------------------------------------------------------------------- ;
+// -------------------------------------------------------------------------- ;
+
+void BitStuffer2::BitStuff_Before_Lerc2v3(Byte** ppByte, const vector<unsigned int>& dataVec, int numBits)
+{
+  unsigned int numElements = (unsigned int)dataVec.size();
+  unsigned int numUInts = (numElements * numBits + 31) / 32;
+  unsigned int numBytes = numUInts * sizeof(unsigned int);
+  unsigned int* arr = (unsigned int*)(*ppByte);
+
+  memset(arr, 0, numBytes);
+
+  // do the stuffing
+  const unsigned int* srcPtr = &dataVec[0];
+  unsigned int* dstPtr = arr;
+  int bitPos = 0;
+
+  for (unsigned int i = 0; i < numElements; i++)
+  {
+    if (32 - bitPos >= numBits)
+    {
+      unsigned int dstValue;
+      memcpy(&dstValue, dstPtr, sizeof(unsigned int));
+      dstValue |= (*srcPtr++) << (32 - bitPos - numBits);
+      memcpy(dstPtr, &dstValue, sizeof(unsigned int));
+      bitPos += numBits;
+      if (bitPos == 32)    // shift >= 32 is undefined
+      {
+        bitPos = 0;
+        dstPtr++;
+      }
+    }
+    else
+    {
+      unsigned int dstValue;
+      int n = numBits - (32 - bitPos);
+      memcpy(&dstValue, dstPtr, sizeof(unsigned int));
+      dstValue |= (*srcPtr) >> n;
+      memcpy(dstPtr, &dstValue, sizeof(unsigned int));
+      dstPtr++;
+      memcpy(&dstValue, dstPtr, sizeof(unsigned int));
+      dstValue |= (*srcPtr++) << (32 - n);
+      memcpy(dstPtr, &dstValue, sizeof(unsigned int));
+      bitPos = n;
+    }
+  }
+
+  // save the 0-3 bytes not used in the last UInt
+  unsigned int numBytesNotNeeded = NumTailBytesNotNeeded(numElements, numBits);
+  unsigned int n = numBytesNotNeeded;
+  for (; n; --n)
+  {
+    unsigned int dstValue;
+    memcpy(&dstValue, dstPtr, sizeof(unsigned int));
+    dstValue >>= 8;
+    memcpy(dstPtr, &dstValue, sizeof(unsigned int));
+  }
+
+  *ppByte += numBytes - numBytesNotNeeded;
+}
+
 // -------------------------------------------------------------------------- ;
 
 bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesRemaining, 

@@ -51,7 +51,7 @@ public:
   const std::vector<std::pair<unsigned short, unsigned int> >& GetCodes() const  { return m_codeTable; }
   bool SetCodes(const std::vector<std::pair<unsigned short, unsigned int> >& codeTable);
 
-  bool WriteCodeTable(Byte** ppByte) const;
+  bool WriteCodeTable(Byte** ppByte, int lerc2Version) const;
   bool ReadCodeTable(const Byte** ppByte, size_t& nBytesRemaining, int lerc2Version);
 
   bool BuildTreeFromCodes(int& numBitsLUT);

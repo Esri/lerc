@@ -44,6 +44,21 @@ Lerc2::Lerc2(int nDim, int nCols, int nRows, const Byte* pMaskBits)
 
 // -------------------------------------------------------------------------- ;
 
+bool Lerc2::SetEncoderToOldVersion(int version)
+{
+  if (version < 2 || version > kCurrVersion)
+    return false;
+
+  if (version < 4 && m_headerInfo.nDim > 1)
+    return false;
+
+  m_headerInfo.version = version;
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
 void Lerc2::Init()
 {
   m_microBlockSize    = 8;
@@ -110,12 +125,12 @@ bool Lerc2::GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct Head
 // -------------------------------------------------------------------------- ;
 // -------------------------------------------------------------------------- ;
 
-unsigned int Lerc2::ComputeNumBytesHeaderToWrite()
+unsigned int Lerc2::ComputeNumBytesHeaderToWrite(const struct HeaderInfo& hd)
 {
   unsigned int numBytes = (unsigned int)FileKey().length();
   numBytes += 1 * sizeof(int);
-  numBytes += 1 * sizeof(unsigned int);
-  numBytes += 7 * sizeof(int);
+  numBytes += (hd.version >= 3 ? 1 : 0) * sizeof(unsigned int);
+  numBytes += (hd.version >= 4 ? 7 : 6) * sizeof(int);
   numBytes += 3 * sizeof(double);
   return numBytes;
 }
@@ -137,16 +152,21 @@ bool Lerc2::WriteHeader(Byte** ppByte, const struct HeaderInfo& hd)
   memcpy(ptr, &hd.version, sizeof(int));
   ptr += sizeof(int);
 
-  unsigned int checksum = 0;
-  memcpy(ptr, &checksum, sizeof(unsigned int));    // place holder to be filled by the real check sum later
-  ptr += sizeof(unsigned int);
+  if (hd.version >= 3)
+  {
+    unsigned int checksum = 0;
+    memcpy(ptr, &checksum, sizeof(unsigned int));    // place holder to be filled by the real check sum later
+    ptr += sizeof(unsigned int);
+  }
 
   vector<int> intVec;
   intVec.push_back(hd.nRows);
   intVec.push_back(hd.nCols);
 
   if (hd.version >= 4)
+  {
     intVec.push_back(hd.nDim);
+  }
 
   intVec.push_back(hd.numValidPixel);
   intVec.push_back(hd.microBlockSize);
@@ -349,12 +369,15 @@ bool Lerc2::DoChecksOnEncode(Byte* pBlobBegin, Byte* pBlobEnd) const
   if ((size_t)(pBlobEnd - pBlobBegin) != (size_t)m_headerInfo.blobSize)
     return false;
 
-  int blobSize = (int)(pBlobEnd - pBlobBegin);
-  int nBytes = (int)(FileKey().length() + sizeof(int) + sizeof(unsigned int));    // start right after the checksum entry
-  unsigned int checksum = ComputeChecksumFletcher32(pBlobBegin + nBytes, blobSize - nBytes);
+  if (m_headerInfo.version >= 3)
+  {
+    int blobSize = (int)(pBlobEnd - pBlobBegin);
+    int nBytes = (int)(FileKey().length() + sizeof(int) + sizeof(unsigned int));    // start right after the checksum entry
+    unsigned int checksum = ComputeChecksumFletcher32(pBlobBegin + nBytes, blobSize - nBytes);
 
-  nBytes -= sizeof(unsigned int);
-  memcpy(pBlobBegin + nBytes, &checksum, sizeof(unsigned int));
+    nBytes -= sizeof(unsigned int);
+    memcpy(pBlobBegin + nBytes, &checksum, sizeof(unsigned int));
+  }
 
   return true;
 }

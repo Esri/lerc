@@ -42,8 +42,8 @@ public:
   virtual ~BitStuffer2()  {}
 
   // dst buffer is already allocated. byte ptr is moved like a file pointer.
-  bool EncodeSimple(Byte** ppByte, const std::vector<unsigned int>& dataVec) const;
-  bool EncodeLut(Byte** ppByte, const std::vector<std::pair<unsigned int, unsigned int> >& sortedDataVec) const;
+  bool EncodeSimple(Byte** ppByte, const std::vector<unsigned int>& dataVec, int lerc2Version) const;
+  bool EncodeLut(Byte** ppByte, const std::vector<std::pair<unsigned int, unsigned int> >& sortedDataVec, int lerc2Version) const;
   bool Decode(const Byte** ppByte, size_t& nBytesRemaining, std::vector<unsigned int>& dataVec, int lerc2Version) const;
 
   static unsigned int ComputeNumBytesNeededSimple(unsigned int numElem, unsigned int maxElem);
@@ -52,6 +52,7 @@ public:
 private:
   mutable std::vector<unsigned int>  m_tmpLutVec, m_tmpIndexVec, m_tmpBitStuffVec;
 
+  static void BitStuff_Before_Lerc2v3(Byte** ppByte, const std::vector<unsigned int>& dataVec, int numBits);
   static bool BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesRemaining, std::vector<unsigned int>& dataVec, unsigned int numElements, int numBits);
   void BitStuff(Byte** ppByte, const std::vector<unsigned int>& dataVec, int numBits) const;
   bool BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, std::vector<unsigned int>& dataVec, unsigned int numElements, int numBits) const;
