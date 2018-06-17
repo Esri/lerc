@@ -122,7 +122,7 @@ bool Huffman::SetCodes(const vector<pair<unsigned short, unsigned int> >& codeTa
 
 // -------------------------------------------------------------------------- ;
 
-bool Huffman::WriteCodeTable(Byte** ppByte) const
+bool Huffman::WriteCodeTable(Byte** ppByte, int lerc2Version) const
 {
   if (!ppByte)
     return false;
@@ -154,7 +154,7 @@ bool Huffman::WriteCodeTable(Byte** ppByte) const
   ptr += len;
 
   BitStuffer2 bitStuffer2;
-  if (!bitStuffer2.EncodeSimple(&ptr, dataVec))    // code lengths, bit stuffed
+  if (!bitStuffer2.EncodeSimple(&ptr, dataVec, lerc2Version))    // code lengths, bit stuffed
     return false;
 
   if (!BitStuffCodes(&ptr, i0, i1))    // variable length codes, bit stuffed

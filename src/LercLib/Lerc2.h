@@ -72,8 +72,9 @@ public:
   Lerc2(int nDim, int nCols, int nRows, const Byte* pMaskBits = nullptr);    // valid / invalid bits as byte array
   virtual ~Lerc2()  {}
 
+  bool SetEncoderToOldVersion(int version);    // call this to encode compatible to an old decoder
+
   bool Set(int nDim, int nCols, int nRows, const Byte* pMaskBits = nullptr);
-  //bool Set(int nDim, const BitMask& bitMask);
 
   template<class T>
   unsigned int ComputeNumBytesNeededToWrite(const T* arr, double maxZError, bool encodeMask);
@@ -141,7 +142,7 @@ private:
   static bool IsLittleEndianSystem()  { int n = 1;  return (1 == *((Byte*)&n)) && (4 == sizeof(int)); }
   void Init();
 
-  static unsigned int ComputeNumBytesHeaderToWrite();
+  static unsigned int ComputeNumBytesHeaderToWrite(const struct HeaderInfo& hd);
   static bool WriteHeader(Byte** ppByte, const struct HeaderInfo& hd);
   static bool ReadHeader(const Byte** ppByte, size_t& nBytesRemaining, struct HeaderInfo& hd);
 
@@ -247,10 +248,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
     return 0;
 
   // header
-  unsigned int nBytesHeaderMask = ComputeNumBytesHeaderToWrite();
-
-  //if (m_headerInfo.version < 4)
-  //  nBytesHeaderMask -= 1 * sizeof(int);    // subtract the slot for nDim
+  unsigned int nBytesHeaderMask = ComputeNumBytesHeaderToWrite(m_headerInfo);
 
   // valid / invalid mask
   int numValid = m_headerInfo.numValidPixel;
@@ -981,16 +979,15 @@ bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, 
             zMin = val;
           else if (val > zMax)
             zMax = val;
+
+          if (val == prevVal)
+            cntSameVal++;
         }
         else
           zMin = zMax = val;    // init
 
-        cnt++;
-
-        if (val == prevVal)
-          cntSameVal++;
-
         prevVal = val;
+        cnt++;
       }
     }
   }
@@ -1013,25 +1010,23 @@ bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, 
               zMin = val;
             else if (val > zMax)
               zMax = val;
+
+            if (val == prevVal)
+              cntSameVal++;
           }
           else
             zMin = zMax = val;    // init
 
-          cnt++;
-
-          if (val == prevVal)
-            cntSameVal++;
-
           prevVal = val;
+          cnt++;
         }
     }
   }
 
   if (cnt > 4)
-    tryLut = (zMax > zMin) && (2 * cntSameVal > cnt);
+    tryLut = (zMax > zMin + hd.maxZError) && (2 * cntSameVal > cnt);
 
   numValidPixel = cnt;
-
   return true;
 }
 
@@ -1113,7 +1108,7 @@ int Lerc2::NumBytesTile(int numValidPixel, T zMin, T zMax, bool tryLut, BlockEnc
     }
 
     if (nBytes < nBytesRaw)
-      blockEncodeMode = (!tryLut) ? BEM_BitStuffSimple : BEM_BitStuffLUT;
+      blockEncodeMode = (!tryLut || maxElem == 0) ? BEM_BitStuffSimple : BEM_BitStuffLUT;
     else
       nBytes = nBytesRaw;
 
@@ -1173,12 +1168,12 @@ bool Lerc2::WriteTile(const T* dataBuf, int num, Byte** ppByte, int& numBytesWri
 
       if (blockEncodeMode == BEM_BitStuffSimple)
       {
-        if (!m_bitStuffer2.EncodeSimple(&ptr, quantVec))
+        if (!m_bitStuffer2.EncodeSimple(&ptr, quantVec, m_headerInfo.version))
           return false;
       }
       else if (blockEncodeMode == BEM_BitStuffLUT)
       {
-        if (!m_bitStuffer2.EncodeLut(&ptr, sortedQuantVec))
+        if (!m_bitStuffer2.EncodeLut(&ptr, sortedQuantVec, m_headerInfo.version))
           return false;
       }
       else
@@ -1734,7 +1729,7 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
     return false;
 
   Huffman huffman;
-  if (!huffman.SetCodes(m_huffmanCodes) || !huffman.WriteCodeTable(ppByte))    // header and code table
+  if (!huffman.SetCodes(m_huffmanCodes) || !huffman.WriteCodeTable(ppByte, m_headerInfo.version))    // header and code table
     return false;
 
   int offset = (m_headerInfo.dt == DT_Char) ? 128 : 0;
