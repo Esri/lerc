@@ -774,7 +774,6 @@ Contributors:  Johannes Schmid, (LERC v1)
         headerInfo.width = view.getUint32(4, true); //ncols
         ptr += 8;
         if (fileVersion >= 4) {
-          //wasted one byte to maintain format
           headerInfo.numDims = view.getUint32(8, true);
           ptr += 4;
         }
@@ -910,11 +909,13 @@ Contributors:  Johannes Schmid, (LERC v1)
       readDataOneSweep: function(input, data, OutPixelTypeArray) {
         var ptr = data.ptr;
         var headerInfo = data.headerInfo;
-        var numPixels = headerInfo.width * headerInfo.height * headerInfo.numDims;
+        var numDims = headerInfo.numDims;
+        var numPixels = headerInfo.width * headerInfo.height;
         var imageType = headerInfo.imageType;
-        var numBytes = headerInfo.numValidPixel * Lerc2Helpers.getDataTypeSize(imageType);
+        var numBytes = headerInfo.numValidPixel * Lerc2Helpers.getDataTypeSize(imageType) * numDims;
         //data.pixels.numBytes = numBytes;
         var rawData;
+        var mask = data.pixels.resultMask;
         if (OutPixelTypeArray === Uint8Array) {
           rawData = new Uint8Array(input, ptr, numBytes);
         }
@@ -924,16 +925,28 @@ Contributors:  Johannes Schmid, (LERC v1)
           store8.set(new Uint8Array(input, ptr, numBytes));
           rawData = new OutPixelTypeArray(arrayBuf);
         }
-        if (rawData.length === numPixels) {
+        if (rawData.length === numPixels * numDims) {
           data.pixels.resultPixels = rawData;
         }
         else  //mask
         {
-          data.pixels.resultPixels = new OutPixelTypeArray(numPixels);
-          var z = 0, k = 0;
-          for (k = 0; k < numPixels; k++) {
-            if (data.pixels.resultMask[k]) {
-              data.pixels.resultPixels[k] = rawData[z++];
+          data.pixels.resultPixels = new OutPixelTypeArray(numPixels * numDims);
+          var z = 0, k = 0, i = 0, nStart = 0;
+          if (numDims > 1) {
+            for (i=0; i < numDims; i++) {
+              nStart = i * numPixels;
+              for (k = 0; k < numPixels; k++) {
+                if (mask[k]) {
+                  data.pixels.resultPixels[nStart + k] = rawData[z++];
+                }
+              }
+            }
+          }
+          else {
+            for (k = 0; k < numPixels; k++) {
+              if (mask[k]) {
+                data.pixels.resultPixels[k] = rawData[z++];
+              }
             }
           }
         }
@@ -1535,14 +1548,28 @@ Contributors:  Johannes Schmid, (LERC v1)
 
       constructConstantSurface: function(data) {
         var val = data.headerInfo.zMax;
-        var numPixels = data.headerInfo.height * data.headerInfo.width * data.headerInfo.numDims;
-        var k = 0;
+        var numDims =  data.headerInfo.numDims;
+        var numPixels = data.headerInfo.height * data.headerInfo.width;
+        var numPixelAllDims = numPixels * numDims;
+        var i=0, k = 0, nStart=0;
         var mask = data.pixels.resultMask;
         if (mask) {
-          for (k = 0; k < numPixels; k++) {
-            if (mask[k]) {
-              data.pixels.resultPixels[k] = val;
-            }
+          if (numDims > 1) {
+            for (i=0; i < numDims; i++) {
+              nStart = i * numPixels;
+              for (k = 0; k < numPixels; k++) {
+                if (mask[k]) {
+                  data.pixels.resultPixels[nStart + k] = val;
+                }
+              }
+            }  
+          }
+          else {
+            for (k = 0; k < numPixels; k++) {
+              if (mask[k]) {
+                data.pixels.resultPixels[k] = val;
+              }
+            }         
           }
         }
         else {
@@ -1550,7 +1577,7 @@ Contributors:  Johannes Schmid, (LERC v1)
             data.pixels.resultPixels.fill(val);
           }
           else {
-            for (k = 0; k < numPixels; k++) {
+            for (k = 0; k < numPixelAllDims; k++) {
               data.pixels.resultPixels[k] = val;
             }
           }
