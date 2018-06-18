@@ -2057,12 +2057,12 @@ Contributors:  Johannes Schmid, (LERC v1)
         for (i = 1; i < bandMasks.length; i++) {
           bandMask = bandMasks[i];
           for (j = 0; j < numPixels; j++) {
-            maskData[j] = maskData[j] && bandMask[j] ? 1 : 0;
+            maskData[j] = maskData[j] & bandMask[j];
           }
         }
         decodedPixelBlock.maskData = maskData;
       }
-
+      
       return decodedPixelBlock;
     }
   };
