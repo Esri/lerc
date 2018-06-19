@@ -36,6 +36,8 @@ Contributors:  Thomas Maurer, Lucian Plesea
 #define NAMESPACE_LERC_END }
 #define USING_NAMESPACE_LERC using namespace LercNS;
 
+#define HAVE_LERC1_DECODE
+
 NAMESPACE_LERC_START
 
 typedef unsigned char Byte;
