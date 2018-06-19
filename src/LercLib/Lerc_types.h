@@ -6,9 +6,8 @@
 // This header file tells you what these integers mean. 
 // These enum's may grow in the future. More values can be added. 
 
-#include "Defines.h"
-
-NAMESPACE_LERC_START
+namespace LercNS
+{
   enum class ErrCode : int
   {
     Ok = 0,
@@ -48,4 +47,5 @@ NAMESPACE_LERC_START
     maxZErrUsed
   };
 
-NAMESPACE_LERC_END
+}    // namespace
+
