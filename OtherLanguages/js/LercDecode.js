@@ -1396,7 +1396,7 @@ Contributors:  Johannes Schmid, (LERC v1)
 
             for (iDim = 0; iDim < numDims; iDim++) {
               if (numDims > 1) {
-                resultPixels = new OutPixelTypeArray(data.pixels.resultPixels.buffer, width * height * iDim, width * height);
+                resultPixels = new OutPixelTypeArray(data.pixels.resultPixels.buffer, width * height * iDim * dataTypeSize, width * height);
               }
               bytesLeft = input.byteLength - data.ptr;
               view = new DataView(input, data.ptr, Math.min(10, bytesLeft));
