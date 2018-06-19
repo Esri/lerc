@@ -29,15 +29,17 @@ Contributors:  Thomas Maurer
 #include "BitMask.h"
 #include "Lerc2.h"
 
-namespace LercNS
-{
+NAMESPACE_LERC_START
+
+#ifdef HAVE_LERC1_DECODE
   class CntZImage;
+#endif
 
   class Lerc
   {
   public:
-    Lerc() {};
-    ~Lerc() {};
+    Lerc() {}
+    ~Lerc() {}
 
     // data types supported by Lerc
     enum DataType { DT_Char, DT_Byte, DT_Short, DT_UShort, DT_Int, DT_UInt, DT_Float, DT_Double, DT_Undefined };
@@ -178,7 +180,9 @@ namespace LercNS
       BitMask* pBitMask);              // gets filled if not 0, even if all valid
 
   private:
+#ifdef HAVE_LERC1_DECODE
     template<class T> static bool Convert(const CntZImage& zImg, T* arr, BitMask* pBitMask);
+#endif
     template<class T> static ErrCode ConvertToDoubleTempl(const T* pDataIn, size_t nDataValues, double* pDataOut);
   };
-}    // namespace LercNS
+NAMESPACE_LERC_END
