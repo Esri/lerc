@@ -1850,7 +1850,7 @@ Contributors:  Johannes Schmid, (LERC v1)
 
         // Mask Header
         Lerc2Helpers.readMask(input, data);
-        if (headerInfo.numValidPixel !== headerInfo.width * headerInfo.height && data.mask.numBytes === 0) {
+        if (headerInfo.numValidPixel !== headerInfo.width * headerInfo.height && !data.pixels.resultMask) {
           data.pixels.resultMask = options.maskData;
         }
 
