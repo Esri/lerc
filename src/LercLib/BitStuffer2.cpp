@@ -193,7 +193,7 @@ bool BitStuffer2::Decode(const Byte** ppByte, size_t& nBytesRemaining, vector<un
   }
   else
   {
-    if (numBits == 0)
+    if (numBits == 0)  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
       return false;
     if (nBytesRemaining < 1)
       return false;
