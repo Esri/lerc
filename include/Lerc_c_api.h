@@ -84,6 +84,37 @@ extern "C" {
     unsigned int* nBytesWritten);      // number of bytes written to output buffer
 
 
+  //! Use the 2 functions below to encode to an older version
+
+  LERCDLL_API
+  lerc_status lerc_computeCompressedSizeForVersion(
+    const void* pData,                 // raw image data, row by row, band by band
+    int version,                       // 2 = v2.2, 3 = v2.3, 4 = v2.4
+    unsigned int dataType,             // char = 0, uchar = 1, short = 2, ushort = 3, int = 4, uint = 5, float = 6, double = 7
+    int nDim,                          // number of values per pixel (e.g., 3 for RGB, data is stored as [RGB, RGB, ...])
+    int nCols,                         // number of columns
+    int nRows,                         // number of rows
+    int nBands,                        // number of bands (e.g., 3 for [RRRR ..., GGGG ..., BBBB ...])
+    const unsigned char* pValidBytes,  // null ptr if all pixels are valid; otherwise 1 byte per pixel (1 = valid, 0 = invalid)
+    double maxZErr,                    // max coding error per pixel, defines the precision
+    unsigned int* numBytes);           // size of outgoing Lerc blob
+
+  LERCDLL_API
+  lerc_status lerc_encodeForVersion(
+    const void* pData,                 // raw image data, row by row, band by band
+    int version,                       // 2 = v2.2, 3 = v2.3, 4 = v2.4
+    unsigned int dataType,             // char = 0, uchar = 1, short = 2, ushort = 3, int = 4, uint = 5, float = 6, double = 7
+    int nDim,                          // number of values per pixel (e.g., 3 for RGB, data is stored as [RGB, RGB, ...])
+    int nCols,                         // number of columns
+    int nRows,                         // number of rows
+    int nBands,                        // number of bands (e.g., 3 for [RRRR ..., GGGG ..., BBBB ...])
+    const unsigned char* pValidBytes,  // null ptr if all pixels are valid; otherwise 1 byte per pixel (1 = valid, 0 = invalid)
+    double maxZErr,                    // max coding error per pixel, defines the precision
+    unsigned char* pOutBuffer,         // buffer to write to, function fails if buffer too small
+    unsigned int outBufferSize,        // size of output buffer
+    unsigned int* nBytesWritten);      // number of bytes written to output buffer
+
+
   //! Call this to get info about the compressed Lerc blob. Optional. 
   //! Info returned in infoArray is { version, dataType, nDim, nCols, nRows, nBands, nValidPixels, blobSize }, see Lerc_types.h .
   //! Info returned in dataRangeArray is { zMin, zMax, maxZErrorUsed }, see Lerc_types.h .
