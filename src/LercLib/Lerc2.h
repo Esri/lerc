@@ -1288,7 +1288,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
 
       double invScale = 2 * hd.maxZError;    // for int types this is int
       double zMax = (hd.version >= 4 && nDim > 1) ? m_zMaxVec[iDim] : hd.zMax;
-      size_t bufferVecIdx = 0;
+      unsigned int* srcPtr = &bufferVec[0];
 
       if ((int)bufferVec.size() == (i1 - i0) * (j1 - j0))    // all valid
       {
@@ -1299,30 +1299,48 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
 
           for (int j = j0; j < j1; j++, k++, m += nDim)
           {
-            double z = offset + bufferVec[bufferVecIdx] * invScale;
-            bufferVecIdx ++;
+            double z = offset + *srcPtr++ * invScale;
             data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
           }
         }
       }
       else    // not all valid
       {
-        for (int i = i0; i < i1; i++)
+        if (hd.version > 2)
         {
-          int k = i * nCols + j0;
-          int m = k * nDim + iDim;
+          for (int i = i0; i < i1; i++)
+          {
+            int k = i * nCols + j0;
+            int m = k * nDim + iDim;
 
-          for (int j = j0; j < j1; j++, k++, m += nDim)
-            if (m_bitMask.IsValid(k))
-            {
-              if( bufferVecIdx == bufferVec.size() )
+            for (int j = j0; j < j1; j++, k++, m += nDim)
+              if (m_bitMask.IsValid(k))
               {
-                return false;
+                double z = offset + *srcPtr++ * invScale;
+                data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
               }
-              double z = offset + bufferVec[bufferVecIdx] * invScale;
-              bufferVecIdx ++;
-              data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
-            }
+          }
+        }
+        else  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
+        {
+          int bufferVecIdx = 0;
+
+          for (int i = i0; i < i1; i++)
+          {
+            int k = i * nCols + j0;
+            int m = k * nDim + iDim;
+
+            for (int j = j0; j < j1; j++, k++, m += nDim)
+              if (m_bitMask.IsValid(k))
+              {
+                if (bufferVecIdx == bufferVec.size())  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
+                  return false;
+
+                double z = offset + bufferVec[bufferVecIdx] * invScale;
+                bufferVecIdx++;
+                data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
+              }
+          }
         }
       }
     }
