@@ -8,8 +8,7 @@
 #include <chrono>
 #include "../LercLib/Lerc_c_api.h"
 //#include "../../include/Lerc_c_api.h"
-
-//#include "Lerc_types.h"    // see for error codes, data types, etc
+//#include "../../include/Lerc_types.h"    // see for error codes, data types, etc
 
 using namespace std;
 using namespace std::chrono;
