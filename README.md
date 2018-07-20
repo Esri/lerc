@@ -61,7 +61,7 @@ Check out the Lerc decoders in `OtherLanguages/`. You may need to adjust the pat
 - Open `build/Linux/CodeBlocks/Test/Test.cbp`.
 - Build and run.
 
-LERC can also be used as a compression mode for the MRF format via [GDAL](http://gdal.org) release 2.1 or newer.
+LERC can also be used as a compression mode for the GDAL image formats GeoTIFF (since GDAL 2.4) and MRF (since GDAL 2.1) via [GDAL](http://gdal.org).
 
 ## LERC Properties
 
