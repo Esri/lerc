@@ -219,6 +219,8 @@ bool BitStuffer2::Decode(const Byte** ppByte, size_t& nBytesRemaining, vector<un
     int nBitsLut = 0;
     while (nLut >> nBitsLut)
       nBitsLut++;
+    if (nBitsLut == 0)
+      return false;
 
     // unstuff indexes
     if (lerc2Version >= 3)
@@ -235,7 +237,13 @@ bool BitStuffer2::Decode(const Byte** ppByte, size_t& nBytesRemaining, vector<un
     // replace indexes by values
     m_tmpLutVec.insert(m_tmpLutVec.begin(), 0);    // put back in the 0
     for (unsigned int i = 0; i < numElements; i++)
+    {
+      if( dataVec[i] >= m_tmpLutVec.size() )
+      {
+        return false;
+      }
       dataVec[i] = m_tmpLutVec[dataVec[i]];
+    }
   }
 
   return true;
@@ -454,6 +462,9 @@ void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, i
 bool BitStuffer2::BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, vector<unsigned int>& dataVec,
   unsigned int numElements, int numBits) const
 {
+  if( numElements == 0 )
+    return false;
+
   dataVec.resize(numElements);
 
   unsigned int numUInts = (numElements * numBits + 31) / 32;
