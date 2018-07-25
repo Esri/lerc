@@ -481,7 +481,7 @@ bool Lerc2::Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* p
   if (m_headerInfo.version >= 3)
   {
     int nBytes = (int)(FileKey().length() + sizeof(int) + sizeof(unsigned int));    // start right after the checksum entry
-    if( m_headerInfo.blobSize < nBytes )
+    if (m_headerInfo.blobSize < nBytes)
       return false;
     unsigned int checksum = ComputeChecksumFletcher32(ptrBlob + nBytes, m_headerInfo.blobSize - nBytes);
 
