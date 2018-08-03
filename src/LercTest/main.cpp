@@ -58,6 +58,7 @@ int main(int argc, char* arcv[])
     {
       zImg[k] = sqrt((float)(i * i + j * j));    // smooth surface
       zImg[k] += rand() % 20;    // add some small amplitude noise
+      //zImg[k] = NAN;
 
       if (j % 100 == 0 || i % 100 == 0)    // set some void points
         maskByteImg[k] = 0;
