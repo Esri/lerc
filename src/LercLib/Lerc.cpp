@@ -478,39 +478,36 @@ template<class T> static ErrCode Lerc::CheckForNaN(const T* arr, int nDim, int n
 {
   if (!arr || nDim <= 0 || nCols <= 0 || nRows <= 0)
     return ErrCode::WrongParam;
-
-  const bool isDbl = (typeid(*arr) == typeid(double));
-  const bool isFlt = (typeid(*arr) == typeid(float));
-
-  if (!isDbl && !isFlt)
-    return ErrCode::Ok;    // no checks needed
-
-  bool foundNaN = false;
-
-  for (int k = 0, i = 0; i < nRows; i++)
+ 
+  if (typeid(T) == typeid(double) || typeid(T) == typeid(float))
   {
-    const T* rowArr = &(arr[i * nCols * nDim]);
+    bool foundNaN = false;
 
-    if (!pBitMask)    // all valid
+    for (int k = 0, i = 0; i < nRows; i++)
     {
-      for (int n = 0, j = 0; j < nCols; j++, n += nDim)
-        for (int m = 0; m < nDim; m++)
-          if (std::isnan(isFlt ? (float)rowArr[n + m] : (double)rowArr[n + m]))
-            foundNaN = true;
-    }
-    else    // not all valid
-    {
-      for (int n = 0, j = 0; j < nCols; j++, k++, n += nDim)
-        if (pBitMask->IsValid(k))
-        {
+      const T* rowArr = &(arr[i * nCols * nDim]);
+
+      if (!pBitMask)    // all valid
+      {
+        for (int n = 0, j = 0; j < nCols; j++, n += nDim)
           for (int m = 0; m < nDim; m++)
-            if (std::isnan(isFlt ? (float)rowArr[n + m] : (double)rowArr[n + m]))
+            if (std::isnan((double)rowArr[n + m]))
               foundNaN = true;
-        }
-    }
+      }
+      else    // not all valid
+      {
+        for (int n = 0, j = 0; j < nCols; j++, k++, n += nDim)
+          if (pBitMask->IsValid(k))
+          {
+            for (int m = 0; m < nDim; m++)
+              if (std::isnan((double)rowArr[n + m]))
+                foundNaN = true;
+          }
+      }
 
-    if (foundNaN)
-      return ErrCode::NaN;
+      if (foundNaN)
+        return ErrCode::NaN;
+    }
   }
 
   return ErrCode::Ok;
