@@ -479,6 +479,8 @@ template<class T> static ErrCode Lerc::CheckForNaN(const T* arr, int nDim, int n
   if (!arr || nDim <= 0 || nCols <= 0 || nRows <= 0)
     return ErrCode::WrongParam;
  
+#ifdef CHECK_FOR_NAN
+
   if (typeid(T) == typeid(double) || typeid(T) == typeid(float))
   {
     bool foundNaN = false;
@@ -509,6 +511,8 @@ template<class T> static ErrCode Lerc::CheckForNaN(const T* arr, int nDim, int n
         return ErrCode::NaN;
     }
   }
+
+#endif
 
   return ErrCode::Ok;
 }
