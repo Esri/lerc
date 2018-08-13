@@ -13,7 +13,8 @@ namespace LercNS
     Ok = 0,
     Failed,
     WrongParam,
-    BufferTooSmall
+    BufferTooSmall,
+    NaN
   };
 
   enum class DataType : int
