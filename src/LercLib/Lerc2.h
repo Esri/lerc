@@ -1325,7 +1325,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
         }
         else  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
         {
-          int bufferVecIdx = 0;
+          size_t bufferVecIdx = 0;
 
           for (int i = i0; i < i1; i++)
           {
