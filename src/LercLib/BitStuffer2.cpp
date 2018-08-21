@@ -155,7 +155,7 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
 
 // if you change Encode(...) / Decode(...), don't forget to update ComputeNumBytesNeeded(...)
 
-bool BitStuffer2::Decode(const Byte** ppByte, size_t& nBytesRemaining, vector<unsigned int>& dataVec, int lerc2Version) const
+bool BitStuffer2::Decode(const Byte** ppByte, size_t& nBytesRemaining, vector<unsigned int>& dataVec, size_t maxElementCount, int lerc2Version) const
 {
   if (!ppByte || nBytesRemaining < 1)
     return false;
@@ -173,6 +173,8 @@ bool BitStuffer2::Decode(const Byte** ppByte, size_t& nBytesRemaining, vector<un
 
   unsigned int numElements = 0;
   if (!DecodeUInt(ppByte, nBytesRemaining, numElements, nb))
+    return false;
+  if (numElements > maxElementCount)
     return false;
 
   if (!doLut)
@@ -349,7 +351,14 @@ void BitStuffer2::BitStuff_Before_Lerc2v3(Byte** ppByte, const vector<unsigned i
 bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesRemaining, 
     vector<unsigned int>& dataVec, unsigned int numElements, int numBits)
 {
-  dataVec.resize(numElements, 0);    // init with 0
+  try
+  {
+    dataVec.resize(numElements, 0);    // init with 0
+  }
+  catch( const std::bad_alloc& )
+  {
+    return false;
+  }
 
   unsigned int numUInts = (numElements * numBits + 31) / 32;
   unsigned int numBytes = numUInts * sizeof(unsigned int);
@@ -470,12 +479,27 @@ bool BitStuffer2::BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, vecto
   if (numElements == 0)
     return false;
 
-  dataVec.resize(numElements);
+  try
+  {
+    dataVec.resize(numElements);
+  }
+  catch( const std::bad_alloc& )
+  {
+    return false;
+  }
 
   unsigned int numUInts = (numElements * numBits + 31) / 32;
   unsigned int numBytes = numUInts * sizeof(unsigned int);
 
-  m_tmpBitStuffVec.resize(numUInts);
+  try
+  {
+    m_tmpBitStuffVec.resize(numUInts);
+  }
+  catch( const std::bad_alloc& )
+  {
+    return false;
+  }
+
   m_tmpBitStuffVec[numUInts - 1] = 0;    // set last uint to 0
 
   // copy the bytes from the incoming byte stream
