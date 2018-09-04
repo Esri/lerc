@@ -28,6 +28,8 @@ Contributors:   Thomas Maurer
 USING_NAMESPACE_LERC
 using namespace std;
 
+const int Lerc2::kCurrVersion;    // clang linker complains if this static member is not declared in the .cpp
+
 // -------------------------------------------------------------------------- ;
 
 Lerc2::Lerc2()
