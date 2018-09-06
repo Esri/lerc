@@ -28,8 +28,6 @@ Contributors:   Thomas Maurer
 USING_NAMESPACE_LERC
 using namespace std;
 
-const int Lerc2::kCurrVersion;    // clang linker complains if this static member is not declared in the .cpp
-
 // -------------------------------------------------------------------------- ;
 
 Lerc2::Lerc2()
@@ -49,7 +47,7 @@ Lerc2::Lerc2(int nDim, int nCols, int nRows, const Byte* pMaskBits)
 
 bool Lerc2::SetEncoderToOldVersion(int version)
 {
-  if (version < 2 || version > kCurrVersion)
+  if (version < 2 || version > CurrentVersion())
     return false;
 
   if (version < 4 && m_headerInfo.nDim > 1)
@@ -71,7 +69,7 @@ void Lerc2::Init()
   m_imageEncodeMode   = IEM_Tiling;
 
   m_headerInfo.RawInit();
-  m_headerInfo.version = kCurrVersion;
+  m_headerInfo.version = CurrentVersion();
   m_headerInfo.microBlockSize = m_microBlockSize;
 }
 
@@ -220,7 +218,7 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   ptr += sizeof(int);
   nBytesRemaining -= sizeof(int);
 
-  if (hd.version > kCurrVersion)    // this reader is outdated
+  if (hd.version > CurrentVersion())    // this reader is outdated
     return false;
 
   if (hd.version >= 3)
