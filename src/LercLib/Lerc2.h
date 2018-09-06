@@ -118,10 +118,11 @@ public:
   bool Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* pMaskBits = nullptr);    // if mask ptr is not 0, mask bits are returned (even if all valid or same as previous)
 
 private:
-  static const int kCurrVersion = 4;    // 2: added Huffman coding to 8 bit types DT_Char, DT_Byte;
-                                        // 3: changed the bit stuffing to using a uint aligned buffer,
-                                        //    added Fletcher32 checksum
-                                        // 4: allow nDim values per pixel
+  // 2: added Huffman coding to 8 bit types DT_Char, DT_Byte;
+  // 3: changed the bit stuffing to using a uint aligned buffer,
+  //    added Fletcher32 checksum
+  // 4: allow nDim values per pixel
+  static int CurrentVersion() { return 4; }
 
   enum ImageEncodeMode { IEM_Tiling = 0, IEM_DeltaHuffman, IEM_Huffman };
   enum BlockEncodeMode { BEM_RawBinary = 0, BEM_BitStuffSimple, BEM_BitStuffLUT };
