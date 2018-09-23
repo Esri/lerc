@@ -1,0 +1,6 @@
+lerc (2.4~2018.9.6.git.2ad17c7-2) trusty; urgency=medium
+
+  * Export from upstream git repository master.
+  * Multiarch support.
+
+ -- Hiroshi Miura <miurahr@linux.com>  Sun, 23 Sep 2018 00:30:44 +0900
