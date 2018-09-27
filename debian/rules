@@ -14,7 +14,7 @@ endif
 	dh $@ 
 
 override_dh_install:
-	$(MAKE) -f debian/Makefile install PREFIX=/usr DESTDIR=$$(pwd)/debian/tmp CXX=$(CXX)
+	$(MAKE) -f build/linux/Makefile install PREFIX=/usr DESTDIR=$$(pwd)/debian/tmp CXX=$(CXX)
 	d-shlibmove --commit --multiarch --shlibs-local --exclude-la \
 				--movedev "debian/tmp/usr/include/*" usr/include \
 				debian/tmp/usr/lib/lib*.so
