@@ -1,0 +1,36 @@
+Source: lerc
+Priority: optional
+Maintainer: Hiroshi Miura <miurahr@linux.com>
+Build-Depends: debhelper (>=9), d-shlibs
+Standards-Version: 3.9.6
+Section: libs
+Homepage: https://github.com/Esri/lerc
+
+Package: liblerc2-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Provides: liblerc-dev
+Conflicts: liblerc-dev
+Depends: liblerc2 (= ${binary:Version}), ${misc:Depends}
+Description: Limited Error Raster Compression library
+ LERC is an open-source image or raster format which
+ supports rapid encoding and decoding for any pixel
+ type (not just RGB or Byte). Users set the maximum
+ compression error per pixel while encoding, so the
+ precision of the original input image is preserved
+ (within user defined error bounds).
+ This is a development pacakge of LERC.
+
+Package: liblerc2
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Limited Error Raster Compression library
+  LERC is an open-source image or raster format which
+ supports rapid encoding and decoding for any pixel
+ type (not just RGB or Byte). Users set the maximum
+ compression error per pixel while encoding, so the
+ precision of the original input image is preserved
+ (within user defined error bounds).
