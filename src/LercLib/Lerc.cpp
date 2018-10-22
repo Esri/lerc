@@ -24,7 +24,6 @@ Contributors:  Thomas Maurer
 #include "Defines.h"
 #include "Lerc.h"
 #include "Lerc2.h"
-
 #include <limits>
 
 #ifdef HAVE_LERC1_DECODE
@@ -83,11 +82,7 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
   lercInfo.RawInit();
 
   // first try Lerc2
-
-  //unsigned int minNumBytesHeader = Lerc2::MinNumBytesNeededToReadHeader();
-
   struct Lerc2::HeaderInfo lerc2Info;
-  //if (minNumBytesHeader <= numBytesBlob && Lerc2::GetHeaderInfo(pLercBlob, lerc2Info))
   if (Lerc2::GetHeaderInfo(pLercBlob, numBytesBlob, lerc2Info))
   {
     lercInfo.version = lerc2Info.version;
@@ -105,12 +100,6 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
     if (lercInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
       return ErrCode::BufferTooSmall;
 
-    //while (lercInfo.blobSize + minNumBytesHeader < numBytesBlob)    // means there could be another band
-    //{
-    //  struct Lerc2::HeaderInfo hdInfo;
-    //  if (!Lerc2::GetHeaderInfo(pLercBlob + lercInfo.blobSize, hdInfo))
-    //    return ErrCode::Ok;    // no other band, we are done
-
     struct Lerc2::HeaderInfo hdInfo;
     while (Lerc2::GetHeaderInfo(pLercBlob + lercInfo.blobSize, numBytesBlob - lercInfo.blobSize, hdInfo))
     {
@@ -124,7 +113,7 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
         return ErrCode::Failed;
       }
 
-      if( lercInfo.blobSize > std::numeric_limits<int>::max() - hdInfo.blobSize )
+      if (lercInfo.blobSize > std::numeric_limits<int>::max() - hdInfo.blobSize)
         return ErrCode::Failed;
 
       lercInfo.blobSize += hdInfo.blobSize;
