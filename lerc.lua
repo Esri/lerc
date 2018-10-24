@@ -163,7 +163,7 @@ project "lerc"
     -- -------------------------------------------------------------
   end
 
-  if (os.is("macosx") and not _OS_IS_IOS and not _OS_IS_TVOS and not _OS_IS_ANDROID) then
+  if (os.is("macosx") and not _OS_IS_IOS and not _OS_IS_ANDROID) then
     -- -------------------------------------------------------------
     -- configuration { "macosx" }
     -- -------------------------------------------------------------
