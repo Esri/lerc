@@ -137,30 +137,6 @@ project "lerc"
     -- configuration { "linux", "Release", "x64" }
 
     -- -------------------------------------------------------------
-    -- configuration { "linux", "Debug", "x32" }
-    -- -------------------------------------------------------------
-
-    -- common configuration settings
-
-    dofile (_BUILD_DIR .. "/static_linux_x86_debug.lua")
-
-    -- project specific configuration settings
-
-    -- configuration { "linux", "Debug", "x32" }
-
-    -- -------------------------------------------------------------
-    -- configuration { "linux", "Release", "x32" }
-    -- -------------------------------------------------------------
-
-    -- common configuration settings
-
-    dofile (_BUILD_DIR .. "/static_linux_x86_release.lua")
-
-    -- project specific configuration settings
-
-    -- configuration { "linux", "Release", "x32" }
-
-    -- -------------------------------------------------------------
   end
 
   if (os.is("macosx") and not _OS_IS_IOS and not _OS_IS_ANDROID) then
