@@ -27,9 +27,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * Upgraded to C++ 11, MS VS 2017, 64 bit.
 * Updated python and C# decoders.
 * Updated JS decoder. 
-
-Yet to be done:
-* Update doc.
+* Updated doc.
+* Updated binary .dll and .so files
 
 ## [1.0](https://github.com/Esri/lerc/releases/tag/v1.0) - 2016-11-30
 
