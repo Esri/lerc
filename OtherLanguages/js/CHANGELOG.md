@@ -13,9 +13,6 @@ The decoder is in sync with ArcMap 10.7 and ArcGIS Pro 2.3. LERC encoded binary 
 
 ### Added
 * Extend from one value per pixel to nDim values per pixel.
-* Add new lossy compression option for integer types (aiming at noisy 16 bit satellite images). Cuts off noisy bit planes.
-* Add more rigorous checking against buffer overrun while decoding. (This concept taken from the MRF / gdal repo.)
-* Enable encode / write former versions 2.3 and 2.2. This is to allow MRF / gdal to make their Lerc2 calls into this Lerc lib.
 
 ### Changed
 * Upgrade Lerc codec to new version Lerc 2.4.
