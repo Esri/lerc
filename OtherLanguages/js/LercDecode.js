@@ -1,6 +1,6 @@
 /* jshint forin: false, bitwise: false */
 /*
-Copyright 2015 Esri
+Copyright 2015-2018 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ Contributors:  Johannes Schmid, (LERC v1)
                Wenxue Ju (LERC v1, v2.x)
 */
 
-/* Copyright 2015 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
+/* Copyright 2015-2018 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
 
 /**
  * a module for decoding LERC blobs
@@ -1562,14 +1562,14 @@ Contributors:  Johannes Schmid, (LERC v1)
                   data.pixels.resultPixels[nStart + k] = val;
                 }
               }
-            }  
+            }
           }
           else {
             for (k = 0; k < numPixels; k++) {
               if (mask[k]) {
                 data.pixels.resultPixels[k] = val;
               }
-            }         
+            }
           }
         }
         else {
@@ -2089,7 +2089,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         }
         decodedPixelBlock.maskData = maskData;
       }
-      
+
       return decodedPixelBlock;
     }
   };
