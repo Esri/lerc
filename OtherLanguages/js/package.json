@@ -18,7 +18,10 @@
     "jshint": "^2.9.4",
     "uglify-js": "^2.7.5"
   },
-  "files": [ "LercDecode.js" ],
+  "files": [
+    "LercDecode.js",
+    "LercDecode.min.js"
+  ],
   "homepage": "https://github.com/Esri/lerc",
   "license": "Apache-2.0",
   "main": "LercDecode.js",

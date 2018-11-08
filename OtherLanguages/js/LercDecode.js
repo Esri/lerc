@@ -1341,7 +1341,7 @@ Contributors:  Johannes Schmid, (LERC v1)
               stuffedData = new Uint32Array(arrayBuf);
               data.ptr += dataBytes;
               if (fileVersion >= 3) {
-                if (offset == null) {
+                if (offset === null) {
                   BitStuffer.originalUnstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements);
                 }
                 else {
@@ -1349,7 +1349,7 @@ Contributors:  Johannes Schmid, (LERC v1)
                 }
               }
               else {
-                if (offset == null) {
+                if (offset === null) {
                   BitStuffer.originalUnstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements);
                 }
                 else {
@@ -1652,7 +1652,7 @@ Contributors:  Johannes Schmid, (LERC v1)
       },
 
       isValidPixelValue: function(t, val) {
-        if (val == null) {
+        if (val === null) {
           return false;
         }
         var isValid;
