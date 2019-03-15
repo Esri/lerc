@@ -1262,7 +1262,8 @@ Contributors:  Johannes Schmid, (LERC v1)
           var fileVersion = headerInfo.fileVersion;
           //var block = {};
           var blockPtr = 0;
-          var view = new DataView(input, data.ptr, 5);//to do
+          var viewByteLength = ((input.byteLength - data.ptr) >= 5) ? 5 : (input.byteLength - data.ptr);
+          var view = new DataView(input, data.ptr, viewByteLength);
           var headerByte = view.getUint8(0);
           blockPtr++;
           var bits67 = headerByte >> 6;
