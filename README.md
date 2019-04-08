@@ -96,7 +96,7 @@ Some benchmarks are in
 
 ## Bugs?
 
-The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level modules are very unlikely. New in Lerc version 2.4 is more rigorous checking against buffer overrun during decoding. If those checks contain a bug then this might trigger the decoder to fail unexpectedly.
+The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level modules are very unlikely. All software updates are tested in Esri software for months before they are uploaded to this repo. 
 
 ## Contact
 
