@@ -98,10 +98,6 @@ Some benchmarks are in
 
 The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level modules are very unlikely. All software updates are tested in Esri software for months before they are uploaded to this repo. 
 
-## Contact
-
-Send an email to <a href="mailto:tmaurer@esri.com">tmaurer@esri.com</a>
-
 ## Licensing
 
 Copyright 2015-2018 Esri
