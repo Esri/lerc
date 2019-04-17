@@ -68,6 +68,17 @@ unsigned int CntZImage::computeNumBytesNeededToReadHeader()
 
 // -------------------------------------------------------------------------- ;
 
+#if defined(RTC_COCOA_OSX)
+// release builds of RTC use -O3 which causes this function 
+// to be optimized away in some cases, resulting in terrain 
+// data reporting as 0 or empty
+// See https://devtopia.esri.com/runtimecore/c_api/issues/12246
+#if __clang_major__==10 && __clang_minor__==0 && __clang_patchlevel__==0
+[[clang::optnone]]
+#else
+#pragma GCC error "Investigate whether this workaround is still necessary..."
+#endif // !__clang_major__==10 && __clang_minor__==0 && __clang_patchlevel__==0
+#endif // defined(RTC_COCOA_OSX)
 bool CntZImage::read(Byte** ppByte, bool& hasInvalidData, double maxZError, bool onlyHeader, bool onlyZPart)
 {
   if (!ppByte || !*ppByte)
