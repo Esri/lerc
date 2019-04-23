@@ -74,7 +74,7 @@ unsigned int CntZImage::computeNumBytesNeededToReadHeader()
 // data reporting as 0 or empty
 // See https://devtopia.esri.com/runtimecore/c_api/issues/12246
 #if __clang_major__==10 && __clang_minor__==0 && __clang_patchlevel__==0
-[[clang::optnone]]
+__attribute__((minsize)) // Perf opt causes the error, size does not
 #else
 #pragma GCC error "Investigate whether this workaround is still necessary..."
 #endif // !__clang_major__==10 && __clang_minor__==0 && __clang_patchlevel__==0
