@@ -1,6 +1,6 @@
 /* jshint forin: false, bitwise: false */
 /*
-Copyright 2015 Esri
+Copyright 2015-2018 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ Contributors:  Johannes Schmid, (LERC v1)
                Wenxue Ju (LERC v1, v2.x)
 */
 
-/* Copyright 2015 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
+/* Copyright 2015-2018 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
 
 /**
  * a module for decoding LERC blobs
@@ -759,38 +759,83 @@ Contributors:  Johannes Schmid, (LERC v1)
           throw "Unexpected file identifier string (expect Lerc2 ): " + headerInfo.fileIdentifierString;
         }
         ptr += 6;
-
-        var view = new DataView(input, ptr, 52);
-        headerInfo.fileVersion = view.getInt32(0, true);
+        var view = new DataView(input, ptr, 8);
+        var fileVersion = view.getInt32(0, true);
+        headerInfo.fileVersion = fileVersion;
         ptr += 4;
-        if (headerInfo.fileVersion >= 3) {
+        if (fileVersion >= 3) {
           headerInfo.checksum = view.getUint32(4, true); //nrows
           ptr += 4;
         }
-        view = new DataView(input, ptr, 48);
 
+        //keys start from here
+        view = new DataView(input, ptr, 12);
         headerInfo.height = view.getUint32(0, true); //nrows
         headerInfo.width = view.getUint32(4, true); //ncols
-        headerInfo.numValidPixel = view.getUint32(8, true);
-        headerInfo.microBlockSize = view.getInt32(12, true);
-        headerInfo.blobSize = view.getInt32(16, true);
-        headerInfo.imageType = view.getInt32(20, true);
+        ptr += 8;
+        if (fileVersion >= 4) {
+          headerInfo.numDims = view.getUint32(8, true);
+          ptr += 4;
+        }
+        else {
+          headerInfo.numDims = 1;
+        }
 
-        headerInfo.maxZError = view.getFloat64(24, true);
-        headerInfo.zMin = view.getFloat64(32, true);
-        headerInfo.zMax = view.getFloat64(40, true);
-        ptr += 48;
+        view = new DataView(input, ptr, 40);
+        headerInfo.numValidPixel = view.getUint32(0, true);
+        headerInfo.microBlockSize = view.getInt32(4, true);
+        headerInfo.blobSize = view.getInt32(8, true);
+        headerInfo.imageType = view.getInt32(12, true);
+
+        headerInfo.maxZError = view.getFloat64(16, true);
+        headerInfo.zMin = view.getFloat64(24, true);
+        headerInfo.zMax = view.getFloat64(32, true);
+        ptr += 40;
         data.headerInfo = headerInfo;
         data.ptr = ptr;
 
-        var checksum;
-        if (headerInfo.fileVersion >= 3) {
-          checksum = this.computeChecksumFletcher32(new Uint8Array(input, ptr - 48, headerInfo.blobSize - 14));
+        var checksum, keyLength;
+        if (fileVersion >= 3) {
+          keyLength = fileVersion >= 4 ? 52 : 48;
+          checksum = this.computeChecksumFletcher32(new Uint8Array(input, ptr - keyLength, headerInfo.blobSize - 14));
           if (checksum !== headerInfo.checksum) {
             throw "Checksum failed.";
           }
         }
         return true;
+      },
+
+      checkMinMaxRanges: function(input, data) {
+        var headerInfo = data.headerInfo;
+        var OutPixelTypeArray = this.getDataTypeArray(headerInfo.imageType);
+        var rangeBytes = headerInfo.numDims * this.getDataTypeSize(headerInfo.imageType);
+        var minValues = this.readSubArray(input, data.ptr, OutPixelTypeArray, rangeBytes);
+        var maxValues = this.readSubArray(input, data.ptr + rangeBytes, OutPixelTypeArray, rangeBytes);
+        data.ptr += (2 * rangeBytes);
+        var i, equal = true;
+        for (i = 0; i < headerInfo.numDims; i++) {
+          if (minValues[i] !== maxValues[i]) {
+            equal = false;
+            break;
+          }
+        }
+        headerInfo.minValues = minValues;
+        headerInfo.maxValues = maxValues;
+        return equal;
+      },
+
+      readSubArray: function(input, ptr, OutPixelTypeArray, numBytes) {
+        var rawData;
+        if (OutPixelTypeArray === Uint8Array) {
+          rawData = new Uint8Array(input, ptr, numBytes);
+        }
+        else {
+          var arrayBuf = new ArrayBuffer(numBytes);
+          var store8 = new Uint8Array(arrayBuf);
+          store8.set(new Uint8Array(input, ptr, numBytes));
+          rawData = new OutPixelTypeArray(arrayBuf);
+        }
+        return rawData;
       },
 
       readMask: function(input, data) {
@@ -864,11 +909,13 @@ Contributors:  Johannes Schmid, (LERC v1)
       readDataOneSweep: function(input, data, OutPixelTypeArray) {
         var ptr = data.ptr;
         var headerInfo = data.headerInfo;
+        var numDims = headerInfo.numDims;
         var numPixels = headerInfo.width * headerInfo.height;
         var imageType = headerInfo.imageType;
-        var numBytes = headerInfo.numValidPixel * Lerc2Helpers.getDateTypeSize(imageType);
+        var numBytes = headerInfo.numValidPixel * Lerc2Helpers.getDataTypeSize(imageType) * numDims;
         //data.pixels.numBytes = numBytes;
         var rawData;
+        var mask = data.pixels.resultMask;
         if (OutPixelTypeArray === Uint8Array) {
           rawData = new Uint8Array(input, ptr, numBytes);
         }
@@ -878,16 +925,28 @@ Contributors:  Johannes Schmid, (LERC v1)
           store8.set(new Uint8Array(input, ptr, numBytes));
           rawData = new OutPixelTypeArray(arrayBuf);
         }
-        if (rawData.length === numPixels) {
+        if (rawData.length === numPixels * numDims) {
           data.pixels.resultPixels = rawData;
         }
         else  //mask
         {
-          data.pixels.resultPixels = new OutPixelTypeArray(numPixels);
-          var z = 0, k = 0;
-          for (k = 0; k < numPixels; k++) {
-            if (data.pixels.resultMask[k]) {
-              data.pixels.resultPixels[k] = rawData[z++];
+          data.pixels.resultPixels = new OutPixelTypeArray(numPixels * numDims);
+          var z = 0, k = 0, i = 0, nStart = 0;
+          if (numDims > 1) {
+            for (i=0; i < numDims; i++) {
+              nStart = i * numPixels;
+              for (k = 0; k < numPixels; k++) {
+                if (mask[k]) {
+                  data.pixels.resultPixels[nStart + k] = rawData[z++];
+                }
+              }
+            }
+          }
+          else {
+            for (k = 0; k < numPixels; k++) {
+              if (mask[k]) {
+                data.pixels.resultPixels[k] = rawData[z++];
+              }
             }
           }
         }
@@ -896,9 +955,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         return true;
       },
 
-      readHuffman: function(input, data, OutPixelTypeArray) {
-        var headerInfo = data.headerInfo;
-        var numPixels = headerInfo.width * headerInfo.height;
+      readHuffmanTree: function(input, data) {
         var BITS_MAX = this.HUFFMAN_LUT_BITS_MAX; //8 is slow for the large test image
         //var size_max = 1 << BITS_MAX;
         /* ************************
@@ -962,9 +1019,6 @@ Contributors:  Johannes Schmid, (LERC v1)
         /* ************************
          * building lut
          *************************/
-        var offset = data.headerInfo.imageType === 0 ? 128 : 0;
-        var height = data.headerInfo.height;
-        var width = data.headerInfo.width;
         var numBitsLUT = 0, numBitsLUTQick = 0;
         var tree = new TreeNode();
         for (i = 0; i < codeTable.length; i++) {
@@ -1019,79 +1073,61 @@ Contributors:  Johannes Schmid, (LERC v1)
             }
           }
         }
+        return {
+          decodeLut: decodeLut,
+          numBitsLUTQick: numBitsLUTQick,
+          numBitsLUT: numBitsLUT,
+          tree: tree,
+          stuffedData: stuffedData,
+          srcPtr: srcPtr,
+          bitPos: bitPos
+        };
+      },
+
+      readHuffman: function(input, data, OutPixelTypeArray) {
+        var headerInfo = data.headerInfo;
+        var numDims = headerInfo.numDims;
+        var height = data.headerInfo.height;
+        var width = data.headerInfo.width;
+        var numPixels = width * height;
+        //var size_max = 1 << BITS_MAX;
+        /* ************************
+         * reading huffman structure info
+         *************************/
+        var huffmanInfo = this.readHuffmanTree(input, data);
+        var decodeLut = huffmanInfo.decodeLut;
+        var tree = huffmanInfo.tree;
+        //stuffedData includes huffman headers
+        var stuffedData = huffmanInfo.stuffedData;
+        var srcPtr = huffmanInfo.srcPtr;
+        var bitPos = huffmanInfo.bitPos;
+        var numBitsLUTQick = huffmanInfo.numBitsLUTQick;
+        var numBitsLUT = huffmanInfo.numBitsLUT;
+        var offset = data.headerInfo.imageType === 0 ? 128 : 0;
         /*************************
         *  decode
         ***************************/
-        var val, delta, mask = data.pixels.resultMask, valTmp, valTmpQuick, prevVal = 0, ii = 0;
-
+        var node, val, delta, mask = data.pixels.resultMask, valTmp, valTmpQuick, currentBit;
+        var i, j, k, ii;
+        var prevVal = 0;
         if (bitPos > 0) {
           srcPtr++;
           bitPos = 0;
         }
-        word = stuffedData[srcPtr];
-
-        var resultPixels = new OutPixelTypeArray(numPixels);
-        if (data.headerInfo.numValidPixel === width * height) { //all valid
-          for (k = 0, i = 0; i < height; i++) {
-            for (j = 0; j < width; j++, k++) {
-              val = 0;
-              valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
-              valTmpQuick = valTmp;// >>> deltaBits;
-              if (32 - bitPos < numBitsLUTQick) {
-                valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUTQick));
-                valTmpQuick = valTmp;// >>> deltaBits;
-              }
-              if (decodeLut[valTmpQuick])    // if there, move the correct number of bits and done
-              {
-                val = decodeLut[valTmpQuick][1];
-                bitPos += decodeLut[valTmpQuick][0];
-              }
-              else {
-                valTmp = (word << bitPos) >>> (32 - numBitsLUT);
-                valTmpQuick = valTmp;// >>> deltaBits;
-                if (32 - bitPos < numBitsLUT) {
-                  valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
-                  valTmpQuick = valTmp;// >>> deltaBits;
-                }
-                node = tree;
-                for (ii = 0; ii < numBitsLUT; ii++) {
-                  currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
-                  node = currentBit ? node.right : node.left;
-                  if (!(node.left || node.right)) {
-                    val = node.val;
-                    bitPos = bitPos + ii + 1;
-                    break;
-                  }
-                }
-              }
-
-              if (bitPos >= 32) {
-                bitPos -= 32;
-                srcPtr++;
-                word = stuffedData[srcPtr];
-              }
-
-              delta = val - offset;
-
-              if (j > 0) {
-                delta += prevVal;    // use overflow
-              }
-              else if (i > 0) {
-                delta += resultPixels[k - width];
-              }
-              else {
-                delta += prevVal;
-              }
-              delta &= 0xFF; //overflow
-              resultPixels[k] = delta;//overflow
-              prevVal = delta;
-            }
+        var word = stuffedData[srcPtr];
+        var deltaEncode = data.encodeMode === 1;
+        var resultPixelsAllDim = new OutPixelTypeArray(numPixels * numDims);
+        var resultPixels = resultPixelsAllDim;
+        var iDim;
+        for (iDim = 0; iDim < headerInfo.numDims; iDim++) {
+          if (numDims > 1) {
+            //get the mem block of current dimension
+            resultPixels = new OutPixelTypeArray(resultPixelsAllDim.buffer, numPixels * iDim, numPixels);
+            prevVal = 0;
           }
-        }
-        else { //not all valid, use mask
-          for (k = 0, i = 0; i < height; i++) {
-            for (j = 0; j < width; j++, k++) {
-              if (mask[k]) {
+          if (data.headerInfo.numValidPixel === width * height) { //all valid
+            for (k = 0, i = 0; i < height; i++) {
+              for (j = 0; j < width; j++, k++) {
                 val = 0;
                 valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
                 valTmpQuick = valTmp;// >>> deltaBits;
@@ -1130,35 +1166,104 @@ Contributors:  Johannes Schmid, (LERC v1)
                 }
 
                 delta = val - offset;
-
-                if (j > 0 && mask[k - 1]) {
-                  delta += prevVal;    // use overflow
-                }
-                else if (i > 0 && mask[k - width]) {
-                  delta += resultPixels[k - width];
+                if (deltaEncode) {
+                  if (j > 0) {
+                    delta += prevVal;    // use overflow
+                  }
+                  else if (i > 0) {
+                    delta += resultPixels[k - width];
+                  }
+                  else {
+                    delta += prevVal;
+                  }
+                  delta &= 0xFF; //overflow
+                  resultPixels[k] = delta;//overflow
+                  prevVal = delta;
                 }
                 else {
-                  delta += prevVal;
+                  resultPixels[k] = delta;
                 }
-
-                delta &= 0xFF; //overflow
-                resultPixels[k] = delta;//overflow
-                prevVal = delta;
               }
             }
           }
+          else { //not all valid, use mask
+            for (k = 0, i = 0; i < height; i++) {
+              for (j = 0; j < width; j++, k++) {
+                if (mask[k]) {
+                  val = 0;
+                  valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
+                  valTmpQuick = valTmp;// >>> deltaBits;
+                  if (32 - bitPos < numBitsLUTQick) {
+                    valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUTQick));
+                    valTmpQuick = valTmp;// >>> deltaBits;
+                  }
+                  if (decodeLut[valTmpQuick])    // if there, move the correct number of bits and done
+                  {
+                    val = decodeLut[valTmpQuick][1];
+                    bitPos += decodeLut[valTmpQuick][0];
+                  }
+                  else {
+                    valTmp = (word << bitPos) >>> (32 - numBitsLUT);
+                    valTmpQuick = valTmp;// >>> deltaBits;
+                    if (32 - bitPos < numBitsLUT) {
+                      valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
+                      valTmpQuick = valTmp;// >>> deltaBits;
+                    }
+                    node = tree;
+                    for (ii = 0; ii < numBitsLUT; ii++) {
+                      currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
+                      node = currentBit ? node.right : node.left;
+                      if (!(node.left || node.right)) {
+                        val = node.val;
+                        bitPos = bitPos + ii + 1;
+                        break;
+                      }
+                    }
+                  }
+
+                  if (bitPos >= 32) {
+                    bitPos -= 32;
+                    srcPtr++;
+                    word = stuffedData[srcPtr];
+                  }
+
+                  delta = val - offset;
+                  if (deltaEncode) {
+                    if (j > 0 && mask[k - 1]) {
+                      delta += prevVal;    // use overflow
+                    }
+                    else if (i > 0 && mask[k - width]) {
+                      delta += resultPixels[k - width];
+                    }
+                    else {
+                      delta += prevVal;
+                    }
+
+                    delta &= 0xFF; //overflow
+                    resultPixels[k] = delta;//overflow
+                    prevVal = delta;
+                  }
+                  else {
+                    resultPixels[k] = delta;
+                  }
+                }
+              }
+            }
+          }
+          data.ptr = data.ptr + (srcPtr + 1) * 4 + (bitPos > 0 ? 4 : 0);
         }
-        data.pixels.resultPixels = resultPixels;
-        data.ptr = data.ptr + (srcPtr + 1) * 4 + (bitPos > 0 ? 4 : 0);
+        data.pixels.resultPixels = resultPixelsAllDim;
       },
 
-      decodeBits: function(input, data, blockDataBuffer, offset) {
+      decodeBits: function(input, data, blockDataBuffer, offset, iDim) {
         {
           //bitstuff encoding is 3
-          var fileVersion = data.headerInfo.fileVersion;
+          var headerInfo = data.headerInfo;
+          var fileVersion = headerInfo.fileVersion;
           //var block = {};
           var blockPtr = 0;
-          var view = new DataView(input, data.ptr, 5);//to do
+          var viewByteLength = ((input.byteLength - data.ptr) >= 5) ? 5 : (input.byteLength - data.ptr);
+          var view = new DataView(input, data.ptr, viewByteLength);
           var headerByte = view.getUint8(0);
           blockPtr++;
           var bits67 = headerByte >> 6;
@@ -1177,10 +1282,10 @@ Contributors:  Johannes Schmid, (LERC v1)
           }
           //fix: huffman codes are bit stuffed, but not bound by data's max value, so need to use originalUnstuff
           //offset = offset || 0;
-          var scale = 2 * data.headerInfo.maxZError;
+          var scale = 2 * headerInfo.maxZError;
           var stuffedData, arrayBuf, store8, dataBytes, dataWords;
           var lutArr, lutData, lutBytes, lutBitsPerElement, bitsPerPixel;
-
+          var zMax = headerInfo.numDims > 1 ? headerInfo.maxValues[iDim] : headerInfo.zMax;
           if (doLut) {
             data.counter.lut++;
             lutBytes = view.getUint8(blockPtr);
@@ -1209,14 +1314,14 @@ Contributors:  Johannes Schmid, (LERC v1)
             stuffedData = new Uint32Array(arrayBuf);
             data.ptr += dataBytes;
             if (fileVersion >= 3) {
-              lutArr = BitStuffer.unstuffLUT2(lutData, numBits, lutBytes - 1, offset, scale, data.headerInfo.zMax);
+              lutArr = BitStuffer.unstuffLUT2(lutData, numBits, lutBytes - 1, offset, scale, zMax);
             }
             else {
-              lutArr = BitStuffer.unstuffLUT(lutData, numBits, lutBytes - 1, offset, scale, data.headerInfo.zMax);
+              lutArr = BitStuffer.unstuffLUT(lutData, numBits, lutBytes - 1, offset, scale, zMax);
             }
             //lutArr.unshift(0);
             if (fileVersion >= 3) {
-              //BitStuffer.unstuff2(block, blockDataBuffer, data.headerInfo.zMax);
+              //BitStuffer.unstuff2(block, blockDataBuffer, headerInfo.zMax);
               BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements, lutArr);
             }
             else {
@@ -1237,19 +1342,19 @@ Contributors:  Johannes Schmid, (LERC v1)
               stuffedData = new Uint32Array(arrayBuf);
               data.ptr += dataBytes;
               if (fileVersion >= 3) {
-                if (offset === undefined || offset === null) {
+                if (offset === null) {
                   BitStuffer.originalUnstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements);
                 }
                 else {
-                  BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, data.headerInfo.zMax);
+                  BitStuffer.unstuff2(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, zMax);
                 }
               }
               else {
-                if (offset === undefined || offset === null) {
+                if (offset === null) {
                   BitStuffer.originalUnstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements);
                 }
                 else {
-                  BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, data.headerInfo.zMax);
+                  BitStuffer.unstuff(stuffedData, blockDataBuffer, bitsPerPixel, numElements, false, offset, scale, zMax);
                 }
               }
             }
@@ -1264,6 +1369,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         var height = headerInfo.height;
         var microBlockSize = headerInfo.microBlockSize;
         var imageType = headerInfo.imageType;
+        var dataTypeSize = Lerc2Helpers.getDataTypeSize(imageType);
         var numBlocksX = Math.ceil(width / microBlockSize);
         var numBlocksY = Math.ceil(height / microBlockSize);
         data.pixels.numBlocksY = numBlocksY;
@@ -1276,6 +1382,9 @@ Contributors:  Johannes Schmid, (LERC v1)
         var lastBlockHeight = (height % microBlockSize) || microBlockSize;
         var lastBlockWidth = (width % microBlockSize) || microBlockSize;
         var offsetType, offset;
+        var numDims = headerInfo.numDims, iDim;
+        var mask = data.pixels.resultMask;
+        var resultPixels = data.pixels.resultPixels;
         for (blockY = 0; blockY < numBlocksY; blockY++) {
           thisBlockHeight = (blockY !== numBlocksY - 1) ? microBlockSize : lastBlockHeight;
           for (blockX = 0; blockX < numBlocksX; blockX++) {
@@ -1285,113 +1394,120 @@ Contributors:  Johannes Schmid, (LERC v1)
             outPtr = blockY * width * microBlockSize + blockX * microBlockSize;
             outStride = width - thisBlockWidth;
 
-            bytesLeft = input.byteLength - data.ptr;
-            view = new DataView(input, data.ptr, Math.min(10, bytesLeft));
-            block = {};
-            blockPtr = 0;
-            headerByte = view.getUint8(0);
-            blockPtr++;
-            bits67 = (headerByte >> 6) & 0xFF;
-            testCode = (headerByte >> 2) & 15;    // use bits 2345 for integrity check
-            if (testCode !== (((blockX * microBlockSize) >> 3) & 15)) {
-              throw "integrity issue";
-              //return false;
-            }
 
-            blockEncoding = headerByte & 3;
-            if (blockEncoding > 3) {
-              data.ptr += blockPtr;
-              throw "Invalid block encoding (" + blockEncoding + ")";
-            }
-            else if (blockEncoding === 2) { //constant 0
-              data.counter.constant++;
-              data.ptr += blockPtr;
-              continue;
-            }
-            else if (blockEncoding === 0) {  //uncompressed
-              data.counter.uncompressed++;
-              data.ptr += blockPtr;
-              numBytes = thisBlockHeight * thisBlockWidth * Lerc2Helpers.getDateTypeSize(imageType);
-              bytesleft = input.byteLength - data.ptr;
-              numBytes = numBytes < bytesleft ? numBytes : bytesleft;
-              arrayBuf = new ArrayBuffer(numBytes);
-              store8 = new Uint8Array(arrayBuf);
-              store8.set(new Uint8Array(input, data.ptr, numBytes));
-              rawData = new OutPixelTypeArray(arrayBuf);
-              z = 0;
-              if (data.pixels.resultMask) {
-                for (row = 0; row < thisBlockHeight; row++) {
-                  for (col = 0; col < thisBlockWidth; col++) {
-                    if (data.pixels.resultMask[outPtr]) {
-                      data.pixels.resultPixels[outPtr] = rawData[z++];
-                    }
-                    outPtr++;
-                  }
-                  outPtr += outStride;
-                }
+            for (iDim = 0; iDim < numDims; iDim++) {
+              if (numDims > 1) {
+                resultPixels = new OutPixelTypeArray(data.pixels.resultPixels.buffer, width * height * iDim * dataTypeSize, width * height);
               }
-              else {//all valid
-                for (row = 0; row < thisBlockHeight; row++) {
-                  for (col = 0; col < thisBlockWidth; col++) {
-                    data.pixels.resultPixels[outPtr++] = rawData[z++];
-                  }
-                  outPtr += outStride;
-                }
+              bytesLeft = input.byteLength - data.ptr;
+              view = new DataView(input, data.ptr, Math.min(10, bytesLeft));
+              block = {};
+              blockPtr = 0;
+              headerByte = view.getUint8(0);
+              blockPtr++;
+              bits67 = (headerByte >> 6) & 0xFF;
+              testCode = (headerByte >> 2) & 15;    // use bits 2345 for integrity check
+              if (testCode !== (((blockX * microBlockSize) >> 3) & 15)) {
+                throw "integrity issue";
+                //return false;
               }
-              data.ptr += z * Lerc2Helpers.getDateTypeSize(imageType);
-            }
-            else { //1 or 3
-              offsetType = Lerc2Helpers.getDataTypeUsed(imageType, bits67);
-              offset = Lerc2Helpers.getOnePixel(block, blockPtr, offsetType, view);
-              blockPtr += Lerc2Helpers.getDateTypeSize(offsetType);
-              if (blockEncoding === 3) //constant offset value
-              {
+
+              blockEncoding = headerByte & 3;
+              if (blockEncoding > 3) {
                 data.ptr += blockPtr;
-                data.counter.constantoffset++;
-                //you can delete the following resultMask case in favor of performance because val is constant and users use nodata mask, otherwise nodatavalue post processing handles it too.
-                //while the above statement is true, we're not doing it as we want to keep invalid pixel value at 0 rather than arbitrary values
-                if (data.pixels.resultMask) {
+                throw "Invalid block encoding (" + blockEncoding + ")";
+              }
+              else if (blockEncoding === 2) { //constant 0
+                data.counter.constant++;
+                data.ptr += blockPtr;
+                continue;
+              }
+              else if (blockEncoding === 0) {  //uncompressed
+                data.counter.uncompressed++;
+                data.ptr += blockPtr;
+                numBytes = thisBlockHeight * thisBlockWidth * dataTypeSize;
+                bytesleft = input.byteLength - data.ptr;
+                numBytes = numBytes < bytesleft ? numBytes : bytesleft;
+                //bit alignment
+                arrayBuf = new ArrayBuffer((numBytes % dataTypeSize) === 0 ? numBytes : (numBytes + dataTypeSize - numBytes % dataTypeSize));
+                store8 = new Uint8Array(arrayBuf);
+                store8.set(new Uint8Array(input, data.ptr, numBytes));
+                rawData = new OutPixelTypeArray(arrayBuf);
+                z = 0;
+                if (mask) {
                   for (row = 0; row < thisBlockHeight; row++) {
                     for (col = 0; col < thisBlockWidth; col++) {
-                      if (data.pixels.resultMask[outPtr]) {
-                        data.pixels.resultPixels[outPtr] = offset;
+                      if (mask[outPtr]) {
+                        resultPixels[outPtr] = rawData[z++];
                       }
                       outPtr++;
                     }
                     outPtr += outStride;
                   }
                 }
-                else {
+                else {//all valid
                   for (row = 0; row < thisBlockHeight; row++) {
                     for (col = 0; col < thisBlockWidth; col++) {
-                      data.pixels.resultPixels[outPtr++] = offset;
+                      resultPixels[outPtr++] = rawData[z++];
                     }
                     outPtr += outStride;
                   }
                 }
+                data.ptr += z * dataTypeSize;
               }
-              else { //bitstuff encoding is 3
-                data.ptr += blockPtr;
-                //heavy lifting
-                Lerc2Helpers.decodeBits(input, data, blockDataBuffer, offset);
-                blockPtr = 0;
-                if (data.pixels.resultMask) {
-                  for (row = 0; row < thisBlockHeight; row++) {
-                    for (col = 0; col < thisBlockWidth; col++) {
-                      if (data.pixels.resultMask[outPtr]) {
-                        data.pixels.resultPixels[outPtr] = blockDataBuffer[blockPtr++];
+              else { //1 or 3
+                offsetType = Lerc2Helpers.getDataTypeUsed(imageType, bits67);
+                offset = Lerc2Helpers.getOnePixel(block, blockPtr, offsetType, view);
+                blockPtr += Lerc2Helpers.getDataTypeSize(offsetType);
+                if (blockEncoding === 3) //constant offset value
+                {
+                  data.ptr += blockPtr;
+                  data.counter.constantoffset++;
+                  //you can delete the following resultMask case in favor of performance because val is constant and users use nodata mask, otherwise nodatavalue post processing handles it too.
+                  //while the above statement is true, we're not doing it as we want to keep invalid pixel value at 0 rather than arbitrary values
+                  if (mask) {
+                    for (row = 0; row < thisBlockHeight; row++) {
+                      for (col = 0; col < thisBlockWidth; col++) {
+                        if (mask[outPtr]) {
+                          resultPixels[outPtr] = offset;
+                        }
+                        outPtr++;
                       }
-                      outPtr++;
+                      outPtr += outStride;
                     }
-                    outPtr += outStride;
+                  }
+                  else {
+                    for (row = 0; row < thisBlockHeight; row++) {
+                      for (col = 0; col < thisBlockWidth; col++) {
+                        resultPixels[outPtr++] = offset;
+                      }
+                      outPtr += outStride;
+                    }
                   }
                 }
-                else {
-                  for (row = 0; row < thisBlockHeight; row++) {
-                    for (col = 0; col < thisBlockWidth; col++) {
-                      data.pixels.resultPixels[outPtr++] = blockDataBuffer[blockPtr++];
+                else { //bitstuff encoding is 3
+                  data.ptr += blockPtr;
+                  //heavy lifting
+                  Lerc2Helpers.decodeBits(input, data, blockDataBuffer, offset, iDim);
+                  blockPtr = 0;
+                  if (mask) {
+                    for (row = 0; row < thisBlockHeight; row++) {
+                      for (col = 0; col < thisBlockWidth; col++) {
+                        if (mask[outPtr]) {
+                          resultPixels[outPtr] = blockDataBuffer[blockPtr++];
+                        }
+                        outPtr++;
+                      }
+                      outPtr += outStride;
                     }
-                    outPtr += outStride;
+                  }
+                  else {
+                    for (row = 0; row < thisBlockHeight; row++) {
+                      for (col = 0; col < thisBlockWidth; col++) {
+                        resultPixels[outPtr++] = blockDataBuffer[blockPtr++];
+                      }
+                      outPtr += outStride;
+                    }
                   }
                 }
               }
@@ -1433,18 +1549,38 @@ Contributors:  Johannes Schmid, (LERC v1)
 
       constructConstantSurface: function(data) {
         var val = data.headerInfo.zMax;
+        var numDims =  data.headerInfo.numDims;
         var numPixels = data.headerInfo.height * data.headerInfo.width;
-        var k = 0;
-        if (data.pixels.resultMask) {
-          for (k = 0; k < numPixels; k++) {
-            if (data.pixels.resultMask[k]) {
-              data.pixels.resultPixels[k] = val;
+        var numPixelAllDims = numPixels * numDims;
+        var i=0, k = 0, nStart=0;
+        var mask = data.pixels.resultMask;
+        if (mask) {
+          if (numDims > 1) {
+            for (i=0; i < numDims; i++) {
+              nStart = i * numPixels;
+              for (k = 0; k < numPixels; k++) {
+                if (mask[k]) {
+                  data.pixels.resultPixels[nStart + k] = val;
+                }
+              }
+            }
+          }
+          else {
+            for (k = 0; k < numPixels; k++) {
+              if (mask[k]) {
+                data.pixels.resultPixels[k] = val;
+              }
             }
           }
         }
         else {
-          for (k = 0; k < numPixels; k++) {
-            data.pixels.resultPixels[k] = val;
+          if (data.pixels.resultPixels.fill) {
+            data.pixels.resultPixels.fill(val);
+          }
+          else {
+            for (k = 0; k < numPixelAllDims; k++) {
+              data.pixels.resultPixels[k] = val;
+            }
           }
         }
         return;
@@ -1517,7 +1653,7 @@ Contributors:  Johannes Schmid, (LERC v1)
       },
 
       isValidPixelValue: function(t, val) {
-        if (val === null || val === undefined) {
+        if (val === null) {
           return false;
         }
         var isValid;
@@ -1552,7 +1688,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         return isValid;
       },
 
-      getDateTypeSize: function(t) {
+      getDataTypeSize: function(t) {
         var s = 0;
         switch (t) {
           case 0: //ubyte
@@ -1661,6 +1797,23 @@ Contributors:  Johannes Schmid, (LERC v1)
     };
 
     var Lerc2Decode = {
+      /*
+      * ********removed options compared to LERC1. We can bring some of them back if needed.
+       * removed pixel type. LERC2 is typed and doesn't require user to give pixel type
+       * changed encodedMaskData to maskData. LERC2 's js version make it faster to use maskData directly.
+       * removed returnMask. mask is used by LERC2 internally and is cost free. In case of user input mask, it's returned as well and has neglible cost.
+       * removed nodatavalue. Because LERC2 pixels are typed, nodatavalue will sacrify a useful value for many types (8bit, 16bit) etc,
+       *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now.
+       *       We can add it back later if their's a clear requirement.
+       * removed encodedMask. This option was not implemented in LercDecode. It can be done after decoding (less efficient)
+       * removed computeUsedBitDepths.
+       *
+       *
+       * response changes compared to LERC1
+       * 1. encodedMaskData is not available
+       * 2. noDataValue is optional (returns only if user's noDataValue is with in the valid data type range)
+       * 3. maskData is always available
+      */
       /*****************
       *  public properties
       ******************/
@@ -1681,7 +1834,6 @@ Contributors:  Johannes Schmid, (LERC v1)
       decode: function(/*byte array*/ input, /*object*/ options) {
         //currently there's a bug in the sparse array, so please do not set to false
         options = options || {};
-        var skipMask = options.maskData || (options.maskData === null);
         var noDataValue = options.noDataValue;
 
         //initialize
@@ -1694,22 +1846,17 @@ Contributors:  Johannes Schmid, (LERC v1)
           return;
         }
         var headerInfo = data.headerInfo;
+        var fileVersion = headerInfo.fileVersion;
         var OutPixelTypeArray = Lerc2Helpers.getDataTypeArray(headerInfo.imageType);
 
         // Mask Header
-        if (skipMask) {
+        Lerc2Helpers.readMask(input, data);
+        if (headerInfo.numValidPixel !== headerInfo.width * headerInfo.height && !data.pixels.resultMask) {
           data.pixels.resultMask = options.maskData;
-          data.ptr += 4;
-        }
-        else {
-          if (!Lerc2Helpers.readMask(input, data)) {
-            //invalid mask
-            return;
-          }
         }
 
         var numPixels = headerInfo.width * headerInfo.height;
-        data.pixels.resultPixels = new OutPixelTypeArray(numPixels);
+        data.pixels.resultPixels = new OutPixelTypeArray(numPixels * headerInfo.numDims);
 
         data.counter = {
           onesweep: 0,
@@ -1725,9 +1872,12 @@ Contributors:  Johannes Schmid, (LERC v1)
           {
             Lerc2Helpers.constructConstantSurface(data);
           }
+          else if (fileVersion >= 4 && Lerc2Helpers.checkMinMaxRanges(input, data)) {
+            Lerc2Helpers.constructConstantSurface(data);
+          }
           else {
             var view = new DataView(input, data.ptr, 2);
-            var bReadDataOneSweep = view.getUint8(0, true);
+            var bReadDataOneSweep = view.getUint8(0);
             data.ptr++;
             if (bReadDataOneSweep) {
               //console.debug("OneSweep");
@@ -1737,11 +1887,15 @@ Contributors:  Johannes Schmid, (LERC v1)
               //lerc2.1: //bitstuffing + lut
               //lerc2.2: //bitstuffing + lut + huffman
               //lerc2.3: new bitstuffer
-              if (headerInfo.fileVersion > 1 && headerInfo.imageType <= 1 && Math.abs(headerInfo.maxZError - 0.5) < 0.00001) {
+              if (fileVersion > 1 && headerInfo.imageType <= 1 && Math.abs(headerInfo.maxZError - 0.5) < 0.00001) {
                 //this is 2.x plus 8 bit (unsigned and signed) data, possiblity of Huffman
-                var bReadHuffman = view.getUint8(1, true);
+                var flagHuffman = view.getUint8(1);
                 data.ptr++;
-                if (bReadHuffman) {//1
+                data.encodeMode = flagHuffman;
+                if (flagHuffman > 2 || (fileVersion < 4 && flagHuffman > 1)) {
+                  throw "Invalid Huffman flag " + flagHuffman;
+                }
+                if (flagHuffman) {//1 - delta Huffman, 2 - Huffman
                   //console.log("Huffman");
                   Lerc2Helpers.readHuffman(input, data, OutPixelTypeArray);
                 }
@@ -1781,6 +1935,12 @@ Contributors:  Johannes Schmid, (LERC v1)
           pixelData: data.pixels.resultPixels,
           minValue: headerInfo.zMin,
           maxValue: headerInfo.zMax,
+          validPixelCount: headerInfo.numValidPixel,
+          dimCount: headerInfo.numDims,
+          dimStats: {
+            minValues: headerInfo.minValues,
+            maxValues: headerInfo.maxValues
+          },
           maskData: data.pixels.resultMask
           //noDataValue: noDataValue
         };
@@ -1802,23 +1962,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         }
         return result;
       },
-      /*
-      * ********removed options compared to LERC1. We can bring some of them back if needed.
-       * removed pixel type. LERC2 is typed and doesn't require user to give pixel type
-       * changed encodedMaskData to maskData. LERC2 's js version make it faster to use maskData directly.
-       * removed returnMask. mask is used by LERC2 internally and is cost free. In case of user input mask, it's returned as well and has neglible cost.
-       * removed nodatavalue. Because LERC2 pixels are typed, nodatavalue will sacrify a useful value for many types (8bit, 16bit) etc,
-       *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now.
-       *       We can add it back later if their's a clear requirement.
-       * removed encodedMask. This option was not implemented in LercDecode. It can be done after decoding (less efficient)
-       * removed computeUsedBitDepths.
-       *
-       *
-       * response changes compared to LERC1
-       * 1. encodedMaskData is not available
-       * 2. noDataValue is optional (returns only if user's noDataValue is with in the valid data type range)
-       * 3. maskData is always available
-      */
+
       getBandCount: function(/*byte array*/ input) {
         var count = 0;
         var i = 0;
@@ -1836,6 +1980,14 @@ Contributors:  Johannes Schmid, (LERC v1)
     };
 
     return Lerc2Decode;
+  })();
+
+  var isPlatformLittleEndian = (function() {
+    var a = new ArrayBuffer(4);
+    var b = new Uint8Array(a);
+    var c = new Uint32Array(a);
+    c[0] = 1;
+    return b[0] === 1;
   })();
 
   var Lerc = {
@@ -1858,22 +2010,27 @@ Contributors:  Johannes Schmid, (LERC v1)
        * @property {array} statistics [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values
     **/
     decode: function(encodedData, options) {
+      if (!isPlatformLittleEndian) {
+        throw "Big endian system is not supported.";
+      }
       options = options || {};
       var inputOffset = options.inputOffset || 0;
       var fileIdView = new Uint8Array(encodedData, inputOffset, 10);
       var fileIdentifierString = String.fromCharCode.apply(null, fileIdView);
-      var lerc;
+      var lerc, majorVersion;
       if (fileIdentifierString.trim() === "CntZImage") {
         lerc = LercDecode;
+        majorVersion = 1;
       }
       else if (fileIdentifierString.substring(0, 5) === "Lerc2") {
         lerc = Lerc2Decode;
+        majorVersion = 2;
       }
       else {
         throw "Unexpected file identifier string: " + fileIdentifierString;
       }
 
-      var iPlane = 0, eof = encodedData.byteLength - 10, encodedMaskData, maskData;
+      var iPlane = 0, eof = encodedData.byteLength - 10, encodedMaskData, bandMasks = [], bandMask, maskData;
       var decodedPixelBlock = {
         width: 0,
         height: 0,
@@ -1901,8 +2058,13 @@ Contributors:  Johannes Schmid, (LERC v1)
           maskData = result.maskData;//lerc2
           decodedPixelBlock.width = result.width;
           decodedPixelBlock.height = result.height;
+          decodedPixelBlock.dimCount = result.dimCount || 1;
+          //decodedPixelBlock.dimStats = decodedPixelBlock.dimStats;
           decodedPixelBlock.pixelType = result.pixelType || result.fileInfo.pixelType;
           decodedPixelBlock.mask = result.maskData;
+        }
+        if (majorVersion >1 && result.fileInfo.mask && result.fileInfo.mask.numBytes > 0) {
+          bandMasks.push(result.maskData);
         }
 
         iPlane++;
@@ -1910,19 +2072,35 @@ Contributors:  Johannes Schmid, (LERC v1)
         decodedPixelBlock.statistics.push({
           minValue: result.minValue,
           maxValue: result.maxValue,
-          noDataValue: result.noDataValue
+          noDataValue: result.noDataValue,
+          dimStats: result.dimStats
         });
       }
+      var i, j, numPixels;
+      if (majorVersion > 1 && bandMasks.length > 1) {
+        numPixels = decodedPixelBlock.width * decodedPixelBlock.height;
+        decodedPixelBlock.bandMasks = bandMasks;
+        maskData = new Uint8Array(numPixels);
+        maskData.set(bandMasks[0]);
+        for (i = 1; i < bandMasks.length; i++) {
+          bandMask = bandMasks[i];
+          for (j = 0; j < numPixels; j++) {
+            maskData[j] = maskData[j] & bandMask[j];
+          }
+        }
+        decodedPixelBlock.maskData = maskData;
+      }
+
       return decodedPixelBlock;
     }
   };
 
-  if (typeof define === 'function' && define.amd) {/* jshint ignore:line */
+  if (typeof define === "function" && define.amd) {/* jshint ignore:line */
     //amd loaders such as dojo and requireJS
     //http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition
     define([], function() { return Lerc; });/* jshint ignore:line */
   }
-  else if (typeof module !== 'undefined' && module.exports) {/* jshint ignore:line */
+  else if (typeof module !== "undefined" && module.exports) {/* jshint ignore:line */
     //commonJS module 1.0/1.1/1.1.1 systems, such as nodeJS
     //http://wiki.commonjs.org/wiki/Modules
     module.exports = Lerc;/* jshint ignore:line */

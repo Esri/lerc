@@ -10,7 +10,7 @@
 ## Browser
 
 ```html
-<script type="text/javascript" src="./LercDecode.js"></script>
+<script type="text/javascript" src="https://unpkg.com/lerc"></script>
 ```
 ```js
 Lerc.decode(xhrResponse, {
@@ -22,28 +22,18 @@ Lerc.decode(xhrResponse, {
 ## Node
 
 ```js
-npm install 'lerc'
+npm install lerc && npm install node-fetch
 ```
 ```js
-var http = require('http');
-var Lerc = require('lerc');
+const fetch = require('node-fetch');
+const Lerc = require('lerc');
 
-http.get('http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0', function (res) {
-  var data = [];
-  res.on('data', function (chunk) {
-    // append each chunk to a list of buffer objects
-    data.push(chunk);
-  })
-  res.on('end', function () {
-    // turn the list into one large Buffer
-    data = Buffer.concat(data);
-    // because the decoder expects an ArrayBuffer
-    var image = Lerc.decode(data.buffer);
-    console.log("width of output is: " + image.width);
-  })
-});
-
-// more info: https://github.com/dcodeIO/protobuf.js/wiki/How-to-read-binary-data-in-the-browser-or-under-node.js%3F
+fetch('http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0')
+  .then(response => response.arrayBuffer())
+  .then(body => {
+    const image = Lerc.decode(body);
+    image.width // 257
+  });
 ```
 
 ## API Reference
@@ -68,7 +58,7 @@ A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling mul
 | [options.pixelType] | <code>string</code> | (LERC1 only) Default value is F32. Valid pixel types for input are U8/S8/S16/U16/S32/U32/F32. |
 | [options.noDataValue] | <code>number</code> | (LERC1 only). It is recommended to use the returned mask instead of setting this value. |
 
-**Result Object**
+**Result Object Properties**
 
 | Name | Type | Description |
 | --- | --- | --- |
@@ -83,7 +73,7 @@ A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling mul
 
 ## Licensing
 
-Copyright 2017 Esri
+Copyright &copy; 2017-2018 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -97,6 +87,3 @@ See the License for the specific language governing permissions and limitations 
 A local copy of the license and additional notices are located with the source distribution at:
 
 http://github.com/Esri/lerc/
-
-[](Esri Tags: raster, image, encoding, encoded, decoding, decoded, compression, codec, lerc)
-[](Esri Language: JS, JavaScript, Python)
