@@ -19,16 +19,10 @@ project "lerc"
   }
 
   files {
-    "Lerc/src/Common/*.cpp",
-    "Lerc/src/Common/*.h",
-    "Lerc/src/Include/*.h",
-    "Lerc/src/Lerc/*.cpp",
-    "Lerc/src/Lerc/*.h",
-    "Lerc/src/Lerc1Decode/*.cpp",
-    "Lerc/src/Lerc1Decode/*.hpp",
-    "Lerc/src/Lerc1Decode/*.h",
-    "Lerc/src/Lerc2/*.cpp",
-    "Lerc/src/Lerc2/*.h"
+    "src/LercLib/*.cpp",
+    "src/LercLib/*.h",
+    "src/LercLib/Lerc1Decode/*.cpp",
+    "src/LercLib/Lerc1Decode/*.h",
   }
 
   -- -------------------------------------------------------------
