@@ -742,7 +742,7 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
     return false;
 
   int nCutFound = 0, lastPlaneKept = 0;
-  const bool printAll = false;
+  //const bool printAll = false;
 
   for (int s = maxShift - 1; s >= 0; s--)
   {
