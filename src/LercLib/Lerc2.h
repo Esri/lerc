@@ -64,6 +64,10 @@ NAMESPACE_LERC_START
  *    -- extend Huffman coding for 8 bit data types from delta only to trying both delta and orig
  *    -- for integer data types, allow to drop bit planes containing only random noise
  *
+ *    Lerc2 v5
+ *    -- for float data (as it might be lower precision like %.2f), try raise maxZError if possible w/o extra loss
+ *    -- add delta encoding of a block iDim relative to previous block (iDim - 1)
+ *
  */
 
 class Lerc2
@@ -73,14 +77,14 @@ public:
   Lerc2(int nDim, int nCols, int nRows, const Byte* pMaskBits = nullptr);    // valid / invalid bits as byte array
   virtual ~Lerc2()  {}
 
+  static int CurrentVersion() { return 5; }
+
   bool SetEncoderToOldVersion(int version);    // call this to encode compatible to an old decoder
 
   bool Set(int nDim, int nCols, int nRows, const Byte* pMaskBits = nullptr);
 
   template<class T>
   unsigned int ComputeNumBytesNeededToWrite(const T* arr, double maxZError, bool encodeMask);
-
-  //static unsigned int MinNumBytesNeededToReadHeader();
 
   /// dst buffer already allocated;  byte ptr is moved like a file pointer
   template<class T>
@@ -118,11 +122,6 @@ public:
   bool Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* pMaskBits = nullptr);    // if mask ptr is not 0, mask bits are returned (even if all valid or same as previous)
 
 private:
-  // 2: added Huffman coding to 8 bit types DT_Char, DT_Byte;
-  // 3: changed the bit stuffing to using a uint aligned buffer,
-  //    added Fletcher32 checksum
-  // 4: allow nDim values per pixel
-  static int CurrentVersion() { return 4; }
 
   enum ImageEncodeMode { IEM_Tiling = 0, IEM_DeltaHuffman, IEM_Huffman };
   enum BlockEncodeMode { BEM_RawBinary = 0, BEM_BitStuffSimple, BEM_BitStuffLUT };
@@ -161,20 +160,37 @@ private:
   bool TryBitPlaneCompression(const T* data, double eps, double& newMaxZError) const;
 
   template<class T>
+  bool TryRaiseMaxZError(const T* data, double& maxZError) const;
+
+  static bool PruneCandidates(std::vector<double>& roundErr, std::vector<double>& zErr,
+    std::vector<int>& zFac, double maxZError);
+
+  template<class T>
   bool WriteDataOneSweep(const T* data, Byte** ppByte) const;
 
   template<class T>
   bool ReadDataOneSweep(const Byte** ppByte, size_t& nBytesRemaining, T* data) const;
 
   template<class T>
-  bool WriteTiles(const T* data, Byte** ppByte, int& numBytes, std::vector<double>& zMinVec, std::vector<double>& zMaxVec) const;
+  bool ComputeMinMaxRanges(const T* data, std::vector<double>& zMinVec, std::vector<double>& zMaxVec) const;
+
+  template<class T>
+  bool WriteTiles(const T* data, Byte** ppByte, int& numBytes) const;
 
   template<class T>
   bool ReadTiles(const Byte** ppByte, size_t& nBytesRemaining, T* data) const;
 
   template<class T>
   bool GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, int iDim,
-    T* dataBuf, T& zMinA, T& zMaxA, int& numValidPixel, bool& tryLutA) const;
+    T* dataBuf, T& zMin, T& zMax, int& numValidPixel, bool& tryLut) const;
+
+  template<class T>
+  static bool ComputeDiffSliceInt(const T* data, const T* prevData, int numValidPixel, DataType dtZ, double maxZError,
+    std::vector<int>& diffDataVec, int& zMin, int& zMax, bool& tryLut);
+
+  template<class T>
+  static bool ComputeDiffSliceFlt(const T* data, const T* prevData, int numValidPixel, double maxZError,
+    std::vector<T>& diffDataVec, T& zMin, T& zMax, bool& tryLut);
 
   static double ComputeMaxVal(double zMin, double zMax, double maxZError);
 
@@ -185,12 +201,16 @@ private:
   bool Quantize(const T* dataBuf, int num, T zMin, std::vector<unsigned int>& quantVec) const;
 
   template<class T>
-  int NumBytesTile(int numValidPixel, T zMin, T zMax, bool tryLut, BlockEncodeMode& blockEncodeMode,
+  static void ScaleBack(T* dataBuf, const std::vector<unsigned int>& quantVec, int num,
+    double zMin, double zMax, double maxZError);
+
+  template<class T>
+  int NumBytesTile(int numValidPixel, T zMin, T zMax, DataType dtZ, bool tryLut, BlockEncodeMode& blockEncodeMode,
                    const std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const;
 
   template<class T>
   bool WriteTile(const T* dataBuf, int num, Byte** ppByte, int& numBytesWritten, int j0, T zMin, T zMax,
-    const std::vector<unsigned int>& quantVec, BlockEncodeMode blockEncodeMode,
+    DataType dtZ, bool bDiffEnc, const std::vector<unsigned int>& quantVec, BlockEncodeMode blockEncodeMode,
     const std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const;
 
   template<class T>
@@ -198,15 +218,16 @@ private:
                 std::vector<unsigned int>& bufferVec) const;
 
   template<class T>
-  int TypeCode(T z, DataType& dtUsed) const;
+  static int ReduceDataType(T z, DataType dt, DataType& dtReduced);
 
-  DataType GetDataTypeUsed(int typeCode) const;
+  static DataType GetDataTypeUsed(DataType dt, int reducedTypeCode);
 
   static bool WriteVariableDataType(Byte** ppByte, double z, DataType dtUsed);
 
   static double ReadVariableDataType(const Byte** ppByte, DataType dtUsed);
 
-  template<class T> DataType GetDataType(T z) const;
+  template<class T>
+  static DataType GetDataType(T z);
 
   static unsigned int GetMaxValToQuantize(DataType dt);
 
@@ -285,8 +306,18 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
 
     maxZError = std::max(0.5, floor(maxZError));
   }
-  else if (maxZError < 0)    // don't allow bit plane compression for float or double yet
-    return 0;
+  else    // float types
+  {
+    if (maxZError < 0)    // don't allow bit plane compression for float or double
+      return 0;
+
+    double maxZErrorNew = maxZError;
+    if (TryRaiseMaxZError(arr, maxZErrorNew))
+    {
+      //printf("%f --> %f\n", maxZError, maxZErrorNew);
+      maxZError = maxZErrorNew;
+    }
+  }
 
   m_headerInfo.maxZError = maxZError;
   m_headerInfo.zMin = 0;
@@ -302,7 +333,10 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   Byte* ptr = nullptr;    // only emulate the writing and just count the bytes needed
   int nBytesTiling = 0;
 
-  if (!WriteTiles(arr, &ptr, nBytesTiling, m_zMinVec, m_zMaxVec))    // also fills the min max ranges
+  if (!ComputeMinMaxRanges(arr, m_zMinVec, m_zMaxVec))    // need this for diff encoding before WriteTiles()
+    return 0;
+
+  if (!WriteTiles(arr, &ptr, nBytesTiling))
     return 0;
 
   m_headerInfo.zMin = *std::min_element(m_zMinVec.begin(), m_zMinVec.end());
@@ -357,9 +391,8 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
     {
       m_headerInfo.microBlockSize = m_microBlockSize * 2;
 
-      std::vector<double> zMinVec, zMaxVec;
       int nBytes2 = 0;
-      if (!WriteTiles(arr, &ptr, nBytes2, zMinVec, zMaxVec))    // no huffman in here anymore
+      if (!WriteTiles(arr, &ptr, nBytes2))    // no huffman in here anymore
         return 0;
 
       if (nBytes2 <= nBytesData)
@@ -449,8 +482,7 @@ bool Lerc2::Encode(const T* arr, Byte** ppByte)
     }
 
     int numBytes = 0;
-    std::vector<double> zMinVec, zMaxVec;
-    if (!WriteTiles(arr, ppByte, numBytes, zMinVec, zMaxVec))
+    if (!WriteTiles(arr, ppByte, numBytes))
       return false;
   }
   else
@@ -714,7 +746,7 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
 
   for (int s = maxShift - 1; s >= 0; s--)
   {
-    if (printAll) printf("bit plane %2d: ", s);
+    //if (printAll) printf("bit plane %2d: ", s);
     bool bCrit = true;
 
     for (int iDim = 0; iDim < nDim; iDim++)
@@ -725,12 +757,12 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
       //double stdDev = sqrt(x * x / n - m * m) / n;
 
       //printf("  %.4f +- %.4f  ", (float)(2 * m), (float)(2 * stdDev));
-      if (printAll) printf("  %.4f ", (float)(2 * m));
+      //if (printAll) printf("  %.4f ", (float)(2 * m));
 
       if (fabs(1 - 2 * m) >= eps)
         bCrit = false;
     }
-    if (printAll) printf("\n");
+    //if (printAll) printf("\n");
 
     if (bCrit && nCutFound < 2)
     {
@@ -741,20 +773,109 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
       {
         lastPlaneKept = s;
         nCutFound = 0;
-        if (printAll) printf(" reset ");
+        //if (printAll) printf(" reset ");
       }
 
       nCutFound++;
-      if (printAll && nCutFound == 1) printf("\n");
+      //if (printAll && nCutFound == 1) printf("\n");
     }
   }
 
   lastPlaneKept = std::max(0, lastPlaneKept);
-  if (printAll) printf("%d \n", lastPlaneKept);
+  //if (printAll) printf("%d \n", lastPlaneKept);
 
   newMaxZError = (1 << lastPlaneKept) >> 1;    // turn lastPlaneKept into new maxZError
 
   return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+template<class T>
+bool Lerc2::TryRaiseMaxZError(const T* data, double& maxZError) const
+{
+  if (!data || m_headerInfo.dt < DT_Float)
+    return false;
+
+  const HeaderInfo& hd = m_headerInfo;
+  const int nDim = hd.nDim;
+
+  std::vector<double> roundErr, zErr, zErrCand = { 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001 };
+  std::vector<int> zFac, zFacCand = { 1, 2, 10, 20, 100, 200, 1000, 2000, 10000 };
+
+  for (size_t i = 0; i < zErrCand.size(); i++)
+    if (zErrCand[i] / 2 > maxZError)
+    {
+      zErr.push_back(zErrCand[i] / 2);
+      zFac.push_back(zFacCand[i]);
+      roundErr.push_back(0);
+    }
+
+  if (zErr.empty())
+    return false;
+
+  if (nDim == 1 && hd.numValidPixel == hd.nCols * hd.nRows)    // special but common case
+  {
+    for (int i = 0; i < hd.nRows; i++)
+    {
+      size_t nCand = zErr.size();
+
+      for (int k = i * hd.nCols, j = 0; j < hd.nCols; j++, k++)
+      {
+        double x = data[k];
+
+        for (size_t n = 0; n < nCand; n++)
+        {
+          double z = x * zFac[n];
+          if (z == (int)z)
+            break;
+
+          double delta = fabs(floor(z + 0.5) - z);
+          roundErr[n] = std::max(roundErr[n], delta);
+        }
+      }
+
+      if (!PruneCandidates(roundErr, zErr, zFac, maxZError))
+        return false;
+    }
+  }
+
+  else    // general case:  nDim > 1 or not all pixel valid
+  {
+    for (int k = 0, m0 = 0, i = 0; i < hd.nRows; i++)
+    {
+      size_t nCand = zErr.size();
+
+      for (int j = 0; j < hd.nCols; j++, k++, m0 += nDim)
+        if (m_bitMask.IsValid(k))
+          for (int iDim = 0; iDim < nDim; iDim++)
+          {
+            double x = data[m0 + iDim];
+
+            for (size_t n = 0; n < nCand; n++)
+            {
+              double z = x * zFac[n];
+              if (z == (int)z)
+                break;
+
+              double delta = fabs(floor(z + 0.5) - z);
+              roundErr[n] = std::max(roundErr[n], delta);
+            }
+          }
+
+      if (!PruneCandidates(roundErr, zErr, zFac, maxZError))
+        return false;
+    }
+  }
+
+  for (size_t n = 0; n < zErr.size(); n++)
+    if (roundErr[n] / zFac[n] <= maxZError)
+    {
+      maxZError = zErr[n];
+      return true;
+    }
+  
+  return false;
 }
 
 // -------------------------------------------------------------------------- ;
@@ -817,7 +938,77 @@ bool Lerc2::ReadDataOneSweep(const Byte** ppByte, size_t& nBytesRemaining, T* da
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes, std::vector<double>& zMinVec, std::vector<double>& zMaxVec) const
+bool Lerc2::ComputeMinMaxRanges(const T* data, std::vector<double>& zMinVecA, std::vector<double>& zMaxVecA) const
+{
+  if (!data || m_headerInfo.numValidPixel == 0)
+    return false;
+
+  const HeaderInfo& hd = m_headerInfo;
+  const int nDim = hd.nDim;
+  bool bInit = false;
+
+  zMinVecA.resize(nDim);
+  zMaxVecA.resize(nDim);
+
+  std::vector<T> zMinVec(nDim, 0), zMaxVec(nDim, 0);
+
+  if (hd.numValidPixel == hd.nRows * hd.nCols)    // all valid, no mask
+  {
+    bInit = true;
+    for (int iDim = 0; iDim < nDim; iDim++)
+      zMinVec[iDim] = zMaxVec[iDim] = data[iDim];
+
+    for (int m0 = 0, i = 0; i < hd.nRows; i++)
+      for (int j = 0; j < hd.nCols; j++, m0 += nDim)
+        for (int iDim = 0; iDim < nDim; iDim++)
+        {
+          T val = data[m0 + iDim];
+
+          if (val < zMinVec[iDim])
+            zMinVec[iDim] = val;
+          else if (val > zMaxVec[iDim])
+            zMaxVec[iDim] = val;
+        }
+  }
+  else
+  {
+    for (int k = 0, m0 = 0, i = 0; i < hd.nRows; i++)
+      for (int j = 0; j < hd.nCols; j++, k++, m0 += nDim)
+        if (m_bitMask.IsValid(k))
+        {
+          if (bInit)
+            for (int iDim = 0; iDim < nDim; iDim++)
+            {
+              T val = data[m0 + iDim];
+
+              if (val < zMinVec[iDim])
+                zMinVec[iDim] = val;
+              else if (val > zMaxVec[iDim])
+                zMaxVec[iDim] = val;
+            }
+          else
+          {
+            bInit = true;
+            for (int iDim = 0; iDim < nDim; iDim++)
+              zMinVec[iDim] = zMaxVec[iDim] = data[m0 + iDim];
+          }
+        }
+  }
+
+  if (bInit)
+    for (int iDim = 0; iDim < nDim; iDim++)
+    {
+      zMinVecA[iDim] = zMinVec[iDim];
+      zMaxVecA[iDim] = zMaxVec[iDim];
+    }
+
+  return bInit;
+}
+
+// -------------------------------------------------------------------------- ;
+
+template<class T>
+bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes) const
 {
   if (!data || !ppByte)
     return false;
@@ -825,8 +1016,8 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes, std::vector<
   numBytes = 0;
   int numBytesLerc = 0;
 
-  std::vector<unsigned int> quantVec;
-  std::vector<std::pair<unsigned int, unsigned int> > sortedQuantVec;
+  std::vector<unsigned int> quantVec, quantVecDiff;
+  std::vector<std::pair<unsigned int, unsigned int> > sortedQuantVec, sortedQuantVecDiff;
 
   const HeaderInfo& hd = m_headerInfo;
   int mbSize = hd.microBlockSize;
@@ -835,8 +1026,13 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes, std::vector<
   std::vector<T> dataVec(mbSize * mbSize, 0);
   T* dataBuf = &dataVec[0];
 
-  zMinVec.assign(nDim, DBL_MAX);
-  zMaxVec.assign(nDim, -DBL_MAX);
+  const bool bDtInt = (hd.dt < DT_Float);
+  const bool bIntLossless = bDtInt && (hd.maxZError == 0.5);
+  const bool bTryDiffEnc = (hd.version >= 5) && (nDim > 1);
+
+  int mbDiff2 = bTryDiffEnc ? mbSize * mbSize : 0;
+  std::vector<int> diffDataVecInt(mbDiff2, 0);    // use fixed type (int) for difference of all int types
+  std::vector<T> diffDataVecFlt(mbDiff2, 0), prevDataVec(mbDiff2, 0);
 
   int numTilesVert = (hd.nRows + mbSize - 1) / mbSize;
   int numTilesHori = (hd.nCols + mbSize - 1) / mbSize;
@@ -859,16 +1055,11 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes, std::vector<
       {
         T zMin = 0, zMax = 0;
         int numValidPixel = 0;
+        bool bQuantizeDone = false;
         bool tryLut = false;
 
         if (!GetValidDataAndStats(data, i0, i0 + tileH, j0, j0 + tileW, iDim, dataBuf, zMin, zMax, numValidPixel, tryLut))
           return false;
-
-        if (numValidPixel > 0)
-        {
-          zMinVec[iDim] = (std::min)(zMinVec[iDim], (double)zMin);
-          zMaxVec[iDim] = (std::max)(zMaxVec[iDim], (double)zMax);
-        }
 
         //tryLut = false;
 
@@ -878,22 +1069,124 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes, std::vector<
           if (!Quantize(dataBuf, numValidPixel, zMin, quantVec))
             return false;
 
+          bQuantizeDone = true;
+
           if (tryLut)
             SortQuantArray(quantVec, sortedQuantVec);
         }
 
-        BlockEncodeMode blockEncodeMode;
-        int numBytesNeeded = NumBytesTile(numValidPixel, zMin, zMax, tryLut, blockEncodeMode, sortedQuantVec);
-        numBytesLerc += numBytesNeeded;
+        BlockEncodeMode blockEncodeMode(BEM_RawBinary), blockEncodeModeDiff(BEM_RawBinary);
+        int numBytesNeeded = NumBytesTile(numValidPixel, zMin, zMax, hd.dt, tryLut, blockEncodeMode, sortedQuantVec);
+
+        int numBytesNeededDiff = numBytesNeeded + 1;
+        int zMinDiffInt(0), zMaxDiffInt(0);
+        T zMinDiffFlt(0), zMaxDiffFlt(0);
+        bool bQuantizeDoneDiff = false;
+        bool tryLutDiff = false;
+
+        if (bTryDiffEnc && iDim > 0 && numValidPixel > 0)
+        {
+          bool rv = bDtInt ? ComputeDiffSliceInt(&dataVec[0], &prevDataVec[0], numValidPixel, hd.dt, hd.maxZError, diffDataVecInt, zMinDiffInt, zMaxDiffInt, tryLutDiff)
+                           : ComputeDiffSliceFlt(&dataVec[0], &prevDataVec[0], numValidPixel, hd.maxZError, diffDataVecFlt, zMinDiffFlt, zMaxDiffFlt, tryLutDiff);
+
+          double zMinDiff = bDtInt ? zMinDiffInt : zMinDiffFlt;
+          double zMaxDiff = bDtInt ? zMaxDiffInt : zMaxDiffFlt;
+
+          if (rv)    // can be false due to int overflow, then fall back to abs / regular encode
+          {
+            if ((*ppByte || tryLutDiff) && NeedToQuantize(numValidPixel, zMinDiff, zMaxDiff))
+            {
+              bool rv = bDtInt ? Quantize(&diffDataVecInt[0], numValidPixel, zMinDiffInt, quantVecDiff)
+                               : Quantize(&diffDataVecFlt[0], numValidPixel, zMinDiffFlt, quantVecDiff);
+              if (!rv)
+                return false;
+
+              bQuantizeDoneDiff = true;
+
+              if (tryLutDiff)
+                SortQuantArray(quantVecDiff, sortedQuantVecDiff);
+            }
+
+            int nb = bDtInt ? NumBytesTile(numValidPixel, zMinDiffInt, zMaxDiffInt, DT_Int, tryLutDiff, blockEncodeModeDiff, sortedQuantVecDiff)
+                            : NumBytesTile(numValidPixel, zMinDiffFlt, zMaxDiffFlt, hd.dt, tryLutDiff, blockEncodeModeDiff, sortedQuantVecDiff);
+            if (nb > 0)
+              numBytesNeededDiff = nb;
+          }
+        }
+
+        numBytesLerc += std::min(numBytesNeeded, numBytesNeededDiff);
+
+        if (bTryDiffEnc && iDim < (nDim - 1) && numValidPixel > 0)
+        {
+          if (iDim == 0)
+            prevDataVec.resize(numValidPixel);
+
+          if (!bIntLossless)    // if not int lossless: do lossy quantize back and forth, then copy to buffer
+          {
+            if (iDim == 0 || numBytesNeeded <= numBytesNeededDiff)    // for regular or abs encode
+            {
+              if (NeedToQuantize(numValidPixel, zMin, zMax))
+              {
+                if (!bQuantizeDone && !Quantize(dataBuf, numValidPixel, zMin, quantVec))
+                  return false;
+
+                ScaleBack(&prevDataVec[0], quantVec, numValidPixel, zMin, m_zMaxVec[iDim], hd.maxZError);
+              }
+              else if (zMin == zMax || ((hd.maxZError > 0) && (0 == (unsigned int)(ComputeMaxVal(zMin, zMax, hd.maxZError) + 0.5))))  // const block case
+                prevDataVec.assign(numValidPixel, zMin);
+              else
+                copy(dataVec.begin(), dataVec.begin() + numValidPixel, prevDataVec.begin());
+            }
+            else    // for diff or relative encode
+            {
+              double zMinDiff = bDtInt ? zMinDiffInt : zMinDiffFlt;
+              double zMaxDiff = bDtInt ? zMaxDiffInt : zMaxDiffFlt;
+              double zMaxClamp = m_zMaxVec[iDim];
+
+              if (NeedToQuantize(numValidPixel, zMinDiff, zMaxDiff))
+              {
+                if (!bQuantizeDoneDiff && !(bDtInt
+                  ? Quantize(&diffDataVecInt[0], numValidPixel, zMinDiffInt, quantVecDiff)
+                  : Quantize(&diffDataVecFlt[0], numValidPixel, zMinDiffFlt, quantVecDiff)))
+                {
+                  return false;
+                }
+
+                double invScale = 2 * hd.maxZError;    // for int types this is int
+                for (int i = 0; i < numValidPixel; i++)
+                {
+                  double z = zMinDiff + quantVecDiff[i] * invScale + prevDataVec[i];
+                  prevDataVec[i] = (T)std::min(z, zMaxClamp);
+                }
+              }
+              else if (zMinDiff == zMaxDiff || ((hd.maxZError > 0) && (0 == (unsigned int)(ComputeMaxVal(zMinDiff, zMaxDiff, hd.maxZError) + 0.5))))  // const block case
+              {
+                for (int i = 0; i < numValidPixel; i++)
+                {
+                  double z = zMinDiff + prevDataVec[i];
+                  prevDataVec[i] = (T)std::min(z, zMaxClamp);
+                }
+              }
+              else
+                copy(dataVec.begin(), dataVec.begin() + numValidPixel, prevDataVec.begin());
+            }
+          }
+          else
+            copy(dataVec.begin(), dataVec.begin() + numValidPixel, prevDataVec.begin());
+        }
 
         if (*ppByte)
         {
           int numBytesWritten = 0;
+          bool rv = false;
 
-          if (!WriteTile(dataBuf, numValidPixel, ppByte, numBytesWritten, j0, zMin, zMax, quantVec, blockEncodeMode, sortedQuantVec))
-            return false;
+          if (iDim == 0 || numBytesNeeded <= numBytesNeededDiff)
+            rv = WriteTile(dataBuf, numValidPixel, ppByte, numBytesWritten, j0, zMin, zMax, hd.dt, false, quantVec, blockEncodeMode, sortedQuantVec);
+          else
+            rv = bDtInt ? WriteTile(&diffDataVecInt[0], numValidPixel, ppByte, numBytesWritten, j0, zMinDiffInt, zMaxDiffInt, DT_Int, true, quantVecDiff, blockEncodeModeDiff, sortedQuantVecDiff)
+                        : WriteTile(&diffDataVecFlt[0], numValidPixel, ppByte, numBytesWritten, j0, zMinDiffFlt, zMaxDiffFlt, hd.dt, true, quantVecDiff, blockEncodeModeDiff, sortedQuantVecDiff);
 
-          if (numBytesWritten != numBytesNeeded)
+          if (!rv || numBytesWritten != std::min(numBytesNeeded, numBytesNeededDiff))
             return false;
         }
       }
@@ -957,11 +1250,10 @@ bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, 
 {
   const HeaderInfo& hd = m_headerInfo;
 
-  if (!data || i0 < 0 || j0 < 0 || i1 > hd.nRows || j1 > hd.nCols || iDim < 0 || iDim > hd.nDim || !dataBuf)
+  if (!data || i0 < 0 || j0 < 0 || i1 > hd.nRows || j1 > hd.nCols || i0 >= i1 || j0 >= j1 || iDim < 0 || iDim > hd.nDim || !dataBuf)
     return false;
 
-  zMin = 0;
-  zMax = 0;
+  zMin = zMax = 0;
   tryLut = false;
 
   T prevVal = 0;
@@ -970,28 +1262,27 @@ bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, 
 
   if (hd.numValidPixel == hd.nCols * hd.nRows)    // all valid, no mask
   {
+    int k0 = i0 * hd.nCols + j0;
+    int m0 = k0 * nDim + iDim;
+    zMin = zMax = data[m0];    // init
+
     for (int i = i0; i < i1; i++)
     {
       int k = i * hd.nCols + j0;
       int m = k * nDim + iDim;
 
-      for (int j = j0; j < j1; j++, k++, m += nDim)
+      for (int j = j0; j < j1; j++, m += nDim)
       {
         T val = data[m];
         dataBuf[cnt] = val;
 
-        if (cnt > 0)
-        {
-          if (val < zMin)
-            zMin = val;
-          else if (val > zMax)
-            zMax = val;
+        if (val < zMin)
+          zMin = val;
+        else if (val > zMax)
+          zMax = val;
 
-          if (val == prevVal)
-            cntSameVal++;
-        }
-        else
-          zMin = zMax = val;    // init
+        if (val == prevVal)
+          cntSameVal++;
 
         prevVal = val;
         cnt++;
@@ -1039,6 +1330,121 @@ bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, 
 
 // -------------------------------------------------------------------------- ;
 
+template<class T>
+bool Lerc2::ComputeDiffSliceInt(const T* data, const T* prevData, int numValidPixel, DataType dtZ, double maxZError,
+  std::vector<int>& diffDataVec, int& zMin, int& zMax, bool& tryLut)
+{
+  if (numValidPixel < 1)
+    return false;
+
+  diffDataVec.resize(numValidPixel);
+
+  int prevVal(0), cnt(0), cntSameVal(0);
+
+  if (dtZ < DT_Int)    // don't need to check for overflow
+  {
+    zMin = zMax = (int)data[0] - (int)prevData[0];    // init
+
+    for (int i = 0; i < numValidPixel; i++)
+    {
+      int val = (int)data[i] - (int)prevData[i];
+
+      diffDataVec[i] = val;
+
+      if (val < zMin)
+        zMin = val;
+      else if (val > zMax)
+        zMax = val;
+
+      if (val == prevVal)
+        cntSameVal++;
+
+      prevVal = val;
+      cnt++;
+    }
+  }
+  else
+  {
+    zMin = zMax = (int)((double)data[0] - (double)prevData[0]);    // init
+
+    for (int i = 0; i < numValidPixel; i++)
+    {
+      double z = (double)data[i] - (double)prevData[i];
+      int val = (int)z;
+
+      T testVal = (T)(val + prevData[i]);    // check for overflow
+      if ((testVal != data[i]) || (val != z))
+        return false;
+
+      diffDataVec[i] = val;
+
+      if (val < zMin)
+        zMin = val;
+      else if (val > zMax)
+        zMax = val;
+
+      if (val == prevVal)
+        cntSameVal++;
+
+      prevVal = val;
+      cnt++;
+    }
+  }
+
+  if (cnt > 4)
+    tryLut = (zMax > zMin + maxZError) && (2 * cntSameVal > cnt);
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+template<class T>
+bool Lerc2::ComputeDiffSliceFlt(const T* data, const T* prevData, int numValidPixel, double maxZError,
+  std::vector<T>& diffDataVec, T& zMin, T& zMax, bool& tryLut)
+{
+  if (numValidPixel < 1)
+    return false;
+
+  diffDataVec.resize(numValidPixel);
+
+  double eps = maxZError / 8;
+
+  zMin = zMax = data[0] - prevData[0];    // init
+
+  T prevVal(0);
+  int cnt(0), cntSameVal(0);
+
+  for (int i = 0; i < numValidPixel; i++)
+  {
+    T val = data[i] - prevData[i];
+
+    T testVal = val + prevData[i];    // check for floating point rounding error
+    if (fabs(testVal - data[i]) > eps)
+      return false;
+
+    diffDataVec[i] = val;
+
+    if (val < zMin)
+      zMin = val;
+    else if (val > zMax)
+      zMax = val;
+
+    if (val == prevVal)
+      cntSameVal++;
+
+    prevVal = val;
+    cnt++;
+  }
+
+  if (cnt > 4)
+    tryLut = (zMax > zMin + maxZError) && (2 * cntSameVal > cnt);
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
 inline double Lerc2::ComputeMaxVal(double zMin, double zMax, double maxZError)
 {
   double fac = 1 / (2 * maxZError);    // must match the code in Decode(), don't touch it
@@ -1048,7 +1454,7 @@ inline double Lerc2::ComputeMaxVal(double zMin, double zMax, double maxZError)
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-bool Lerc2::NeedToQuantize(int numValidPixel, T zMin, T zMax) const
+inline bool Lerc2::NeedToQuantize(int numValidPixel, T zMin, T zMax) const
 {
   if (numValidPixel == 0 || m_headerInfo.maxZError == 0)
     return false;
@@ -1060,14 +1466,14 @@ bool Lerc2::NeedToQuantize(int numValidPixel, T zMin, T zMax) const
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-bool Lerc2::Quantize(const T* dataBuf, int num, T zMin, std::vector<unsigned int>& quantVec) const
+inline bool Lerc2::Quantize(const T* dataBuf, int num, T zMin, std::vector<unsigned int>& quantVec) const
 {
   quantVec.resize(num);
 
   if (m_headerInfo.dt < DT_Float && m_headerInfo.maxZError == 0.5)    // int lossless
   {
     for (int i = 0; i < num; i++)
-      quantVec[i] = (unsigned int)(dataBuf[i] - zMin);    // ok, as char, short get promoted to int by C++ integral promotion rule
+      quantVec[i] = (unsigned int)(dataBuf[i] - zMin);    // ok: char, short get promoted to int by C++ integral promotion rule
   }
   else    // float and/or lossy
   {
@@ -1085,8 +1491,22 @@ bool Lerc2::Quantize(const T* dataBuf, int num, T zMin, std::vector<unsigned int
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-int Lerc2::NumBytesTile(int numValidPixel, T zMin, T zMax, bool tryLut, BlockEncodeMode& blockEncodeMode,
-                         const std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const
+inline void Lerc2::ScaleBack(T* dataBuf, const std::vector<unsigned int>& quantVec, int num,
+  double zMin, double zMax, double maxZError)
+{
+  double invScale = 2 * maxZError;    // for int types this is int
+  for (int i = 0; i < num; i++)
+  {
+    double z = zMin + quantVec[i] * invScale;
+    dataBuf[i] = (T)std::min(z, zMax);    // make sure we stay in the orig range
+  }
+}
+
+// -------------------------------------------------------------------------- ;
+
+template<class T>
+inline int Lerc2::NumBytesTile(int numValidPixel, T zMin, T zMax, DataType dtZ, bool tryLut,
+  BlockEncodeMode& blockEncodeMode, const std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const
 {
   blockEncodeMode = BEM_RawBinary;
 
@@ -1103,9 +1523,9 @@ int Lerc2::NumBytesTile(int numValidPixel, T zMin, T zMax, bool tryLut, BlockEnc
   }
   else
   {
-    DataType dtUsed;
-    TypeCode(zMin, dtUsed);
-    int nBytes = 1 + GetDataTypeSize(dtUsed);
+    DataType dtReduced;
+    ReduceDataType(zMin, dtZ, dtReduced);
+    int nBytes = 1 + GetDataTypeSize(dtReduced);
 
     unsigned int maxElem = (unsigned int)(maxVal + 0.5);
     if (maxElem > 0)
@@ -1127,11 +1547,14 @@ int Lerc2::NumBytesTile(int numValidPixel, T zMin, T zMax, bool tryLut, BlockEnc
 
 template<class T>
 bool Lerc2::WriteTile(const T* dataBuf, int num, Byte** ppByte, int& numBytesWritten, int j0, T zMin, T zMax,
-  const std::vector<unsigned int>& quantVec, BlockEncodeMode blockEncodeMode,
+  DataType dtZ, bool bDiffEnc, const std::vector<unsigned int>& quantVec, BlockEncodeMode blockEncodeMode,
   const std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const
 {
   Byte* ptr = *ppByte;
   Byte comprFlag = ((j0 >> 3) & 15) << 2;    // use bits 2345 for integrity check
+
+  if (m_headerInfo.version >= 5)
+    comprFlag = bDiffEnc ? (comprFlag | 4) : (comprFlag & (7 << 3));    // bit 2 now encodes diff encoding
 
   if (num == 0 || (zMin == 0 && zMax == 0))    // special cases
   {
@@ -1143,6 +1566,9 @@ bool Lerc2::WriteTile(const T* dataBuf, int num, Byte** ppByte, int& numBytesWri
 
   if (blockEncodeMode == BEM_RawBinary)
   {
+    if (bDiffEnc)
+      return false;    // doesn't make sense, should not happen
+
     *ptr++ = comprFlag | 0;    // write z's binary uncompressed
 
     memcpy(ptr, dataBuf, num * sizeof(T));
@@ -1159,13 +1585,13 @@ bool Lerc2::WriteTile(const T* dataBuf, int num, Byte** ppByte, int& numBytesWri
     else
       comprFlag |= 1;    // use bit stuffing
 
-    DataType dtUsed;
-    int bits67 = TypeCode(zMin, dtUsed);
+    DataType dtReduced;
+    int bits67 = ReduceDataType(zMin, dtZ, dtReduced);
     comprFlag |= bits67 << 6;
 
     *ptr++ = comprFlag;
 
-    if (!WriteVariableDataType(&ptr, (double)zMin, dtUsed))
+    if (!WriteVariableDataType(&ptr, (double)zMin, dtReduced))
       return false;
 
     if (maxElem > 0)
@@ -1205,18 +1631,23 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
   if (nBytesRemaining < 1)
     return false;
 
-  Byte comprFlag = *ptr++;
-  nBytesRemaining--;
-
-  int bits67 = comprFlag >> 6;
-  int testCode = (comprFlag >> 2) & 15;    // use bits 2345 for integrity check
-  if (testCode != ((j0 >> 3) & 15))
-    return false;
-
   const HeaderInfo& hd = m_headerInfo;
   int nCols = hd.nCols;
   int nDim = hd.nDim;
 
+  Byte comprFlag = *ptr++;
+  nBytesRemaining--;
+
+  const bool bDiffEnc = (hd.version >= 5) ? (comprFlag & 4) : false;  // bit 2 now encodes diff or delta encoding
+  const int pattern = (hd.version >= 5) ? 14 : 15;
+
+  if (((comprFlag >> 2) & pattern) != ((j0 >> 3) & pattern))    // use bits 2345 for integrity check
+    return false;
+
+  if (bDiffEnc && iDim == 0)
+    return false;
+
+  int bits67 = comprFlag >> 6;
   comprFlag &= 3;
 
   if (comprFlag == 2)    // entire tile is constant 0 (all the valid pixels)
@@ -1228,7 +1659,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
 
       for (int j = j0; j < j1; j++, k++, m += nDim)
         if (m_bitMask.IsValid(k))
-          data[m] = 0;
+          data[m] = bDiffEnc ? data[m - 1] : 0;
     }
 
     *ppByte = ptr;
@@ -1238,6 +1669,9 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
 
   else if (comprFlag == 0)    // read z's binary uncompressed
   {
+    if (bDiffEnc)
+      return false;    // doesn't make sense, should not happen
+
     const T* srcPtr = (const T*)ptr;
     int cnt = 0;
 
@@ -1264,13 +1698,15 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
   else
   {
     // read z's as int arr bit stuffed
-    DataType dtUsed = GetDataTypeUsed(bits67);
+    DataType dtUsed = GetDataTypeUsed((bDiffEnc && hd.dt < DT_Float) ? DT_Int : hd.dt, bits67);
     size_t n = GetDataTypeSize(dtUsed);
     if (nBytesRemaining < n)
       return false;
 
     double offset = ReadVariableDataType(&ptr, dtUsed);
     nBytesRemaining -= n;
+
+    double zMax = (hd.version >= 4 && nDim > 1) ? m_zMaxVec[iDim] : hd.zMax;
 
     if (comprFlag == 3)    // entire tile is constant zMin (all the valid pixels)
     {
@@ -1279,9 +1715,22 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
         int k = i * nCols + j0;
         int m = k * nDim + iDim;
 
-        for (int j = j0; j < j1; j++, k++, m += nDim)
-          if (m_bitMask.IsValid(k))
-            data[m] = (T)offset;
+        if (!bDiffEnc)
+        {
+          T val = (T)offset;
+          for (int j = j0; j < j1; j++, k++, m += nDim)
+            if (m_bitMask.IsValid(k))
+              data[m] = val;
+        }
+        else
+        {
+          for (int j = j0; j < j1; j++, k++, m += nDim)
+            if (m_bitMask.IsValid(k))
+            {
+              double z = offset + data[m - 1];
+              data[m] = (T)std::min(z, zMax);
+            }
+        }
       }
     }
     else
@@ -1291,7 +1740,6 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
         return false;
 
       double invScale = 2 * hd.maxZError;    // for int types this is int
-      double zMax = (hd.version >= 4 && nDim > 1) ? m_zMaxVec[iDim] : hd.zMax;
       unsigned int* srcPtr = &bufferVec[0];
 
       if (bufferVec.size() == maxElementCount)    // all valid
@@ -1301,10 +1749,21 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
           int k = i * nCols + j0;
           int m = k * nDim + iDim;
 
-          for (int j = j0; j < j1; j++, k++, m += nDim)
+          if (!bDiffEnc)
           {
-            double z = offset + *srcPtr++ * invScale;
-            data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
+            for (int j = j0; j < j1; j++, k++, m += nDim)
+            {
+              double z = offset + *srcPtr++ * invScale;
+              data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
+            }
+          }
+          else
+          {
+            for (int j = j0; j < j1; j++, k++, m += nDim)
+            {
+              double z = offset + *srcPtr++ * invScale + data[m - 1];
+              data[m] = (T)std::min(z, zMax);
+            }
           }
         }
       }
@@ -1317,12 +1776,24 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
             int k = i * nCols + j0;
             int m = k * nDim + iDim;
 
-            for (int j = j0; j < j1; j++, k++, m += nDim)
-              if (m_bitMask.IsValid(k))
-              {
-                double z = offset + *srcPtr++ * invScale;
-                data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
-              }
+            if (!bDiffEnc)
+            {
+              for (int j = j0; j < j1; j++, k++, m += nDim)
+                if (m_bitMask.IsValid(k))
+                {
+                  double z = offset + *srcPtr++ * invScale;
+                  data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
+                }
+            }
+            else
+            {
+              for (int j = j0; j < j1; j++, k++, m += nDim)
+                if (m_bitMask.IsValid(k))
+                {
+                  double z = offset + *srcPtr++ * invScale + data[m - 1];
+                  data[m] = (T)std::min(z, zMax);
+                }
+            }
           }
         }
         else  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
@@ -1358,23 +1829,22 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-int Lerc2::TypeCode(T z, DataType& dtUsed) const
+inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
 {
   Byte b = (Byte)z;
-  DataType dt = m_headerInfo.dt;
   switch (dt)
   {
     case DT_Short:
     {
       char c = (char)z;
       int tc = (T)c == z ? 2 : (T)b == z ? 1 : 0;
-      dtUsed = (DataType)(dt - tc);
+      dtReduced = (DataType)(dt - tc);
       return tc;
     }
     case DT_UShort:
     {
       int tc = (T)b == z ? 1 : 0;
-      dtUsed = (DataType)(dt - 2 * tc);
+      dtReduced = (DataType)(dt - 2 * tc);
       return tc;
     }
     case DT_Int:
@@ -1382,21 +1852,21 @@ int Lerc2::TypeCode(T z, DataType& dtUsed) const
       short s = (short)z;
       unsigned short us = (unsigned short)z;
       int tc = (T)b == z ? 3 : (T)s == z ? 2 : (T)us == z ? 1 : 0;
-      dtUsed = (DataType)(dt - tc);
+      dtReduced = (DataType)(dt - tc);
       return tc;
     }
     case DT_UInt:
     {
       unsigned short us = (unsigned short)z;
       int tc = (T)b == z ? 2 : (T)us == z ? 1 : 0;
-      dtUsed = (DataType)(dt - 2 * tc);
+      dtReduced = (DataType)(dt - 2 * tc);
       return tc;
     }
     case DT_Float:
     {
       short s = (short)z;
       int tc = (T)b == z ? 2 : (T)s == z ? 1 : 0;
-      dtUsed = tc == 0 ? dt : (tc == 1 ? DT_Short : DT_Byte);
+      dtReduced = tc == 0 ? dt : (tc == 1 ? DT_Short : DT_Byte);
       return tc;
     }
     case DT_Double:
@@ -1405,12 +1875,12 @@ int Lerc2::TypeCode(T z, DataType& dtUsed) const
       int l = (int)z;
       float f = (float)z;
       int tc = (T)s == z ? 3 : (T)l == z ? 2 : (T)f == z ? 1 : 0;
-      dtUsed = tc == 0 ? dt : (DataType)(dt - 2 * tc + 1);
+      dtReduced = tc == 0 ? dt : (DataType)(dt - 2 * tc + 1);
       return tc;
     }
     default:
     {
-      dtUsed = dt;
+      dtReduced = dt;
       return 0;
     }
   }
@@ -1419,9 +1889,8 @@ int Lerc2::TypeCode(T z, DataType& dtUsed) const
 // -------------------------------------------------------------------------- ;
 
 inline
-Lerc2::DataType Lerc2::GetDataTypeUsed(int tc) const
+Lerc2::DataType Lerc2::GetDataTypeUsed(DataType dt, int tc)
 {
-  DataType dt = m_headerInfo.dt;
   switch (dt)
   {
     case DT_Short:
@@ -1577,7 +2046,7 @@ double Lerc2::ReadVariableDataType(const Byte** ppByte, DataType dtUsed)
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-Lerc2::DataType Lerc2::GetDataType(T z) const
+Lerc2::DataType Lerc2::GetDataType(T z)
 {
   const std::type_info& ti = typeid(z);
 
