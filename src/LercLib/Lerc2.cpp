@@ -103,18 +103,6 @@ bool Lerc2::Set(int nDim, int nCols, int nRows, const Byte* pMaskBits)
 
 // -------------------------------------------------------------------------- ;
 
-//// if the Lerc2 header should ever shrink in size to less than below, then update it (very unlikely)
-//
-//unsigned int Lerc2::MinNumBytesNeededToReadHeader()
-//{
-//  unsigned int numBytes = (unsigned int)FileKey().length();
-//  numBytes += 7 * sizeof(int);
-//  numBytes += 3 * sizeof(double);
-//  return numBytes;
-//}
-
-// -------------------------------------------------------------------------- ;
-
 bool Lerc2::GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct HeaderInfo& hd)
 {
   if (!pByte || !IsLittleEndianSystem())
@@ -419,6 +407,28 @@ unsigned int Lerc2::ComputeChecksumFletcher32(const Byte* pByte, int len)
   return sum2 << 16 | sum1;
 }
 
+// -------------------------------------------------------------------------- ;
+
+bool Lerc2::PruneCandidates(std::vector<double>& roundErr, std::vector<double>& zErr,
+  std::vector<int>& zFac, double maxZError)
+{
+  size_t nCand = zErr.size();
+
+  if (nCand == 0 || roundErr.size() != nCand || zFac.size() != nCand || maxZError <= 0)
+    return false;
+
+  for (int n = (int)(nCand - 1); n >= 0; n--)
+    if (roundErr[n] / zFac[n] > maxZError)
+    {
+      roundErr.erase(roundErr.begin() + n);
+      zErr.erase(zErr.begin() + n);
+      zFac.erase(zFac.begin() + n);
+    }
+
+  return (!zErr.empty());
+}
+
+// -------------------------------------------------------------------------- ;
 // -------------------------------------------------------------------------- ;
 
 //struct MyLessThanOp
