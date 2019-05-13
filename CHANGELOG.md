@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+
+### Added
+
+* For multiple values per pixel or nDim > 1, allow for relative encoding to exploit the possible correlation between neighboring bands. This promises better compression for hyperspectral images and multi-dimensional images. 
+* For floating point images, try to raise MaxZError if possible without further loss. This can yield better compression if the input data has already been truncated earlier (to e.g., 0.01). Or if the input data has been truncated to different values in different areas.  
+
+### Changed
+
+* Upgrade Lerc codec to new version Lerc 2.5 (or Lerc2 v5). 
+* Updated Readme.
+* Updated doc.
+* Updated binary .dll and .so files. 
+* Note that the former license restrictions on field of use have been removed. 
+
+
 ## [2.0](https://github.com/Esri/lerc/releases/tag/v2.0) - 2018-11-05
 
 ### Milestones reached
