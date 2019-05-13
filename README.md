@@ -85,7 +85,7 @@ LERC can also be used as a compression mode for the GDAL image formats GeoTIFF (
   the error allowed, the stronger the compression.
   Compression factors larger than 100x have been reported.
 
-- this Lerc package can read all (legacy) versions of Lerc, such as Lerc1, Lerc2 v1, v2, v3, and the current Lerc2 v4. It always writes the latest stable version.
+- this Lerc package can read all (legacy) versions of Lerc, such as Lerc1, Lerc2 v1 to v4, and the current Lerc2 v5. It always writes the latest stable version.
 
 The main principle of Lerc and history can be found in [doc/MORE.md](doc/MORE.md)
 
@@ -100,7 +100,7 @@ The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level m
 
 ## Licensing
 
-Copyright 2015-2018 Esri
+Copyright 2015-2019 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
