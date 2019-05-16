@@ -4,7 +4,7 @@
 
 LERC is an open-source image or raster format which supports rapid encoding and decoding for any pixel type (not just RGB or Byte). Users set the maximum compression error per pixel while encoding, so the precision of the original input image is preserved (within user defined error bounds).
 
-This repository contains both a C++ library for encoding/decoding images and JavaScript, C#, and Python decoders.
+This repository contains a C++ library for both encoding and decoding images. You can also do this directly from Python. And we have decoders for JavaScript and C#.
 
 ## The LERC C API
 
@@ -14,7 +14,7 @@ Function | Description
 `uint lerc_encode(...)` | Compresses a given image into a pre-allocated buffer. If that buffer is too small, the function fails with the corresponding error code. The function also returns the number of bytes written.
 `uint lerc_getBlobInfo(...)` | Looks into a given Lerc byte blob and returns an array with all the header info. From this, the image to be decoded can be allocated and constructed. This function is optional. You don't need to call it if you already know the image properties such as tile size and data type.
 `uint lerc_decode(...)` | Uncompresses a given Lerc byte blob into a pre-allocated image. If the data found in the Lerc byte blob does not fit the specified image properties, the function fails with the corresponding error code.
-`uint lerc_decodeToDouble(...)` | Uncompresses a given Lerc byte blob into a pre-allocated image of type double independent of the compressed data type. This function was added mainly to be called from other languages such as C# and Python.
+`uint lerc_decodeToDouble(...)` | Uncompresses a given Lerc byte blob into a pre-allocated image of type double independent of the compressed data type. This function was added mainly to be called from other languages such as Python and C#.
 
 To support the case that not all image pixels are valid, a mask image can be passed. It has one byte per pixel, 1 for valid, 0 for invalid.
 
@@ -40,18 +40,17 @@ In a nutshell, if jpeg is good enough for your images, use jpeg. If not, if you 
 
 ## How to use
 
-Lerc can be run anywhere without external dependencies. This project includes test samples of how to use LERC directly, currently for C++, C#, JavaScript, and Python. We have added a few small data samples under `testData/`. There is also a precompiled Windows dll and a Linux .so file under `bin/`.
+Lerc can be run anywhere without external dependencies. This project includes test samples of how to use LERC directly, currently for C++, Python, JavaScript, and C#. We have added a few small data samples under `testData/`. There is also a precompiled Windows dll and a Linux .so file under `bin/`.
 
 ### How to use without compiling LERC
 
-Check out the Lerc decoders in `OtherLanguages/`. You may need to adjust the paths to input data and the dll or .so file. Other than that they should just work.
+Check out the Lerc decoders and encoders in `OtherLanguages/`. You may need to adjust the paths to input or output data and the dll or .so file. Other than that they should just work.
 
 ### How to compile LERC and the C++ test program
 
 #### Windows
 
-- Open `build/Windows/MS_VS201X/Lerc.sln` with Microsoft Visual Studio. We have upgraded to VS2017.
-- Pick x64 (dflt) or win32.
+- Open `build/Windows/MS_VS2017/Lerc.sln` with Microsoft Visual Studio. 
 - Build and run.
 
 #### Linux

@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 * For multiple values per pixel or nDim > 1, allow for relative encoding to exploit the possible correlation between neighboring bands. This promises better compression for hyperspectral images and multi-dimensional images. 
-* For floating point images, try to raise MaxZError if possible without further loss. This can yield better compression if the input data has already been truncated earlier (to e.g., 0.01). Or if the input data has been truncated to different values in different areas.  
+* For floating point images, try to raise MaxZError if possible without further loss. This can yield better compression if the input data has already been truncated earlier (to e.g., 0.01). Or if the input data has been truncated to different values in different areas. 
+* Added sample python function to Lerc encode an image from python. 
 
 ### Changed
 
