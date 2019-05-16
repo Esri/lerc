@@ -23,22 +23,21 @@
 #-------------------------------------------------------------------------------
 
 import array
-import ctypes
 import sys
 from timeit import default_timer as timer
+from ctypes import *
 
-lercDll = ctypes.CDLL ("D:/GitHub/LercOpenSource/bin/Windows/Lerc64.dll")    # windows
-#lercDll = ctypes.CDLL ("../../bin/Linux/Lerc64.so")    # linux
+lercDll = CDLL ("D:/GitHub/LercOpenSource/bin/Windows/Lerc64.dll")  # windows
+#lercDll = CDLL ("../../bin/Linux/Lerc64.so")  # linux
 
 #-------------------------------------------------------------------------------
 #
-# from Lerc_c_api.h :
+# from include/Lerc_c_api.h :
 #
 # typedef unsigned int lerc_status;
 #
 # // Call this to get info about the compressed Lerc blob. Optional. 
 # // Info returned in infoArray is { version, dataType, nDim, nCols, nRows, nBands, nValidPixels, blobSize },
-# // see Lerc_types.h .
 # // Info returned in dataRangeArray is { zMin, zMax, maxZErrorUsed }, see Lerc_types.h .
 #
 # lerc_status lerc_getBlobInfo( const unsigned char* pLercBlob,
@@ -50,14 +49,8 @@ lercDll = ctypes.CDLL ("D:/GitHub/LercOpenSource/bin/Windows/Lerc64.dll")    # w
 #
 #-------------------------------------------------------------------------------
 
-lercDll.lerc_getBlobInfo.restype = ctypes.c_uint
-
-lercDll.lerc_getBlobInfo.argtypes = (ctypes.c_char_p,
-                                     ctypes.c_uint,
-                                     ctypes.POINTER(ctypes.c_uint),
-                                     ctypes.POINTER(ctypes.c_double),
-                                     ctypes.c_int,
-                                     ctypes.c_int)
+lercDll.lerc_getBlobInfo.restype = c_uint
+lercDll.lerc_getBlobInfo.argtypes = (c_char_p, c_uint, POINTER(c_uint), POINTER(c_double), c_int, c_int)
 
 def lercGetBlobInfo(compressedBytes, infoArr, dataRangeArr):
     global lercDll
@@ -65,30 +58,20 @@ def lercGetBlobInfo(compressedBytes, infoArr, dataRangeArr):
     nBytes = len(compressedBytes)
     len0 = min(8, len(infoArr))
     len1 = min(3, len(dataRangeArr))
-        
-    arrTp0 = (ctypes.c_uint * len0)()
-    arrTp1 = (ctypes.c_double * len1)()
     
-    ptr0 = ctypes.cast(arrTp0, ctypes.POINTER(ctypes.c_uint))
-    ptr1 = ctypes.cast(arrTp1, ctypes.POINTER(ctypes.c_double))
+    ptr0 = cast((c_uint * len0)(), POINTER(c_uint))
+    ptr1 = cast((c_double * len1)(), POINTER(c_double))
     
-    result = lercDll.lerc_getBlobInfo(ctypes.c_char_p(compressedBytes),
-                                      ctypes.c_uint(nBytes),
-                                      ptr0,
-                                      ptr1,
-                                      ctypes.c_int(len0),
-                                      ctypes.c_int(len1))
+    result = lercDll.lerc_getBlobInfo(c_char_p(compressedBytes), nBytes, ptr0, ptr1, len0, len1)
     if result > 0:
         return result
     
     for i in range(len0):
         infoArr[i] = ptr0[i]
-
     for i in range(len1):
         dataRangeArr[i] = ptr1[i]
 
     return result
-
 
 #-------------------------------------------------------------------------------
 #
@@ -108,32 +91,16 @@ def lercGetBlobInfo(compressedBytes, infoArr, dataRangeArr):
 #
 #-------------------------------------------------------------------------------
 
-lercDll.lerc_decode.restype = ctypes.c_uint
+lercDll.lerc_decode.restype = c_uint
+lercDll.lerc_decode.argtypes = (c_char_p, c_uint, c_char_p, c_int, c_int, c_int, c_int, c_uint, c_void_p)
 
-lercDll.lerc_decode.argtypes = (ctypes.c_char_p,
-                                ctypes.c_uint,
-                                ctypes.c_char_p,
-                                ctypes.c_int,
-                                ctypes.c_int,
-                                ctypes.c_int,
-                                ctypes.c_int,
-                                ctypes.c_uint,
-                                ctypes.c_void_p)
-
-def lercDecode(lercBlob, cpValidBytes, nDim, nCols, nRows, nBands, dataType, cpData):
+def lercDecode(lercBlob, cpValidBytes, nDim, nCols, nRows, nBands, dataType, dataStr):
     global lercDll
     start = timer()
-    result = lercDll.lerc_decode(ctypes.c_char_p(lercBlob),
-                                 ctypes.c_uint(len(lercBlob)),
-                                 cpValidBytes,
-                                 ctypes.c_int(nDim),
-                                 ctypes.c_int(nCols),
-                                 ctypes.c_int(nRows),
-                                 ctypes.c_int(nBands),
-                                 ctypes.c_uint(dataType),
-                                 cpData)
+    cpData = cast(dataStr, c_void_p)
+    result = lercDll.lerc_decode(c_char_p(lercBlob), c_uint(len(lercBlob)), cpValidBytes, nDim, nCols, nRows, nBands, dataType, cpData)
     end = timer()
-    print ('time lerc decode: ', (end - start))
+    print('time lerc_decode() = ', (end - start))
     return result
 
 #-------------------------------------------------------------------------------
@@ -155,32 +122,17 @@ def lercDecode(lercBlob, cpValidBytes, nDim, nCols, nRows, nBands, dataType, cpD
 #
 #-------------------------------------------------------------------------------
 
-lercDll.lerc_decodeToDouble.restype = ctypes.c_uint
+lercDll.lerc_decodeToDouble.restype = c_uint
+lercDll.lerc_decodeToDouble.argtypes = (c_char_p, c_uint, c_char_p, c_int, c_int, c_int, c_int, POINTER(c_double))
 
-lercDll.lerc_decodeToDouble.argtypes = (ctypes.c_char_p,
-                                        ctypes.c_uint,
-                                        ctypes.c_char_p,
-                                        ctypes.c_int,
-                                        ctypes.c_int,
-                                        ctypes.c_int,
-                                        ctypes.c_int,
-                                        ctypes.POINTER(ctypes.c_double))
-
-def lercDecodeToDouble(lercBlob, cpValidBytes, nDim, nCols, nRows, nBands, cpData):
+def lercDecodeToDouble(lercBlob, cpValidBytes, nDim, nCols, nRows, nBands, dataStr):
     global lercDll
     start = timer()
-    result = lercDll.lerc_decodeToDouble(ctypes.c_char_p(lercBlob),
-                                         ctypes.c_uint(len(lercBlob)),
-                                         cpValidBytes,
-                                         ctypes.c_int(nDim),
-                                         ctypes.c_int(nCols),
-                                         ctypes.c_int(nRows),
-                                         ctypes.c_int(nBands),
-                                         cpData)
+    cpData = cast(dataStr, POINTER(c_double))
+    result = lercDll.lerc_decodeToDouble(c_char_p(lercBlob), c_uint(len(lercBlob)), cpValidBytes, nDim, nCols, nRows, nBands, cpData)
     end = timer()
-    print ('time lerc decode: ', (end - start))
+    print('time lerc_decodeToDouble() = ', (end - start))
     return result
-
 
 #-------------------------------------------------------------------------------
 
@@ -188,22 +140,23 @@ def lercDecodeFunction():
     bytesRead = open("D:/GitHub/LercOpenSource/testData/california_400_400_1_float.lerc2", "rb").read()
     #bytesRead = open("D:/GitHub/LercOpenSource/testData/bluemarble_256_256_3_byte.lerc2", "rb").read()
     #bytesRead = open("D:/GitHub/LercOpenSource/testData/landsat_512_512_6_byte.lerc2", "rb").read()
-    #bytesRead = open("D:/GitHub/LercOpenSource/py/world.lerc", "rb").read()
+    #bytesRead = open("D:/GitHub/LercOpenSource/testData/world.lerc1", "rb").read()
 
     infoArr = array.array('L', (0,) * 8)
     dataRangeArr = array.array('d', (0,) * 3)
 
     result = lercGetBlobInfo(bytesRead, infoArr, dataRangeArr)
     if result > 0:
+        print('Error in lercGetBlobInfo(): error code = ', result)
         return result
 
     info = ['version', 'data type', 'nDim', 'nCols', 'nRows', 'nBands', 'nValidPixels', 'blob size']
     for i in range(len(infoArr)):
-        print (info[i], infoArr[i])
+        print(info[i], infoArr[i])
 
     dataRange = ['zMin', 'zMax', 'maxZErrorUsed']
     for i in range(len(dataRangeArr)):
-        print (dataRange[i], dataRangeArr[i])
+        print(dataRange[i], dataRangeArr[i])
 
     version = infoArr[0]
     dataType = infoArr[1]
@@ -216,8 +169,8 @@ def lercDecodeFunction():
     cpValidMask = None
     c00 = b'\x00'
     
-    if nValidPixels != nCols * nRows:    # not all pixels are valid, need mask
-        cpValidMask = ctypes.create_string_buffer(nCols * nRows)
+    if nValidPixels != nCols * nRows:  # not all pixels are valid, need mask
+        cpValidMask = create_string_buffer(nCols * nRows)
 
 
     # Here we show 2 options for Lerc decode, lercDecode() and lercDecodeToDouble().
@@ -229,36 +182,29 @@ def lercDecodeFunction():
     # the compressed data type is only byte or char. 
 
     if dataType < 6:    # integer types  [char, uchar, short, ushort, int, uint]
-        
-        if dataType == 0 or dataType == 1:      # char or uchar
-            sizeOfData = 1
-        elif dataType == 2 or dataType == 3:    # short or ushort
-            sizeOfData = 2
-        else:
-            sizeOfData = 4
 
-        dataStr = ctypes.create_string_buffer(nDim * nCols * nRows * nBands * sizeOfData)
-        cpData = ctypes.cast(dataStr, ctypes.c_void_p)
+        elemSize = [1, 1, 2, 2, 4, 4, 4, 8]
+        dataStr = create_string_buffer(nDim * nCols * nRows * nBands * elemSize[dataType])
 
-        result = lercDecode(bytesRead, cpValidMask, nDim, nCols, nRows, nBands, dataType, cpData)
+        result = lercDecode(bytesRead, cpValidMask, nDim, nCols, nRows, nBands, dataType, dataStr)
         if result > 0:
-            print ('Error in lercDecode(): error code = ', result)
+            print('Error in lercDecode(): error code = ', result)
             return result
 
         # cast to proper pointer type
         
         if dataType == 0:
-            cpData = ctypes.cast(dataStr, ctypes.c_char_p)
+            cpData = cast(dataStr, c_char_p)
         elif dataType == 1:
-            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_ubyte))
+            cpData = cast(dataStr, POINTER(c_ubyte))
         elif dataType == 2:
-            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_short))
+            cpData = cast(dataStr, POINTER(c_short))
         elif dataType == 3:
-            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_ushort))
+            cpData = cast(dataStr, POINTER(c_ushort))
         elif dataType == 4:
-            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_int))
+            cpData = cast(dataStr, POINTER(c_int))
         elif dataType == 5:
-            cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_uint))
+            cpData = cast(dataStr, POINTER(c_uint))
 
         zMin = sys.maxint
         zMax = -zMin
@@ -266,21 +212,15 @@ def lercDecodeFunction():
 
     else:    # floating point types  [float, double]
         
-        dataStr = ctypes.create_string_buffer(nDim * nCols * nRows * nBands * ctypes.sizeof(ctypes.c_double))
-        cpData = ctypes.cast(dataStr, ctypes.POINTER(ctypes.c_double))
+        dataStr = create_string_buffer(nDim * nCols * nRows * nBands * sizeof(c_double))
 
-        result = lercDecodeToDouble(bytesRead, cpValidMask, nDim, nCols, nRows, nBands, cpData)
+        result = lercDecodeToDouble(bytesRead, cpValidMask, nDim, nCols, nRows, nBands, dataStr)
         if result > 0:
-            print ('Error in lercDecodeToDouble(): error code = ', result)
+            print('Error in lercDecodeToDouble(): error code = ', result)
             return result
 
-        # btw you can convert the ctypes arrays back into regular python arrays,
-        # but not much advantage here for the price of an extra copy
-        
-        #validByteArr = array.array('b')
-        #validByteArr.fromstring(cpValidMask)
-        #dataArr = array.array('d')
-        #dataArr.fromstring(dataStr)
+        cpData = array.array('d')
+        cpData.fromstring(dataStr)
 
         zMin = float("inf")
         zMax = -zMin
@@ -312,11 +252,12 @@ def lercDecodeFunction():
 
     end = timer()
     
-    print ('data range found = ', zMin, zMax)
-    print ('time pixel loop in python: ', (end - start))
+    print('data range found = ', zMin, zMax)
+    print('time pixel loop in python = ', (end - start))
     
     return result
 
+#-------------------------------------------------------------------------------
 
 #>>> import sys
 #>>> sys.path.append('D:/GitHub/LercOpenSource/OtherLanguages/Python')
