@@ -151,9 +151,11 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
     Byte* ptr = const_cast<Byte*>(pLercBlob);
     ptr += 10 + 2 * sizeof(int);
 
-    int height = *((const int*)ptr);  ptr += sizeof(int);
-    int width  = *((const int*)ptr);  ptr += sizeof(int);
-    double maxZErrorInFile = *((const double*)ptr);
+    int height(0), width(0);
+    memcpy(&height, ptr, sizeof(int));  ptr += sizeof(int);
+    memcpy(&width,  ptr, sizeof(int));  ptr += sizeof(int);
+    double maxZErrorInFile(0);
+    memcpy(&maxZErrorInFile, ptr, sizeof(double));
 
     if (height > 20000 || width > 20000)    // guard against bogus numbers; size limitation for old Lerc1
       return ErrCode::Failed;
