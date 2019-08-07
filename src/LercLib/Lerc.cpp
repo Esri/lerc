@@ -24,6 +24,7 @@ Contributors:  Thomas Maurer
 #include "Defines.h"
 #include "Lerc.h"
 #include "Lerc2.h"
+#include <typeinfo>
 #include <limits>
 
 #ifdef HAVE_LERC1_DECODE
