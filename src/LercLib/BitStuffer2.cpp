@@ -355,7 +355,7 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
   {
     dataVec.resize(numElements, 0);    // init with 0
   }
-  catch( const std::bad_alloc& )
+  catch( const std::exception& )
   {
     return false;
   }
@@ -483,7 +483,7 @@ bool BitStuffer2::BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, vecto
   {
     dataVec.resize(numElements);
   }
-  catch( const std::bad_alloc& )
+  catch( const std::exception& )
   {
     return false;
   }
@@ -495,7 +495,7 @@ bool BitStuffer2::BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, vecto
   {
     m_tmpBitStuffVec.resize(numUInts);
   }
-  catch( const std::bad_alloc& )
+  catch( const std::exception& )
   {
     return false;
   }
