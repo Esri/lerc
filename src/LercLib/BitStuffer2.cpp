@@ -22,7 +22,6 @@ Contributors:  Thomas Maurer
 */
 
 #include <algorithm>
-#include <limits>
 #include "Defines.h"
 #include "BitStuffer2.h"
 
@@ -352,10 +351,15 @@ void BitStuffer2::BitStuff_Before_Lerc2v3(Byte** ppByte, const vector<unsigned i
 bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesRemaining, 
     vector<unsigned int>& dataVec, unsigned int numElements, int numBits)
 {
-  if (numBits >= 32)
+  if (numElements == 0 || numBits >= 32)
     return false;
-  unsigned int numUInts = (unsigned int)((unsigned long long)numElements * numBits + 31) / 32;
-  unsigned int numBytes = numUInts * sizeof(unsigned int);
+  unsigned long long numUIntsLL = ((unsigned long long)numElements * numBits + 31) / 32;
+  unsigned long long numBytesLL = numUIntsLL * sizeof(unsigned int);
+  size_t numBytes = (size_t)numBytesLL; // could theoretically overflow on 32 bit system
+  if (numBytes != numBytesLL)
+    return false;
+  size_t numUInts = (size_t)numUIntsLL;
+
   unsigned int* arr = (unsigned int*)(*ppByte);
 
   if (nBytesRemaining < numBytes)
@@ -468,7 +472,7 @@ void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, i
   }
 
   // copy the bytes to the outgoing byte stream
-  int numBytesUsed = numBytes - NumTailBytesNotNeeded(numElements, numBits);
+  size_t numBytesUsed = numBytes - NumTailBytesNotNeeded(numElements, numBits);
   memcpy(*ppByte, &m_tmpBitStuffVec[0], numBytesUsed);
 
   *ppByte += numBytesUsed;
@@ -479,17 +483,19 @@ void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, i
 bool BitStuffer2::BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, vector<unsigned int>& dataVec,
   unsigned int numElements, int numBits) const
 {
-  if (numElements == 0)
+  if (numElements == 0 || numBits >= 32)
     return false;
-  if (numBits >= 32)
+  unsigned long long numUIntsLL = ((unsigned long long)numElements * numBits + 31) / 32;
+  unsigned long long numBytesLL = numUIntsLL * sizeof(unsigned int);
+  size_t numBytes = (size_t)numBytesLL; // could theoretically overflow on 32 bit system
+  if (numBytes != numBytesLL)
     return false;
-  unsigned int numUInts = (unsigned int)((unsigned long long)numElements * numBits + 31) / 32;
-  unsigned int numBytes = numUInts * sizeof(unsigned int);
+  size_t numUInts = (size_t)numUIntsLL;
 
   // copy the bytes from the incoming byte stream
-  int numBytesUsed = numBytes - NumTailBytesNotNeeded(numElements, numBits);
+  const size_t numBytesUsed = numBytes - NumTailBytesNotNeeded(numElements, numBits);
 
-  if (nBytesRemaining < (size_t)numBytesUsed)
+  if (nBytesRemaining < numBytesUsed)
     return false;
 
   try
