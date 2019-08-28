@@ -2153,7 +2153,7 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
             if (32 - bitPos >= len)
             {
               if (bitPos == 0)
-                * dstPtr = 0;
+                *dstPtr = 0;
 
               *dstPtr |= code << (32 - bitPos - len);
               bitPos += len;
@@ -2193,7 +2193,7 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
             if (32 - bitPos >= len)
             {
               if (bitPos == 0)
-                * dstPtr = 0;
+                *dstPtr = 0;
 
               *dstPtr |= code << (32 - bitPos - len);
               bitPos += len;

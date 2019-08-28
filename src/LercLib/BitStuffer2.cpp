@@ -353,32 +353,30 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
 {
   if (numElements == 0 || numBits >= 32)
     return false;
+
   unsigned long long numUIntsLL = ((unsigned long long)numElements * numBits + 31) / 32;
   unsigned long long numBytesLL = numUIntsLL * sizeof(unsigned int);
-  size_t numBytes = (size_t)numBytesLL; // could theoretically overflow on 32 bit system
-  if (numBytes != numBytesLL)
-    return false;
+
   size_t numUInts = (size_t)numUIntsLL;
+  size_t numBytes = (size_t)numBytesLL;    // could theoretically overflow on 32 bit system
 
-  unsigned int* arr = (unsigned int*)(*ppByte);
-
-  if (nBytesRemaining < numBytes)
+  if (numBytes != numBytesLL || nBytesRemaining < numBytes)
     return false;
 
   try
   {
     dataVec.resize(numElements, 0);    // init with 0
   }
-  catch( const std::exception& )
+  catch (const std::exception&)
   {
     return false;
   }
 
+  unsigned int* arr = (unsigned int*)(*ppByte);
   unsigned int* srcPtr = arr;
-  srcPtr += numUInts;
+  srcPtr += numUInts - 1;
 
   // needed to save the 0-3 bytes not used in the last UInt
-  srcPtr--;
   unsigned int lastUInt = *srcPtr;
   unsigned int numBytesNotNeeded = NumTailBytesNotNeeded(numElements, numBits);
 
@@ -485,14 +483,17 @@ bool BitStuffer2::BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, vecto
 {
   if (numElements == 0 || numBits >= 32)
     return false;
+
   unsigned long long numUIntsLL = ((unsigned long long)numElements * numBits + 31) / 32;
   unsigned long long numBytesLL = numUIntsLL * sizeof(unsigned int);
-  size_t numBytes = (size_t)numBytesLL; // could theoretically overflow on 32 bit system
+
+  size_t numUInts = (size_t)numUIntsLL;
+  size_t numBytes = (size_t)numBytesLL;    // could theoretically overflow on 32 bit system
+
   if (numBytes != numBytesLL)
     return false;
-  size_t numUInts = (size_t)numUIntsLL;
 
-  // copy the bytes from the incoming byte stream
+  // copy the bytes from the incoming byte stream so the data is 4 byte memory aligned
   const size_t numBytesUsed = numBytes - NumTailBytesNotNeeded(numElements, numBits);
 
   if (nBytesRemaining < numBytesUsed)
@@ -501,17 +502,9 @@ bool BitStuffer2::BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, vecto
   try
   {
     dataVec.resize(numElements);
-  }
-  catch( const std::exception& )
-  {
-    return false;
-  }
-
-  try
-  {
     m_tmpBitStuffVec.resize(numUInts);
   }
-  catch( const std::exception& )
+  catch (const std::exception&)
   {
     return false;
   }
