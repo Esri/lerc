@@ -68,17 +68,19 @@ unsigned int CntZImage::computeNumBytesNeededToReadHeader()
 
 // -------------------------------------------------------------------------- ;
 
-#if defined(RTC_COCOA_OSX) && !defined(DEBUG)
-// release builds of RTC use -O3 which causes this function 
-// to be optimized away in some cases, resulting in terrain 
+#if (defined(RTC_COCOA_OSX) || defined(RTC_LINUX_DESKTOP)) && !defined(DEBUG)
+// release builds of RTC use -O3 which causes this function
+// to be optimized away in some cases, resulting in terrain
 // data reporting as 0 or empty
 // See https://devtopia.esri.com/runtimecore/c_api/issues/12246
-#if __clang_major__==10 && __clang_minor__==0 && __clang_patchlevel__==0
+// See https://devtopia.esri.com/runtimecore/c_api/issues/12742
+#if (defined(RTC_LINUX_DESKTOP) && __clang_major__==9) || \
+    (defined(RTC_COCOA_OSX) && (__clang_major__==10 || __clang_major__==11))
 __attribute__((minsize)) // Perf opt causes the error, size does not
 #else
 #pragma GCC error "Investigate whether this workaround is still necessary..."
-#endif // !__clang_major__==10 && __clang_minor__==0 && __clang_patchlevel__==0
-#endif // defined(RTC_COCOA_OSX) && !defined(DEBUG)
+#endif // ! __clang_major==9 || __clang_major==10 || __clang_major__==11
+#endif // (defined(RTC_COCOA_OSX) || defined(RTC_LINUX_DESKTOP)) && !defined(DEBUG)
 bool CntZImage::read(Byte** ppByte, bool& hasInvalidData, double maxZError, bool onlyHeader, bool onlyZPart)
 {
   if (!ppByte || !*ppByte)
@@ -487,4 +489,3 @@ bool CntZImage::readFlt(Byte** ppByte, float& z, int numBytes)
 }
 
 // -------------------------------------------------------------------------- ;
-
