@@ -1860,7 +1860,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
         return false;
 
       double invScale = 2 * hd.maxZError;    // for int types this is int
-      unsigned int* srcPtr = &bufferVec[0];
+      const unsigned int* srcPtr = bufferVec.data();
 
       if (bufferVec.size() == maxElementCount)    // all valid
       {
