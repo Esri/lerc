@@ -69,8 +69,11 @@ bool BitMask::SetSize(int nCols, int nRows)
   {
     Clear();
     m_pBits = new Byte[(nCols * nRows + 7) >> 3];
-    m_nCols = nCols;
-    m_nRows = nRows;
+    if (m_pBits)
+    {
+      m_nCols = nCols;
+      m_nRows = nRows;
+    }
   }
   return m_pBits != nullptr;
 }
