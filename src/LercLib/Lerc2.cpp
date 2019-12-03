@@ -584,7 +584,7 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   ptr += sizeof(int);
   nBytesRemaining -= sizeof(int);
 
-  if (hd.version > CurrentVersion())    // this reader is outdated
+  if (hd.version < 0 || hd.version > CurrentVersion())    // this reader is outdated
     return false;
 
   if (hd.version >= 3)
@@ -629,7 +629,8 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   hd.zMin           = dblVec[1];
   hd.zMax           = dblVec[2];
 
-  if (hd.nRows <= 0 || hd.nCols <= 0 || hd.nDim <= 0 || hd.numValidPixel < 0 || hd.microBlockSize <= 0 || hd.blobSize <= 0)
+  if (hd.nRows <= 0 || hd.nCols <= 0 || hd.nDim <= 0 || hd.numValidPixel < 0 || hd.microBlockSize <= 0 || hd.blobSize <= 0
+    || hd.numValidPixel > hd.nRows * hd.nCols)
     return false;
 
   *ppByte = ptr;
@@ -699,7 +700,7 @@ bool Lerc2::ReadMask(const Byte** ppByte, size_t& nBytesRemainingInOut)
   ptr += sizeof(int);
   nBytesRemaining -= sizeof(int);
 
-  if (numValid == 0 || numValid == w * h)
+  if (numValid == 0 || numValid == w * h)    // there should be no mask
   {
     if (numBytesMask != 0)
       return false;
