@@ -1450,8 +1450,7 @@ Contributors:  Johannes Schmid, (LERC v1)
                         resultPixels[outPtr] = resultPixelsPrevDim[outPtr];
                         outPtr++;
                       }
-                    }
-                    continue;
+                    }                    
                   }
                 }
                 data.counter.constant++;
@@ -1509,7 +1508,7 @@ Contributors:  Johannes Schmid, (LERC v1)
                     for (row = 0; row < thisBlockHeight; row++) {
                       for (col = 0; col < thisBlockWidth; col++) {
                         if (mask[outPtr]) {
-                            resultPixels[outPtr] = isDiffEncoding ? Math.min(zMax, resultPixelsPrevDim[outPtr] + offset) : offset;
+                          resultPixels[outPtr] = isDiffEncoding ? Math.min(zMax, resultPixelsPrevDim[outPtr] + offset) : offset;
                         }
                         outPtr++;
                       }
