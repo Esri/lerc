@@ -1,4 +1,4 @@
-/* jshint forin: false, bitwise: false */
+﻿/* jshint forin: false, bitwise: false */
 /*
 Copyright 2015-2019 Esri
 
@@ -1495,7 +1495,7 @@ Contributors:  Johannes Schmid, (LERC v1)
                 data.ptr += z * dataTypeSize;
               }
               else { //1 or 3
-                offsetType = Lerc2Helpers.getDataTypeUsed((isDiffEncoding && imageType < 6) ? 5 : imageType, bits67);
+                offsetType = Lerc2Helpers.getDataTypeUsed((isDiffEncoding && imageType < 6) ? 4 : imageType, bits67);
                 offset = Lerc2Helpers.getOnePixel(block, blockPtr, offsetType, view);
                 blockPtr += Lerc2Helpers.getDataTypeSize(offsetType);
                 if (blockEncoding === 3) //constant offset value
