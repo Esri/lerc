@@ -1831,6 +1831,8 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
   {
     // read z's as int arr bit stuffed
     DataType dtUsed = GetDataTypeUsed((bDiffEnc && hd.dt < DT_Float) ? DT_Int : hd.dt, bits67);
+    if (dtUsed == DT_Undefined)
+      return false;
     size_t n = GetDataTypeSize(dtUsed);
     if (nBytesRemaining < n)
       return false;
