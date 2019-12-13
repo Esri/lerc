@@ -224,6 +224,8 @@ private:
 
   static DataType GetDataTypeUsed(DataType dt, int reducedTypeCode);
 
+  static DataType ValidateDataType(int dt);
+
   static bool WriteVariableDataType(Byte** ppByte, double z, DataType dtUsed);
 
   static double ReadVariableDataType(const Byte** ppByte, DataType dtUsed);
@@ -487,17 +489,26 @@ inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
 
 // -------------------------------------------------------------------------- ;
 
+inline Lerc2::DataType Lerc2::ValidateDataType(int dt)
+{
+  if( dt >= DT_Char && dt <= DT_Double )
+    return static_cast<DataType>(dt);
+  return DT_Undefined;
+}
+
+// -------------------------------------------------------------------------- ;
+
 inline
 Lerc2::DataType Lerc2::GetDataTypeUsed(DataType dt, int tc)
 {
   switch (dt)
   {
     case DT_Short:
-    case DT_Int:     return (DataType)(dt - tc);
+    case DT_Int:     return ValidateDataType(dt - tc);
     case DT_UShort:
-    case DT_UInt:    return (DataType)(dt - 2 * tc);
+    case DT_UInt:    return ValidateDataType(dt - 2 * tc);
     case DT_Float:   return tc == 0 ? dt : (tc == 1 ? DT_Short : DT_Byte);
-    case DT_Double:  return tc == 0 ? dt : (DataType)(dt - 2 * tc + 1);
+    case DT_Double:  return tc == 0 ? dt : ValidateDataType(dt - 2 * tc + 1);
     default:
       return dt;
   }
