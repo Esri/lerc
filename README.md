@@ -50,7 +50,7 @@ Check out the Lerc decoders and encoders in `OtherLanguages/`. You may need to a
 
 #### Windows
 
-- Open `build/Windows/MS_VS2017/Lerc.sln` with Microsoft Visual Studio. 
+- Open `build/Windows/MS_VS2019/Lerc.sln` with Microsoft Visual Studio. 
 - Build and run.
 
 #### Linux

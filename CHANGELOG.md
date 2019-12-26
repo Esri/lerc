@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+## [2.1](https://github.com/Esri/lerc/releases/tag/v2.1) - 2019-12-26
+
+### Milestones reached
+- This LERC API and all language decoders (C++, C, C#, Python, JavaScript) and encoders (C++, C, Python) are now in sync with these ESRI ArcGIS versions to be released soon: ESRI ArcGIS Pro 2.5, ESRI ArcMap 10.8. 
+And also with these versions already released: ESRI ArcGIS Pro 2.4, ESRI ArcMap 10.7.1. LERC encoded binary blobs of any previous version of ArcGIS Pro or ArcMap can be read / decoded.
 
 ### Added
 
@@ -60,4 +65,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - A change to this LERC API that is not backwards compatible and requires users to update / change their code in order to use an upgraded .dll or .so file.
 - A change to the LERC bitstream that is not backwards compatible and requires users to upgrade their LERC encoder and / or decoder.
 
-[unreleased]: https://github.com/Esri/lerc/compare/v2.0...HEAD
+[unreleased]: https://github.com/Esri/lerc/compare/v2.1...HEAD
