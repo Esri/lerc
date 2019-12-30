@@ -40,7 +40,7 @@ project "lerc"
 
     -- project specific configuration settings
 
-    configuration { "windows" }
+    -- configuration { "windows" }
 
     -- -------------------------------------------------------------
     -- configuration { "windows", "Debug", "x32" }
@@ -104,7 +104,7 @@ project "lerc"
 
     -- project specific configuration settings
 
-    configuration { "linux" }
+    -- configuration { "linux" }
 
     -- -------------------------------------------------------------
     -- configuration { "linux", "Debug", "x64" }
@@ -168,7 +168,7 @@ project "lerc"
 
     -- project specific configuration settings
 
-    configuration { "macosx" }
+    -- configuration { "macosx" }
 
     -- -------------------------------------------------------------
     -- configuration { "macosx", "Debug", "x64" }
@@ -347,6 +347,30 @@ project "lerc"
     -- configuration { "android_arm64_release" }
 
     -- -------------------------------------------------------------
+    -- configuration { "android_x64_debug" }
+    -- -------------------------------------------------------------
+
+    -- common configuration settings
+
+    dofile (_BUILD_DIR .. "/static_android_x64_debug.lua")
+
+    -- project specific configuration settings
+
+    -- configuration { "android_x64_debug" }
+
+    -- -------------------------------------------------------------
+    -- configuration { "android_x64_release" }
+    -- -------------------------------------------------------------
+
+    -- common configuration settings
+
+    dofile (_BUILD_DIR .. "/static_android_x64_release.lua")
+
+    -- project specific configuration settings
+
+    -- configuration { "android_x64_release" }
+
+    -- -------------------------------------------------------------
   end
 
   if (_TARGET_IS_WINUWP) then
@@ -360,7 +384,7 @@ project "lerc"
 
     -- project specific configuration settings
 
-    configuration { "windows" }
+    -- configuration { "windows" }
 
     -- -------------------------------------------------------------
     -- configuration { "winuwp_debug", "x32" }
