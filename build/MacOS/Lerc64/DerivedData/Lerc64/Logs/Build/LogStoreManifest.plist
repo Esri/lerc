@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>9</integer>
+	<key>logs</key>
+	<dict>
+		<key>01C4B929-1DA9-441F-9E6F-0A99C559C30A</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>01C4B929-1DA9-441F-9E6F-0A99C559C30A.xcactivitylog</string>
+			<key>highLevelStatus</key>
+			<string>S</string>
+			<key>schemeIdentifier-containerName</key>
+			<string>Lerc64 project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Lerc64</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Build Lerc64</string>
+			<key>timeStartedRecording</key>
+			<real>600450823.73409402</real>
+			<key>timeStoppedRecording</key>
+			<real>600450827.45588195</real>
+			<key>title</key>
+			<string>Build Lerc64</string>
+			<key>uniqueIdentifier</key>
+			<string>01C4B929-1DA9-441F-9E6F-0A99C559C30A</string>
+		</dict>
+		<key>201BB030-F3B7-418F-B8F6-4391C1A9764E</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>201BB030-F3B7-418F-B8F6-4391C1A9764E.xcactivitylog</string>
+			<key>highLevelStatus</key>
+			<string>S</string>
+			<key>schemeIdentifier-containerName</key>
+			<string>Lerc64 project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Lerc64</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Build Lerc64</string>
+			<key>timeStartedRecording</key>
+			<real>600450896.11521995</real>
+			<key>timeStoppedRecording</key>
+			<real>600450899.635185</real>
+			<key>title</key>
+			<string>Build Lerc64</string>
+			<key>uniqueIdentifier</key>
+			<string>201BB030-F3B7-418F-B8F6-4391C1A9764E</string>
+		</dict>
+		<key>4BDCEDDD-78A1-4B53-9FE0-F1718D51EDE3</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>4BDCEDDD-78A1-4B53-9FE0-F1718D51EDE3.xcactivitylog</string>
+			<key>highLevelStatus</key>
+			<string>S</string>
+			<key>schemeIdentifier-containerName</key>
+			<string>Lerc64 project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Lerc64</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Clean Lerc64</string>
+			<key>timeStartedRecording</key>
+			<real>600450864.12326396</real>
+			<key>timeStoppedRecording</key>
+			<real>600450864.189098</real>
+			<key>title</key>
+			<string>Clean Lerc64</string>
+			<key>uniqueIdentifier</key>
+			<string>4BDCEDDD-78A1-4B53-9FE0-F1718D51EDE3</string>
+		</dict>
+		<key>501E080E-60E2-41F3-B9AD-EB804CC0B4E5</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>501E080E-60E2-41F3-B9AD-EB804CC0B4E5.xcactivitylog</string>
+			<key>highLevelStatus</key>
+			<string>S</string>
+			<key>schemeIdentifier-containerName</key>
+			<string>Lerc64 project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Lerc64</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Clean Lerc64</string>
+			<key>timeStartedRecording</key>
+			<real>600450931.22843206</real>
+			<key>timeStoppedRecording</key>
+			<real>600450931.27876794</real>
+			<key>title</key>
+			<string>Clean Lerc64</string>
+			<key>uniqueIdentifier</key>
+			<string>501E080E-60E2-41F3-B9AD-EB804CC0B4E5</string>
+		</dict>
+	</dict>
+</dict>
+</plist>
