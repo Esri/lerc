@@ -44,7 +44,7 @@ public:
 
   bool resizeFill0(int width, int height);
 
-  static unsigned int computeNumBytesNeededToReadHeader();
+  static unsigned int computeNumBytesNeededToReadHeader(bool onlyZPart);
 
   /// read succeeds only if maxZError on file <= maxZError requested
   bool read(Byte** ppByte, double maxZError, bool onlyHeader = false, bool onlyZPart = false);

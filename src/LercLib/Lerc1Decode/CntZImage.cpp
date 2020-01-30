@@ -54,13 +54,14 @@ bool CntZImage::resizeFill0(int width, int height)
 
 // -------------------------------------------------------------------------- ;
 
-unsigned int CntZImage::computeNumBytesNeededToReadHeader()
+unsigned int CntZImage::computeNumBytesNeededToReadHeader(bool onlyZPart)
 {
   CntZImage zImg;
   unsigned int cnt = (unsigned int)zImg.getTypeString().length();  // "CntZImage ", 10 bytes
   cnt += 4 * sizeof(int);       // version, type, width, height
   cnt += 1 * sizeof(double);    // maxZError
-  cnt += 3 * sizeof(int) + sizeof(float);    // cnt part
+  if (!onlyZPart)
+    cnt += 3 * sizeof(int) + sizeof(float);    // cnt part
   cnt += 3 * sizeof(int) + sizeof(float);    // z part
   cnt += 1;
   return cnt;
