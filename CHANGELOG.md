@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+## Fixed
+
+* Fixed a bug in Lerc1 decoder. If a compressed Lerc1 blob has more than 1 band, and the last band has less than 16 bytes of data, then this last band could be skipped by the Lerc1 decoder. [#121](https://github.com/Esri/lerc/pull/121)
+
+
 ## [2.1](https://github.com/Esri/lerc/releases/tag/v2.1) - 2019-12-26
 
 ### Milestones reached
