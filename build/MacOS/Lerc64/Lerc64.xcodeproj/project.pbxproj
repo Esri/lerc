@@ -1,0 +1,387 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E6C02C9723CA27010087173B /* Lerc2.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8023CA27000087173B /* Lerc2.h */; };
+		E6C02C9823CA27010087173B /* Lerc_types.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8123CA27000087173B /* Lerc_types.h */; };
+		E6C02C9923CA27010087173B /* BitMask.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8223CA27000087173B /* BitMask.h */; };
+		E6C02C9A23CA27010087173B /* Lerc.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8323CA27000087173B /* Lerc.h */; };
+		E6C02C9B23CA27010087173B /* RLE.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8423CA27000087173B /* RLE.h */; };
+		E6C02C9C23CA27010087173B /* BitStuffer2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8523CA27000087173B /* BitStuffer2.cpp */; };
+		E6C02C9D23CA27010087173B /* Lerc_c_api.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8623CA27000087173B /* Lerc_c_api.h */; };
+		E6C02C9E23CA27010087173B /* Huffman.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8723CA27000087173B /* Huffman.h */; };
+		E6C02C9F23CA27010087173B /* Lerc2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8823CA27000087173B /* Lerc2.cpp */; };
+		E6C02CA023CA27010087173B /* BitMask.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8923CA27000087173B /* BitMask.cpp */; };
+		E6C02CA123CA27010087173B /* Huffman.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8A23CA27000087173B /* Huffman.cpp */; };
+		E6C02CA223CA27010087173B /* RLE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8B23CA27000087173B /* RLE.cpp */; };
+		E6C02CA323CA27010087173B /* BitStuffer2.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8C23CA27000087173B /* BitStuffer2.h */; };
+		E6C02CA423CA27010087173B /* Lerc_c_api_impl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8D23CA27010087173B /* Lerc_c_api_impl.cpp */; };
+		E6C02CA523CA27010087173B /* Lerc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8E23CA27010087173B /* Lerc.cpp */; };
+		E6C02CA623CA27010087173B /* Defines.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8F23CA27010087173B /* Defines.h */; };
+		E6C02CA723CA27010087173B /* CntZImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C9123CA27010087173B /* CntZImage.cpp */; };
+		E6C02CA823CA27010087173B /* BitStuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C9223CA27010087173B /* BitStuffer.cpp */; };
+		E6C02CA923CA27010087173B /* TImage.hpp in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C9323CA27010087173B /* TImage.hpp */; };
+		E6C02CAA23CA27010087173B /* CntZImage.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C9423CA27010087173B /* CntZImage.h */; };
+		E6C02CAB23CA27010087173B /* BitStuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C9523CA27010087173B /* BitStuffer.h */; };
+		E6C02CAC23CA27010087173B /* Image.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C9623CA27010087173B /* Image.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		E6C02C7223CA26E80087173B /* libLerc64.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libLerc64.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6C02C8023CA27000087173B /* Lerc2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lerc2.h; path = ../../../src/LercLib/Lerc2.h; sourceTree = "<group>"; };
+		E6C02C8123CA27000087173B /* Lerc_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lerc_types.h; path = ../../../src/LercLib/Lerc_types.h; sourceTree = "<group>"; };
+		E6C02C8223CA27000087173B /* BitMask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BitMask.h; path = ../../../src/LercLib/BitMask.h; sourceTree = "<group>"; };
+		E6C02C8323CA27000087173B /* Lerc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lerc.h; path = ../../../src/LercLib/Lerc.h; sourceTree = "<group>"; };
+		E6C02C8423CA27000087173B /* RLE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RLE.h; path = ../../../src/LercLib/RLE.h; sourceTree = "<group>"; };
+		E6C02C8523CA27000087173B /* BitStuffer2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BitStuffer2.cpp; path = ../../../src/LercLib/BitStuffer2.cpp; sourceTree = "<group>"; };
+		E6C02C8623CA27000087173B /* Lerc_c_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lerc_c_api.h; path = ../../../src/LercLib/Lerc_c_api.h; sourceTree = "<group>"; };
+		E6C02C8723CA27000087173B /* Huffman.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Huffman.h; path = ../../../src/LercLib/Huffman.h; sourceTree = "<group>"; };
+		E6C02C8823CA27000087173B /* Lerc2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Lerc2.cpp; path = ../../../src/LercLib/Lerc2.cpp; sourceTree = "<group>"; };
+		E6C02C8923CA27000087173B /* BitMask.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BitMask.cpp; path = ../../../src/LercLib/BitMask.cpp; sourceTree = "<group>"; };
+		E6C02C8A23CA27000087173B /* Huffman.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Huffman.cpp; path = ../../../src/LercLib/Huffman.cpp; sourceTree = "<group>"; };
+		E6C02C8B23CA27000087173B /* RLE.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RLE.cpp; path = ../../../src/LercLib/RLE.cpp; sourceTree = "<group>"; };
+		E6C02C8C23CA27000087173B /* BitStuffer2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BitStuffer2.h; path = ../../../src/LercLib/BitStuffer2.h; sourceTree = "<group>"; };
+		E6C02C8D23CA27010087173B /* Lerc_c_api_impl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Lerc_c_api_impl.cpp; path = ../../../src/LercLib/Lerc_c_api_impl.cpp; sourceTree = "<group>"; };
+		E6C02C8E23CA27010087173B /* Lerc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Lerc.cpp; path = ../../../src/LercLib/Lerc.cpp; sourceTree = "<group>"; };
+		E6C02C8F23CA27010087173B /* Defines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Defines.h; path = ../../../src/LercLib/Defines.h; sourceTree = "<group>"; };
+		E6C02C9123CA27010087173B /* CntZImage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CntZImage.cpp; sourceTree = "<group>"; };
+		E6C02C9223CA27010087173B /* BitStuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BitStuffer.cpp; sourceTree = "<group>"; };
+		E6C02C9323CA27010087173B /* TImage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TImage.hpp; sourceTree = "<group>"; };
+		E6C02C9423CA27010087173B /* CntZImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CntZImage.h; sourceTree = "<group>"; };
+		E6C02C9523CA27010087173B /* BitStuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BitStuffer.h; sourceTree = "<group>"; };
+		E6C02C9623CA27010087173B /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Image.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E6C02C7023CA26E80087173B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E6C02C6923CA26E80087173B = {
+			isa = PBXGroup;
+			children = (
+				E6C02C8923CA27000087173B /* BitMask.cpp */,
+				E6C02C8223CA27000087173B /* BitMask.h */,
+				E6C02C8523CA27000087173B /* BitStuffer2.cpp */,
+				E6C02C8C23CA27000087173B /* BitStuffer2.h */,
+				E6C02C8F23CA27010087173B /* Defines.h */,
+				E6C02C8A23CA27000087173B /* Huffman.cpp */,
+				E6C02C8723CA27000087173B /* Huffman.h */,
+				E6C02C8D23CA27010087173B /* Lerc_c_api_impl.cpp */,
+				E6C02C8623CA27000087173B /* Lerc_c_api.h */,
+				E6C02C8123CA27000087173B /* Lerc_types.h */,
+				E6C02C8E23CA27010087173B /* Lerc.cpp */,
+				E6C02C8323CA27000087173B /* Lerc.h */,
+				E6C02C9023CA27010087173B /* Lerc1Decode */,
+				E6C02C8823CA27000087173B /* Lerc2.cpp */,
+				E6C02C8023CA27000087173B /* Lerc2.h */,
+				E6C02C8B23CA27000087173B /* RLE.cpp */,
+				E6C02C8423CA27000087173B /* RLE.h */,
+				E6C02C7423CA26E80087173B /* Lerc64 */,
+				E6C02C7323CA26E80087173B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E6C02C7323CA26E80087173B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E6C02C7223CA26E80087173B /* libLerc64.dylib */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E6C02C7423CA26E80087173B /* Lerc64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Lerc64;
+			sourceTree = "<group>";
+		};
+		E6C02C9023CA27010087173B /* Lerc1Decode */ = {
+			isa = PBXGroup;
+			children = (
+				E6C02C9123CA27010087173B /* CntZImage.cpp */,
+				E6C02C9223CA27010087173B /* BitStuffer.cpp */,
+				E6C02C9323CA27010087173B /* TImage.hpp */,
+				E6C02C9423CA27010087173B /* CntZImage.h */,
+				E6C02C9523CA27010087173B /* BitStuffer.h */,
+				E6C02C9623CA27010087173B /* Image.h */,
+			);
+			name = Lerc1Decode;
+			path = ../../../src/LercLib/Lerc1Decode;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		E6C02C6E23CA26E80087173B /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E6C02C9823CA27010087173B /* Lerc_types.h in Headers */,
+				E6C02C9723CA27010087173B /* Lerc2.h in Headers */,
+				E6C02C9923CA27010087173B /* BitMask.h in Headers */,
+				E6C02C9D23CA27010087173B /* Lerc_c_api.h in Headers */,
+				E6C02C9A23CA27010087173B /* Lerc.h in Headers */,
+				E6C02C9B23CA27010087173B /* RLE.h in Headers */,
+				E6C02CAB23CA27010087173B /* BitStuffer.h in Headers */,
+				E6C02CAC23CA27010087173B /* Image.h in Headers */,
+				E6C02CA623CA27010087173B /* Defines.h in Headers */,
+				E6C02C9E23CA27010087173B /* Huffman.h in Headers */,
+				E6C02CAA23CA27010087173B /* CntZImage.h in Headers */,
+				E6C02CA323CA27010087173B /* BitStuffer2.h in Headers */,
+				E6C02CA923CA27010087173B /* TImage.hpp in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		E6C02C7123CA26E80087173B /* Lerc64 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E6C02C7D23CA26E80087173B /* Build configuration list for PBXNativeTarget "Lerc64" */;
+			buildPhases = (
+				E6C02C6E23CA26E80087173B /* Headers */,
+				E6C02C6F23CA26E80087173B /* Sources */,
+				E6C02C7023CA26E80087173B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Lerc64;
+			productName = Lerc64;
+			productReference = E6C02C7223CA26E80087173B /* libLerc64.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E6C02C6A23CA26E80087173B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1010;
+				TargetAttributes = {
+					E6C02C7123CA26E80087173B = {
+						CreatedOnToolsVersion = 10.1;
+					};
+				};
+			};
+			buildConfigurationList = E6C02C6D23CA26E80087173B /* Build configuration list for PBXProject "Lerc64" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = E6C02C6923CA26E80087173B;
+			productRefGroup = E6C02C7323CA26E80087173B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E6C02C7123CA26E80087173B /* Lerc64 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E6C02C6F23CA26E80087173B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E6C02CA123CA27010087173B /* Huffman.cpp in Sources */,
+				E6C02CA823CA27010087173B /* BitStuffer.cpp in Sources */,
+				E6C02C9F23CA27010087173B /* Lerc2.cpp in Sources */,
+				E6C02C9C23CA27010087173B /* BitStuffer2.cpp in Sources */,
+				E6C02CA223CA27010087173B /* RLE.cpp in Sources */,
+				E6C02CA423CA27010087173B /* Lerc_c_api_impl.cpp in Sources */,
+				E6C02CA023CA27010087173B /* BitMask.cpp in Sources */,
+				E6C02CA523CA27010087173B /* Lerc.cpp in Sources */,
+				E6C02CA723CA27010087173B /* CntZImage.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		E6C02C7B23CA26E80087173B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		E6C02C7C23CA26E80087173B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		E6C02C7E23CA26E80087173B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				EXECUTABLE_PREFIX = lib;
+				GCC_ENABLE_CPP_EXCEPTIONS = YES;
+				GCC_ENABLE_CPP_RTTI = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		E6C02C7F23CA26E80087173B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				EXECUTABLE_PREFIX = lib;
+				GCC_ENABLE_CPP_EXCEPTIONS = YES;
+				GCC_ENABLE_CPP_RTTI = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E6C02C6D23CA26E80087173B /* Build configuration list for PBXProject "Lerc64" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E6C02C7B23CA26E80087173B /* Debug */,
+				E6C02C7C23CA26E80087173B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E6C02C7D23CA26E80087173B /* Build configuration list for PBXNativeTarget "Lerc64" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E6C02C7E23CA26E80087173B /* Debug */,
+				E6C02C7F23CA26E80087173B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E6C02C6A23CA26E80087173B /* Project object */;
+}
