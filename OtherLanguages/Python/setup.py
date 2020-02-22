@@ -27,5 +27,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
 	package_data={
-	    "lerc":["*.dll", "*.lib", ".so"]},
+	    "lerc":["*.dll", "*.lib", "*.so"]},
     python_requires='>=3.6')
