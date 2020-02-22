@@ -214,11 +214,11 @@ class lerc(object):
         offset = 66 + self.m_nB
         result = array.array('f', (0.0, ) * self.w * self.h)
         for x, y in dloop(range(0, self.w, bw), range(0, self.h, bh)):
-			offset = read_block(result,
-				range(x, x + min(bw, self.w - x)),
-				range(y, y + min(bh, self.h - y)),
-				self.mask, self.u, self.v_maxVal,
-				blob, offset)
+            offset = read_block(result,
+                range(x, x + min(bw, self.w - x)),
+                range(y, y + min(bh, self.h - y)),
+                self.mask, self.u, self.v_maxVal,
+                blob, offset)
         return result
 
     def decode(self, blob):
@@ -240,24 +240,3 @@ class lerc(object):
             s += "\n\tMask: block count {}x{}, bytes {}, maxvalue {}".format(
                 self.m_nbX, self.m_nbY, self.m_nB, self.m_maxVal)
         return s
-
-def main():
-    # world.lerc contains the world elevation in WebMercator 257x257
-    # with a 1 value NoData border
-    blob = open("world.lerc", "rb").read()
-    codec = lerc(blob)
-    data = codec.decode(blob)
-
-    # Mask can be interogated with mask.at(x,y),
-    assert codec.valid
-    assert codec.mask.at(0,0) == 0 and codec.mask.at(1, 1) == 1
-    assert data[74 * codec.w + 74] == 111.0
-    print  codec
-
-##    for row in range(info.height): # Write data as CSV
-##        print ",".join(`data[row * info.width + column]`
-##            for column in range(info.width))
-##
-
-if __name__ == '__main__':
-    main()

@@ -1,0 +1,21 @@
+package:
+  name: lerc
+  version: 0.1.0
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - vs2015_runtime >=14 [win]
+    - numpy
+  run:
+    - python
+    - vs2015_runtime >=14 [win]
+    - numpy
+
+source:
+  path: ../../../OtherLanguages/Python
+
+test:
+  imports:
+  - lerc

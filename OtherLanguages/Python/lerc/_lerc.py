@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-#   Copyright 2016 - 2019 Esri
+#   Copyright 2016 - 2020 Esri
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -38,9 +38,14 @@
 import numpy as np
 import ctypes as ct
 from timeit import default_timer as timer
+import platform
+import os
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
-lercDll = ct.CDLL ('D:/GitHub/LercOpenSource/bin/Windows/Lerc64.dll')  # windows
-#lercDll = ct.CDLL ('../../bin/Linux/Lerc64.so')  # linux
+if platform.system() == "Windows":
+    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.dll'))
+if platform.system() == "Linux":
+    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.so'))
 
 #-------------------------------------------------------------------------------
 
@@ -395,10 +400,3 @@ def test():
         print('------')
     
     return result
-
-#-------------------------------------------------------------------------------
-
-#>>> import sys
-#>>> sys.path.append('D:/GitHub/LercOpenSource/OtherLanguages/Python')
-#>>> import Lerc
-#>>> Lerc.test()
