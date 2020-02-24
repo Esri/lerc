@@ -46,7 +46,8 @@ if platform.system() == "Windows":
     lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.dll'))
 if platform.system() == "Linux":
     lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.so'))
-
+if platform.system() == "Darwin":
+    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.dylib'))
 #-------------------------------------------------------------------------------
 
 # helper functions:

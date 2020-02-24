@@ -27,6 +27,7 @@ cmake
 
 OtherLanguages/Python/lerc/Lerc.dll
 OtherLanguages/Python/lerc/Lerc.lib
+OtherLanguages/Python/lerc/Lerc.dylib
 OtherLanguages/Python/lerc/Lerc.so
 /OtherLanguages/Python/build/
 /OtherLanguages/Python/dist/
