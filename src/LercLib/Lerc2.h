@@ -300,6 +300,9 @@ inline bool Lerc2::NeedToCheckForFltRndErr(const HeaderInfo& hd)
   if (hd.dt != DT_Float)
     return false;
 
+  if (hd.zMax - hd.zMin > 100000)  // prevent the below test falls through with extreme numbers like 10^38
+    return true;
+
   float diff = (float)(hd.zMax - hd.zMin);
   double testMax = (double)diff + hd.zMin;
   double fltRndErr = fabs(testMax - hd.zMax);
