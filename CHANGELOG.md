@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Fixed
 
+* Fixed a bug in Lerc2 decoder. If a compressed Lerc2 blob has more than 1 band, and the blob has a bit mask (not all pixels are valid), the decoder fails. [#129](https://github.com/Esri/lerc/pull/129)
+
 * Fixed a bug in Lerc1 decoder. If a compressed Lerc1 blob has more than 1 band, and the last band has less than 16 bytes of data, then this last band could be skipped by the Lerc1 decoder. [#121](https://github.com/Esri/lerc/pull/121)
 
 
