@@ -1,6 +1,10 @@
 import setuptools
 import os
 
+from glob import glob
+from os.path import basename, exists, join, getmtime
+from shutil import copyfile
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 readme_path = os.path.join(dir_path, "..", "..", "README.md")
 
@@ -10,14 +14,28 @@ try:
 except Exception:
     long_description = "Limited Error Raster Compression"
 
+# Using MANIFEST.in doesn't respect relative paths above the package root.
+# Instead, inspect the location and copy in the binaries if newer.
+BINARY_TYPES = ["*.dll", "*.lib", "*.so", "*.dylib"]
+PLATFORMS = ["Linux", "MacOS", "windows"]
+for platform in PLATFORMS:
+    platform_dir = join("..", "..", "bin", platform)
+    for ext in BINARY_TYPES:
+        input_binaries = glob(join(platform_dir, ext))
+        for input_binary in input_binaries:
+            output_binary = join("lerc", basename(input_binary))
+            if not exists(output_binary) or getmtime(input_binary) > getmtime(output_binary):
+                copyfile(input_binary, output_binary)
+
 setuptools.setup(
     name="lerc",
-    version="0.1.0",
+    version="2.2",
     author="esri",
     author_email="python@esri.com",
     description="Limited Error Raster Compression",
-    #long_description=long_description,
-    #long_description_content_type="text/markdown",
+    # long_description=long_description,
+    # long_description_content_type="text/markdown",
+    license="Apache 2",
     url="https://github.com/Esri/lerc",
     packages=setuptools.find_packages(),
     classifiers=[
@@ -25,6 +43,7 @@ setuptools.setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
-    package_data={
-        "lerc":["*.dll", "*.lib", "*.so", "*.dylib"]},
-    python_requires='>=3.6')
+    package_data={"lerc": BINARY_TYPES},
+    python_requires=">=3.6",
+    zip_safe=False,
+)
