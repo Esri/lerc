@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
-## Fixed
+## [2.2](https://github.com/Esri/lerc/releases/tag/v2.2) - 2020-07-06
+
+### Fixed
 
 * Fixed a bug in Lerc2 decoder. If a compressed Lerc2 blob has more than 1 band, and the blob has a bit mask (not all pixels are valid), the decoder fails. [#129](https://github.com/Esri/lerc/pull/129)
 
@@ -40,7 +42,7 @@ And also with these versions already released: ESRI ArcGIS Pro 2.4, ESRI ArcMap 
 ### Milestones reached
 - This LERC API and all language decoders (C++, C, C#, Python, JavaScript) are now in sync with these ESRI ArcGIS versions to be released soon: ESRI ArcMap 10.7, ESRI ArcGIS Pro 2.3. LERC encoded binary blobs of any previous version of ArcMap or ArcGIS Pro can be read / decoded.
 
-## Fixed
+### Fixed
 
 * Resolved a Huffman code table parsing issue in JavaScript decoder [#31](https://github.com/Esri/lerc/pull/31)
 
