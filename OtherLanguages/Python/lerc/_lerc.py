@@ -43,9 +43,9 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 if platform.system() == "Windows":
-    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.dll'))
+    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc64.dll'))
 if platform.system() == "Linux":
-    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.so'))
+    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc64.so'))
 if platform.system() == "Darwin":
     lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.dylib'))
 #-------------------------------------------------------------------------------
