@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+
+## [2.2.1](https://github.com/Esri/lerc/releases/tag/v2.2.1) - 2020-12-28
+
 ### Added
 
 * Simplify build and install Lerc as Conda package for Python. 
