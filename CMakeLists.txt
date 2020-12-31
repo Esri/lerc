@@ -12,12 +12,12 @@ file(GLOB SOURCES
 )
 message(${SOURCES})
 
-add_library(LercLib SHARED ${SOURCES})
+add_library(Lerc SHARED ${SOURCES})
 
-target_link_libraries (LercLib)
+target_link_libraries (Lerc)
 
 install(
-    TARGETS LercLib
+    TARGETS Lerc
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR}
