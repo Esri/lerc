@@ -440,7 +440,7 @@ inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
   {
     case DT_Short:
     {
-      char c = (char)z;
+      signed char c = (signed char)z;
       int tc = (T)c == z ? 2 : (T)b == z ? 1 : 0;
       dtReduced = (DataType)(dt - tc);
       return tc;
@@ -528,7 +528,7 @@ bool Lerc2::WriteVariableDataType(Byte** ppByte, double z, DataType dtUsed)
   {
     case DT_Char:
     {
-      *((char*)ptr) = (char)z;
+      *((signed char*)ptr) = (signed char)z;
       ptr++;
       break;
     }
@@ -599,7 +599,7 @@ double Lerc2::ReadVariableDataType(const Byte** ppByte, DataType dtUsed)
   {
     case DT_Char:
     {
-      char c = *((char*)ptr);
+      signed char c = *((signed char*)ptr);
       *ppByte = ptr + 1;
       return c;
     }
