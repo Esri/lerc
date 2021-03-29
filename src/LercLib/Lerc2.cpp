@@ -270,7 +270,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
 
 // -------------------------------------------------------------------------- ;
 
-template unsigned int Lerc2::ComputeNumBytesNeededToWrite<char>(const char* arr, double maxZError, bool encodeMask);
+template unsigned int Lerc2::ComputeNumBytesNeededToWrite<signed char>(const signed char* arr, double maxZError, bool encodeMask);
 template unsigned int Lerc2::ComputeNumBytesNeededToWrite<Byte>(const Byte* arr, double maxZError, bool encodeMask);
 template unsigned int Lerc2::ComputeNumBytesNeededToWrite<short>(const short* arr, double maxZError, bool encodeMask);
 template unsigned int Lerc2::ComputeNumBytesNeededToWrite<unsigned short>(const unsigned short* arr, double maxZError, bool encodeMask);
@@ -350,7 +350,7 @@ bool Lerc2::Encode(const T* arr, Byte** ppByte)
 
 // -------------------------------------------------------------------------- ;
 
-template bool Lerc2::Encode<char>(const char* arr, Byte** ppByte);
+template bool Lerc2::Encode<signed char>(const signed char* arr, Byte** ppByte);
 template bool Lerc2::Encode<Byte>(const Byte* arr, Byte** ppByte);
 template bool Lerc2::Encode<short>(const short* arr, Byte** ppByte);
 template bool Lerc2::Encode<unsigned short>(const unsigned short* arr, Byte** ppByte);
@@ -480,7 +480,7 @@ bool Lerc2::Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* p
 
 // -------------------------------------------------------------------------- ;
 
-template bool Lerc2::Decode<char>(const Byte** ppByte, size_t& nBytesRemaining, char* arr, Byte* pMaskBits);
+template bool Lerc2::Decode<signed char>(const Byte** ppByte, size_t& nBytesRemaining, signed char* arr, Byte* pMaskBits);
 template bool Lerc2::Decode<Byte>(const Byte** ppByte, size_t& nBytesRemaining, Byte* arr, Byte* pMaskBits);
 template bool Lerc2::Decode<short>(const Byte** ppByte, size_t& nBytesRemaining, short* arr, Byte* pMaskBits);
 template bool Lerc2::Decode<unsigned short>(const Byte** ppByte, size_t& nBytesRemaining, unsigned short* arr, Byte* pMaskBits);
@@ -1962,7 +1962,7 @@ Lerc2::DataType Lerc2::GetDataType(T z)
 {
   const std::type_info& ti = typeid(z);
 
-  if (ti == typeid(char))            return DT_Char;
+  if (ti == typeid(signed char))          return DT_Char;
   else if (ti == typeid(Byte))            return DT_Byte;
   else if (ti == typeid(short))           return DT_Short;
   else if (ti == typeid(unsigned short))  return DT_UShort;
