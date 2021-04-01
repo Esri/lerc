@@ -2115,6 +2115,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         mask: null,
         statistics: []
       };
+      var uniqueBandMaskCount = 0;
 
       while (inputOffset < eof) {
         var result = lerc.decode(encodedData, {
@@ -2129,18 +2130,21 @@ Contributors:  Johannes Schmid, (LERC v1)
         });
 
         inputOffset = result.fileInfo.eofOffset;
+        maskData = result.maskData;//lerc2
         if (iPlane === 0) {
           encodedMaskData = result.encodedMaskData;//lerc1
-          maskData = result.maskData;//lerc2
           decodedPixelBlock.width = result.width;
           decodedPixelBlock.height = result.height;
           decodedPixelBlock.dimCount = result.dimCount || 1;
           //decodedPixelBlock.dimStats = decodedPixelBlock.dimStats;
           decodedPixelBlock.pixelType = result.pixelType || result.fileInfo.pixelType;
-          decodedPixelBlock.mask = result.maskData;
+          decodedPixelBlock.mask = maskData;
         }
-        if (majorVersion >1 && result.fileInfo.mask && result.fileInfo.mask.numBytes > 0) {
-          bandMasks.push(result.maskData);
+        if (majorVersion > 1) {
+          bandMasks.push(maskData);
+          if (result.fileInfo.mask && result.fileInfo.mask.numBytes > 0) {
+            uniqueBandMaskCount++;
+          }
         }
 
         iPlane++;
@@ -2153,7 +2157,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         });
       }
       var i, j, numPixels;
-      if (majorVersion > 1 && bandMasks.length > 1) {
+      if (majorVersion > 1 && uniqueBandMaskCount > 1) {
         numPixels = decodedPixelBlock.width * decodedPixelBlock.height;
         decodedPixelBlock.bandMasks = bandMasks;
         maskData = new Uint8Array(numPixels);
