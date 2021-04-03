@@ -1621,7 +1621,9 @@ Contributors:  Johannes Schmid, (LERC v1)
           if (numDims > 1) {
             for (i = 0; i < numDims; i++) {
               nStart = i * numPixels;
-              val = data.headerInfo.maxValues[i];
+              if (data.headerInfo.maxValues) {
+                val = data.headerInfo.maxValues[i];
+              }
               for (k = 0; k < numPixels; k++) {
                 if (mask[k]) {
                   resultPixels[nStart + k] = val;
@@ -1641,7 +1643,9 @@ Contributors:  Johannes Schmid, (LERC v1)
           if (numDims > 1) {
             for (i = 0; i < numDims; i++) {
               nStart = i * numPixels;
-              val = data.headerInfo.maxValues[i];
+              if (data.headerInfo.maxValues) {
+                val = data.headerInfo.maxValues[i];
+              }
               for (k = 0; k < numPixels; k++) {
                 resultPixels[nStart + k] = val;
               }
