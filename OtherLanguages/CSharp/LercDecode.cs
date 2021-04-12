@@ -31,14 +31,14 @@ namespace Lerc2017
 {
     class LercDecode
     {
-        const string lercDll = "Lerc64.dll";
+        const string lercDll = "Lerc.dll";
 
         // from Lerc_c_api.h :
         // 
         // typedef unsigned int lerc_status;
         //
         // // Call this function to get info about the compressed Lerc blob. Optional. 
-        // // Info returned in infoArray is { version, dataType, nDim, nCols, nRows, nBands, nValidPixels, blobSize }, see Lerc_types.h .
+        // // Info returned in infoArray is { version, dataType, nDim, nCols, nRows, nBands, nValidPixels, blobSize, nMasks }, see Lerc_types.h .
         // // Info returned in dataRangeArray is { zMin, zMax, maxZErrorUsed }, see Lerc_types.h .
         // // If more than 1 band the data range [zMin, zMax] is over all bands. 
         //
@@ -56,55 +56,60 @@ namespace Lerc2017
         // 
         // // Decode the compressed Lerc blob into a raw data array.
         // // The data array must have been allocated to size (nDim * nCols * nRows * nBands * sizeof(dataType)).
-        // // The valid bytes array, if not 0, must have been allocated to size (nCols * nRows). 
+        // // The valid bytes array, if not 0, must have been allocated to size (nCols * nRows * nMasks). 
         //
         // lerc_status lerc_decode(
         //   const unsigned char* pLercBlob,      // Lerc blob to decode
         //   unsigned int blobSize,               // blob size in bytes
+        //   int nMasks,                          // 0, 1, or nBands; return as many masks in the next array
         //   unsigned char* pValidBytes,          // gets filled if not null ptr, even if all valid
-        //   int nDim,                            // number of values per pixel (new)
+        //   int nDim,                            // number of values per pixel
         //   int nCols, int nRows, int nBands,    // number of columns, rows, bands
         //   unsigned int dataType,               // data type of outgoing array
         //   void* pData);                        // outgoing data array
 
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, sbyte[] pData);
+        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, sbyte[] pData);
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, byte[] pData);
+        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, byte[] pData);
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, short[] pData);
+        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, short[] pData);
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, ushort[] pData);
+        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, ushort[] pData);
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, Int32[] pData);
+        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, Int32[] pData);
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, UInt32[] pData);
+        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, UInt32[] pData);
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, float[] pData);
+        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, float[] pData);
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, double[] pData);
+        public static extern UInt32 lerc_decode(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, int dataType, double[] pData);
 
         // if you are lazy, don't want to deal with generic / templated code, and don't care about wasting memory: 
         // this function decodes the pixel values into a tile of data type double, independent of the compressed data type.
 
         [DllImport(lercDll)]
-        public static extern UInt32 lerc_decodeToDouble(byte[] pLercBlob, UInt32 blobSize, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, double[] pData);
+        public static extern UInt32 lerc_decodeToDouble(byte[] pLercBlob, UInt32 blobSize, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands, double[] pData);
     }
 
     class GenericPixelLoop<T>
     {
-        public static void GetMinMax(T[] pData, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands)
+        public static void GetMinMax(T[] pData, int nMasks, byte[] pValidBytes, int nDim, int nCols, int nRows, int nBands)
         {
-            double zMin = 1e30;
+            double zMin = 1e40;
             double zMax = -zMin;
 
             // access the pixels; here, get the data range over all bands
             for (int iBand = 0; iBand < nBands; iBand++)
             {
+                int p0 = 0;
+                if (nMasks > 1)
+                    p0 = nCols * nRows * iBand;
+
                 int k0 = nCols * nRows * iBand;
                 for (int k = 0, i = 0; i < nRows; i++)
                     for (int j = 0; j < nCols; j++, k++)
-                        if (1 == pValidBytes[k])    // pixel is valid
+                        if (0 == nMasks || 1 == pValidBytes[p0 + k])    // pixel is valid
                         {
                             for (int m = 0; m < nDim; m++)
                             {
@@ -123,11 +128,11 @@ namespace Lerc2017
     {
         static void Main(string[] args)
         {
-            //byte[] pLercBlob = File.ReadAllBytes(@"../../../../testData/california_400_400_1_float.lerc2");
-            byte[] pLercBlob = File.ReadAllBytes(@"california_400_400_1_float.lerc2");
-            //byte[] pLercBlob = File.ReadAllBytes(@"../../../../testData/bluemarble_256_256_3_byte.lerc2");
+            //byte[] pLercBlob = File.ReadAllBytes(@"california_400_400_1_float.lerc2");
+            //byte[] pLercBlob = File.ReadAllBytes(@"bluemarble_256_256_3_byte.lerc2");
+            byte[] pLercBlob = File.ReadAllBytes(@"lerc_level_0.lerc2");
 
-            String[] infoLabels = { "version", "data type", "nDim", "nCols", "nRows", "nBands", "num valid pixels", "blob size" };
+            String[] infoLabels = { "version", "data type", "nDim", "nCols", "nRows", "nBands", "num valid pixels", "blob size", "nMasks" };
             String[] dataRangeLabels = { "zMin", "zMax", "maxZErrorUsed" };
 
             int infoArrSize = infoLabels.Count();
@@ -155,10 +160,11 @@ namespace Lerc2017
             int nCols = (int)infoArr[3];
             int nRows = (int)infoArr[4];
             int nBands = (int)infoArr[5];
+            int nMasks = (int)infoArr[8];
 
             Console.WriteLine("[zMin, zMax] = [{0}, {1}]", dataRangeArr[0], dataRangeArr[1]);
 
-            byte[] pValidBytes = new byte[nCols * nRows];
+            byte[] pValidBytes = new byte[nCols * nRows * nMasks];
             uint nValues = (uint)(nDim * nCols * nRows * nBands);
 
             Stopwatch sw = new Stopwatch();
@@ -169,65 +175,65 @@ namespace Lerc2017
                 case LercDecode.DataType.dt_char:
                     {
                         sbyte[] pData = new sbyte[nValues];
-                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
+                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
                         if (hr == 0)
-                            GenericPixelLoop<sbyte>.GetMinMax(pData, pValidBytes, nDim, nCols, nRows, nBands);
+                            GenericPixelLoop<sbyte>.GetMinMax(pData, nMasks, pValidBytes, nDim, nCols, nRows, nBands);
                         break;
                     }
                 case LercDecode.DataType.dt_uchar:
                     {
                         byte[] pData = new byte[nValues];
-                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
+                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
                         if (hr == 0)
-                            GenericPixelLoop<byte>.GetMinMax(pData, pValidBytes, nDim, nCols, nRows, nBands);
+                            GenericPixelLoop<byte>.GetMinMax(pData, nMasks, pValidBytes, nDim, nCols, nRows, nBands);
                         break;
                     }
                 case LercDecode.DataType.dt_short:
                     {
                         short[] pData = new short[nValues];
-                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
+                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
                         if (hr == 0)
-                            GenericPixelLoop<short>.GetMinMax(pData, pValidBytes, nDim, nCols, nRows, nBands);
+                            GenericPixelLoop<short>.GetMinMax(pData, nMasks, pValidBytes, nDim, nCols, nRows, nBands);
                         break;
                     }
                 case LercDecode.DataType.dt_ushort:
                     {
                         ushort[] pData = new ushort[nValues];
-                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
+                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
                         if (hr == 0)
-                            GenericPixelLoop<ushort>.GetMinMax(pData, pValidBytes, nDim, nCols, nRows, nBands);
+                            GenericPixelLoop<ushort>.GetMinMax(pData, nMasks, pValidBytes, nDim, nCols, nRows, nBands);
                         break;
                     }
                 case LercDecode.DataType.dt_int:
                     {
                         Int32[] pData = new Int32[nValues];
-                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
+                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
                         if (hr == 0)
-                            GenericPixelLoop<Int32>.GetMinMax(pData, pValidBytes, nDim, nCols, nRows, nBands);
+                            GenericPixelLoop<Int32>.GetMinMax(pData, nMasks, pValidBytes, nDim, nCols, nRows, nBands);
                         break;
                     }
                 case LercDecode.DataType.dt_uint:
                     {
                         UInt32[] pData = new UInt32[nValues];
-                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
+                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
                         if (hr == 0)
-                            GenericPixelLoop<UInt32>.GetMinMax(pData, pValidBytes, nDim, nCols, nRows, nBands);
+                            GenericPixelLoop<UInt32>.GetMinMax(pData, nMasks, pValidBytes, nDim, nCols, nRows, nBands);
                         break;
                     }
                 case LercDecode.DataType.dt_float:
                     {
                         float[] pData = new float[nValues];
-                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
+                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
                         if (hr == 0)
-                            GenericPixelLoop<float>.GetMinMax(pData, pValidBytes, nDim, nCols, nRows, nBands);
+                            GenericPixelLoop<float>.GetMinMax(pData, nMasks, pValidBytes, nDim, nCols, nRows, nBands);
                         break;
                     }
                 case LercDecode.DataType.dt_double:
                     {
                         double[] pData = new double[nValues];
-                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
+                        hr = LercDecode.lerc_decode(pLercBlob, (UInt32)pLercBlob.Length, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dataType, pData);
                         if (hr == 0)
-                            GenericPixelLoop<double>.GetMinMax(pData, pValidBytes, nDim, nCols, nRows, nBands);
+                            GenericPixelLoop<double>.GetMinMax(pData, nMasks, pValidBytes, nDim, nCols, nRows, nBands);
                         break;
                     }
             }

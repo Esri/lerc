@@ -37,8 +37,9 @@ namespace LercNS
     nCols,
     nRows,
     nBands,
-    nValidPixels,
-    blobSize
+    nValidPixels,  // for 1st band
+    blobSize,
+    nMasks  // 0 - all valid, 1 - same mask for all bands, nBands - masks can differ between bands
   };
 
   enum class DataRangeArrOrder : int

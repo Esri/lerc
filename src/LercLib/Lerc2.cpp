@@ -361,12 +361,21 @@ template bool Lerc2::Encode<double>(const double* arr, Byte** ppByte);
 
 // -------------------------------------------------------------------------- ;
 
-bool Lerc2::GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct HeaderInfo& hd)
+bool Lerc2::GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct HeaderInfo& hd, bool& bHasMask)
 {
   if (!pByte || !IsLittleEndianSystem())
     return false;
 
-  return ReadHeader(&pByte, nBytesRemaining, hd);
+  if (!ReadHeader(&pByte, nBytesRemaining, hd))
+    return false;
+
+  int numBytesMask(0);
+  if (nBytesRemaining < sizeof(int) || !memcpy(&numBytesMask, pByte, sizeof(int)))
+    return false;
+
+  bHasMask = numBytesMask > 0;
+
+  return true;
 }
 
 // -------------------------------------------------------------------------- ;

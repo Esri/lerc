@@ -52,7 +52,7 @@ extern "C" {
 
   //! The image or mask of valid pixels is optional. Null pointer means all pixels are valid. 
   //! If not all pixels are valid, set invalid pixel bytes to 0, valid pixel bytes to 1. 
-  //! Size of the valid / invalid pixel image is nCols x nRows. 
+  //! Size of the valid / invalid pixel image is (nCols * nRows * nMasks). 
 
   LERCDLL_API
   lerc_status lerc_computeCompressedSize(
@@ -62,6 +62,7 @@ extern "C" {
     int nCols,                         // number of columns
     int nRows,                         // number of rows
     int nBands,                        // number of bands (e.g., 3 for [RRRR ..., GGGG ..., BBBB ...])
+    int nMasks,                        // 0 - all valid, 1 - same mask for all bands, nBands - masks can differ between bands
     const unsigned char* pValidBytes,  // null ptr if all pixels are valid; otherwise 1 byte per pixel (1 = valid, 0 = invalid)
     double maxZErr,                    // max coding error per pixel, defines the precision
     unsigned int* numBytes);           // size of outgoing Lerc blob
@@ -77,6 +78,7 @@ extern "C" {
     int nCols,                         // number of columns
     int nRows,                         // number of rows
     int nBands,                        // number of bands (e.g., 3 for [RRRR ..., GGGG ..., BBBB ...])
+    int nMasks,                        // 0 - all valid, 1 - same mask for all bands, nBands - masks can differ between bands
     const unsigned char* pValidBytes,  // null ptr if all pixels are valid; otherwise 1 byte per pixel (1 = valid, 0 = invalid)
     double maxZErr,                    // max coding error per pixel, defines the precision
     unsigned char* pOutBuffer,         // buffer to write to, function fails if buffer too small
@@ -95,6 +97,7 @@ extern "C" {
     int nCols,                         // number of columns
     int nRows,                         // number of rows
     int nBands,                        // number of bands (e.g., 3 for [RRRR ..., GGGG ..., BBBB ...])
+    int nMasks,                        // 0 - all valid, 1 - same mask for all bands, nBands - masks can differ between bands
     const unsigned char* pValidBytes,  // null ptr if all pixels are valid; otherwise 1 byte per pixel (1 = valid, 0 = invalid)
     double maxZErr,                    // max coding error per pixel, defines the precision
     unsigned int* numBytes);           // size of outgoing Lerc blob
@@ -108,6 +111,7 @@ extern "C" {
     int nCols,                         // number of columns
     int nRows,                         // number of rows
     int nBands,                        // number of bands (e.g., 3 for [RRRR ..., GGGG ..., BBBB ...])
+    int nMasks,                        // 0 - all valid, 1 - same mask for all bands, nBands - masks can differ between bands
     const unsigned char* pValidBytes,  // null ptr if all pixels are valid; otherwise 1 byte per pixel (1 = valid, 0 = invalid)
     double maxZErr,                    // max coding error per pixel, defines the precision
     unsigned char* pOutBuffer,         // buffer to write to, function fails if buffer too small
@@ -116,7 +120,7 @@ extern "C" {
 
 
   //! Call this to get info about the compressed Lerc blob. Optional. 
-  //! Info returned in infoArray is { version, dataType, nDim, nCols, nRows, nBands, nValidPixels, blobSize }, see Lerc_types.h .
+  //! Info returned in infoArray is { version, dataType, nDim, nCols, nRows, nBands, nValidPixels, blobSize, nMasks }, see Lerc_types.h .
   //! Info returned in dataRangeArray is { zMin, zMax, maxZErrorUsed }, see Lerc_types.h .
   //! If nDim > 1 or nBands > 1 the data range [zMin, zMax] is over all values. 
 
@@ -134,7 +138,7 @@ extern "C" {
   lerc_status lerc_getBlobInfo(
     const unsigned char* pLercBlob,    // Lerc blob to decode
     unsigned int blobSize,             // blob size in bytes
-    unsigned int* infoArray,           // info array with all info needed to allocate the outgoing array for calling decode
+    unsigned int* infoArray,           // info array with all info needed to allocate the outgoing arrays for calling decode
     double* dataRangeArray,            // quick access to overall data range [zMin, zMax] without having to decode the data
     int infoArraySize,                 // number of elements of infoArray
     int dataRangeArraySize);           // number of elements of dataRangeArray
@@ -142,12 +146,13 @@ extern "C" {
 
   //! Decode the compressed Lerc blob into a raw data array.
   //! The data array must have been allocated to size (nDim * nCols * nRows * nBands * sizeof(dataType)).
-  //! The valid pixels array, if not 0, must have been allocated to size (nCols * nRows). 
+  //! The valid pixels array, if not all pixels valid, must have been allocated to size (nCols * nRows * nMasks). 
 
   LERCDLL_API
   lerc_status lerc_decode(
     const unsigned char* pLercBlob,    // Lerc blob to decode
     unsigned int blobSize,             // blob size in bytes
+    int nMasks,                        // 0, 1, or nBands; return as many masks in the next array
     unsigned char* pValidBytes,        // gets filled if not null ptr, even if all valid
     int nDim,                          // number of values per pixel (e.g., 3 for RGB, data is stored as [RGB, RGB, ...])
     int nCols,                         // number of columns
@@ -167,6 +172,7 @@ extern "C" {
   lerc_status lerc_decodeToDouble(
     const unsigned char* pLercBlob,    // Lerc blob to decode
     unsigned int blobSize,             // blob size in bytes
+    int nMasks,                        // 0, 1, or nBands; return as many masks in the next array
     unsigned char* pValidBytes,        // gets filled if not null ptr, even if all valid
     int nDim,                          // number of values per pixel (e.g., 3 for RGB, data is stored as [RGB, RGB, ...])
     int nCols,                         // number of columns
