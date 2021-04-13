@@ -30,70 +30,60 @@ USING_NAMESPACE_LERC
 
 // -------------------------------------------------------------------------- ;
 
-lerc_status lerc_computeCompressedSize(const void* pData, unsigned int dataType, int nDim, int nCols, int nRows, int nBands, 
-  const unsigned char* pValidBytes, double maxZErr, unsigned int* numBytes)
+lerc_status lerc_computeCompressedSize(const void* pData, unsigned int dataType, int nDim, int nCols, int nRows, int nBands,
+  int nMasks, const unsigned char* pValidBytes, double maxZErr, unsigned int* numBytes)
 {
-  return lerc_computeCompressedSizeForVersion(pData, -1, dataType, nDim, nCols, nRows, nBands, pValidBytes, maxZErr, numBytes);
+  return lerc_computeCompressedSizeForVersion(pData, -1, dataType, nDim, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr, numBytes);
 }
 
 // -------------------------------------------------------------------------- ;
 
 lerc_status lerc_computeCompressedSizeForVersion(const void* pData, int version, unsigned int dataType, int nDim, int nCols, int nRows, int nBands,
-  const unsigned char* pValidBytes, double maxZErr, unsigned int* numBytes)
+  int nMasks, const unsigned char* pValidBytes, double maxZErr, unsigned int* numBytes)
 {
-  if (!pData || dataType >= Lerc::DT_Undefined || nDim <= 0 || nCols <= 0 || nRows <= 0 || nBands <= 0 || maxZErr < 0 || !numBytes)
+  if (!numBytes)
     return (lerc_status)ErrCode::WrongParam;
 
-  BitMask bitMask;
-  if (pValidBytes)
-  {
-    bitMask.SetSize(nCols, nRows);
-    bitMask.SetAllValid();
+  *numBytes = 0;
 
-    for (int k = 0, i = 0; i < nRows; i++)
-      for (int j = 0; j < nCols; j++, k++)
-        if (!pValidBytes[k])
-          bitMask.SetInvalid(k);
-  }
-  const BitMask* pBitMask = pValidBytes ? &bitMask : nullptr;
+  if (!pData || dataType >= Lerc::DT_Undefined || nDim <= 0 || nCols <= 0 || nRows <= 0 || nBands <= 0 || maxZErr < 0)
+    return (lerc_status)ErrCode::WrongParam;
+
+  if (!(nMasks == 0 || nMasks == 1 || nMasks == nBands) || (nMasks > 0 && !pValidBytes))
+    return (lerc_status)ErrCode::WrongParam;
 
   Lerc::DataType dt = (Lerc::DataType)dataType;
-  return (lerc_status)Lerc::ComputeCompressedSize(pData, version, dt, nDim, nCols, nRows, nBands, pBitMask, maxZErr, *numBytes);
+  return (lerc_status)Lerc::ComputeCompressedSize(pData, version, dt, nDim, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr, *numBytes);
 }
 
 // -------------------------------------------------------------------------- ;
 
 lerc_status lerc_encode(const void* pData, unsigned int dataType, int nDim, int nCols, int nRows, int nBands,
-  const unsigned char* pValidBytes, double maxZErr, unsigned char* pOutBuffer, unsigned int outBufferSize,
+  int nMasks, const unsigned char* pValidBytes, double maxZErr, unsigned char* pOutBuffer, unsigned int outBufferSize,
   unsigned int* nBytesWritten)
 {
-  return lerc_encodeForVersion(pData, -1, dataType, nDim, nCols, nRows, nBands, pValidBytes, maxZErr, pOutBuffer, outBufferSize, nBytesWritten);
+  return lerc_encodeForVersion(pData, -1, dataType, nDim, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr, pOutBuffer, outBufferSize, nBytesWritten);
 }
 
 // -------------------------------------------------------------------------- ;
 
 lerc_status lerc_encodeForVersion(const void* pData, int version, unsigned int dataType, int nDim, int nCols, int nRows, int nBands, 
-  const unsigned char* pValidBytes, double maxZErr, unsigned char* pOutBuffer, unsigned int outBufferSize,
+  int nMasks, const unsigned char* pValidBytes, double maxZErr, unsigned char* pOutBuffer, unsigned int outBufferSize,
   unsigned int* nBytesWritten)
 {
-  if (!pData || dataType >= Lerc::DT_Undefined || nDim <= 0 || nCols <= 0 || nRows <= 0 || nBands <= 0 || maxZErr < 0 || !pOutBuffer || !outBufferSize || !nBytesWritten)
+  if (!nBytesWritten)
     return (lerc_status)ErrCode::WrongParam;
 
-  BitMask bitMask;
-  if (pValidBytes)
-  {
-    bitMask.SetSize(nCols, nRows);
-    bitMask.SetAllValid();
+  *nBytesWritten = 0;
 
-    for (int k = 0, i = 0; i < nRows; i++)
-      for (int j = 0; j < nCols; j++, k++)
-        if (!pValidBytes[k])
-          bitMask.SetInvalid(k);
-  }
-  const BitMask* pBitMask = pValidBytes ? &bitMask : nullptr;
+  if (!pData || dataType >= Lerc::DT_Undefined || nDim <= 0 || nCols <= 0 || nRows <= 0 || nBands <= 0 || maxZErr < 0 || !pOutBuffer || !outBufferSize)
+    return (lerc_status)ErrCode::WrongParam;
+
+  if (!(nMasks == 0 || nMasks == 1 || nMasks == nBands) || (nMasks > 0 && !pValidBytes))
+    return (lerc_status)ErrCode::WrongParam;
 
   Lerc::DataType dt = (Lerc::DataType)dataType;
-  return (lerc_status)Lerc::Encode(pData, version, dt, nDim, nCols, nRows, nBands, pBitMask, maxZErr, pOutBuffer, outBufferSize, *nBytesWritten);
+  return (lerc_status)Lerc::Encode(pData, version, dt, nDim, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr, pOutBuffer, outBufferSize, *nBytesWritten);
 }
 
 // -------------------------------------------------------------------------- ;
@@ -132,6 +122,8 @@ lerc_status lerc_getBlobInfo(const unsigned char* pLercBlob, unsigned int blobSi
       infoArray[i++] = (unsigned int)lercInfo.numValidPixel;
     if (i < ias)
       infoArray[i++] = (unsigned int)lercInfo.blobSize;
+    if (i < ias)
+      infoArray[i++] = (unsigned int)lercInfo.nMasks;
   }
 
   if (dataRangeArray)
@@ -154,42 +146,33 @@ lerc_status lerc_getBlobInfo(const unsigned char* pLercBlob, unsigned int blobSi
 
 // -------------------------------------------------------------------------- ;
 
-lerc_status lerc_decode(const unsigned char* pLercBlob, unsigned int blobSize,
+lerc_status lerc_decode(const unsigned char* pLercBlob, unsigned int blobSize, int nMasks,
   unsigned char* pValidBytes, int nDim, int nCols, int nRows, int nBands, unsigned int dataType, void* pData)
 {
   if (!pLercBlob || !blobSize || !pData || dataType >= Lerc::DT_Undefined || nDim <= 0 || nCols <= 0 || nRows <= 0 || nBands <= 0)
     return (lerc_status)ErrCode::WrongParam;
 
-  BitMask bitMask;
-  if (pValidBytes)
-  {
-    bitMask.SetSize(nCols, nRows);
-    bitMask.SetAllInvalid();
-  }
-  BitMask* pBitMask = pValidBytes ? &bitMask : nullptr;
+  if (!(nMasks == 0 || nMasks == 1 || nMasks == nBands) || (nMasks > 0 && !pValidBytes))
+    return (lerc_status)ErrCode::WrongParam;
 
   Lerc::DataType dt = (Lerc::DataType)dataType;
 
-  ErrCode errCode = Lerc::Decode(pLercBlob, blobSize, pBitMask, nDim, nCols, nRows, nBands, dt, pData);
+  ErrCode errCode = Lerc::Decode(pLercBlob, blobSize, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dt, pData);
   if (errCode != ErrCode::Ok)
     return (lerc_status)errCode;
-
-  if (pValidBytes)
-  {
-    for (int k = 0, i = 0; i < nRows; i++)
-      for (int j = 0; j < nCols; j++, k++)
-        pValidBytes[k] = bitMask.IsValid(k);
-  }
 
   return (lerc_status)ErrCode::Ok;
 }
 
 // -------------------------------------------------------------------------- ;
 
-lerc_status lerc_decodeToDouble(const unsigned char* pLercBlob, unsigned int blobSize,
+lerc_status lerc_decodeToDouble(const unsigned char* pLercBlob, unsigned int blobSize, int nMasks,
   unsigned char* pValidBytes, int nDim, int nCols, int nRows, int nBands, double* pData)
 {
   if (!pLercBlob || !blobSize || !pData || nDim <= 0 || nCols <= 0 || nRows <= 0 || nBands <= 0)
+    return (lerc_status)ErrCode::WrongParam;
+
+  if (!(nMasks == 0 || nMasks == 1 || nMasks == nBands) || (nMasks > 0 && !pValidBytes))
     return (lerc_status)ErrCode::WrongParam;
 
   Lerc::LercInfo lercInfo;
@@ -201,17 +184,9 @@ lerc_status lerc_decodeToDouble(const unsigned char* pLercBlob, unsigned int blo
   if (dt > Lerc::DT_Double)
     return (lerc_status)ErrCode::Failed;
 
-  BitMask bitMask;
-  if (pValidBytes)
-  {
-    bitMask.SetSize(nCols, nRows);
-    bitMask.SetAllInvalid();
-  }
-  BitMask* pBitMask = pValidBytes ? &bitMask : nullptr;
-
   if (dt == Lerc::DT_Double)
   {
-    if ((errCode = Lerc::Decode(pLercBlob, blobSize, pBitMask, nDim, nCols, nRows, nBands, dt, pData)) != ErrCode::Ok)
+    if ((errCode = Lerc::Decode(pLercBlob, blobSize, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dt, pData)) != ErrCode::Ok)
       return (lerc_status)errCode;
   }
   else
@@ -221,18 +196,11 @@ lerc_status lerc_decodeToDouble(const unsigned char* pLercBlob, unsigned int blo
     size_t nDataValues = nDim * nCols * nRows * nBands;
     void* ptrDec = (Byte*)pData + nDataValues * (sizeof(double) - sizeofDt[dt]);
 
-    if ((errCode = Lerc::Decode(pLercBlob, blobSize, pBitMask, nDim, nCols, nRows, nBands, dt, ptrDec)) != ErrCode::Ok)
+    if ((errCode = Lerc::Decode(pLercBlob, blobSize, nMasks, pValidBytes, nDim, nCols, nRows, nBands, dt, ptrDec)) != ErrCode::Ok)
       return (lerc_status)errCode;
 
     if ((errCode = Lerc::ConvertToDouble(ptrDec, dt, nDataValues, pData)) != ErrCode::Ok)
       return (lerc_status)errCode;
-  }
-
-  if (pValidBytes)
-  {
-    for (int k = 0, i = 0; i < nRows; i++)
-      for (int j = 0; j < nCols; j++, k++)
-        pValidBytes[k] = bitMask.IsValid(k);
   }
 
   return (lerc_status)ErrCode::Ok;

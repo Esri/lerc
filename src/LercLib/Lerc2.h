@@ -111,7 +111,7 @@ public:
     bool TryHuffman() const  { return version > 1 && (dt == DT_Byte || dt == DT_Char) && maxZError == 0.5; }
   };
 
-  static bool GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct HeaderInfo& headerInfo);
+  static bool GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct HeaderInfo& headerInfo, bool& bHasMask);
 
   /// dst buffer already allocated;  byte ptr is moved like a file pointer
   template<class T>

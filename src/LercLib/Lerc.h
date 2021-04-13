@@ -68,7 +68,8 @@ NAMESPACE_LERC_START
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
-      const BitMask* pBitMask,         // 0 if all pixels are valid
+      int nMasks,                      // number of masks (0, 1, or nBands)
+      const Byte* pValidBytes,         // masks (size = nMasks * nRows * nCols)
       double maxZErr,                  // max coding error per pixel, defines the precision
       unsigned int& numBytesNeeded);   // size of outgoing Lerc blob
 
@@ -82,7 +83,8 @@ NAMESPACE_LERC_START
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
-      const BitMask* pBitMask,         // 0 if all pixels are valid
+      int nMasks,                      // number of masks (0, 1, or nBands)
+      const Byte* pValidBytes,         // masks (size = nMasks * nRows * nCols)
       double maxZErr,                  // max coding error per pixel, defines the precision
       Byte* pBuffer,                   // buffer to write to, function fails if buffer too small
       unsigned int numBytesBuffer,     // buffer size
@@ -99,7 +101,8 @@ NAMESPACE_LERC_START
         nRows,            // number of rows
         numValidPixel,    // number of valid pixels
         nBands,           // number of bands
-        blobSize;         // total blob size in bytes
+        blobSize,         // total blob size in bytes
+        nMasks;           // number of masks (0, 1, or nBands)
       DataType dt;        // data type (float only for old Lerc1)
       double zMin,        // min pixel value, over all data values
         zMax,             // max pixel value, over all data values
@@ -131,7 +134,8 @@ NAMESPACE_LERC_START
     static ErrCode Decode(
       const Byte* pLercBlob,           // Lerc blob to decode
       unsigned int numBytesBlob,       // size of Lerc blob in bytes
-      BitMask* pBitMask,               // gets filled if not 0, even if all valid
+      int nMasks,                      // number of masks (0, 1, or nBands)
+      Byte* pValidBytes,               // masks (fails if not big enough to take the masks decoded, fills with 1 if all valid)
       int nDim,                        // number of values per pixel
       int nCols,                       // number of cols
       int nRows,                       // number of rows
@@ -156,7 +160,8 @@ NAMESPACE_LERC_START
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
-      const BitMask* pBitMask,         // 0 means all pixels are valid
+      int nMasks,                      // number of masks (0, 1, or nBands)
+      const Byte* pValidBytes,         // masks (size = nMasks * nRows * nCols)
       double maxZErr,                  // max coding error per pixel, defines the precision
       unsigned int& numBytes);         // size of outgoing Lerc blob
 
@@ -167,7 +172,8 @@ NAMESPACE_LERC_START
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
-      const BitMask* pBitMask,         // 0 means all pixels are valid
+      int nMasks,                      // number of masks (0, 1, or nBands)
+      const Byte* pValidBytes,         // masks (size = nMasks * nRows * nCols)
       double maxZErr,                  // max coding error per pixel, defines the precision
       Byte* pBuffer,                   // buffer to write to, function will fail if buffer too small
       unsigned int numBytesBuffer,     // buffer size
@@ -181,14 +187,39 @@ NAMESPACE_LERC_START
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
-      BitMask* pBitMask);              // gets filled if not 0, even if all valid
+      int nMasks,                      // number of masks (0, 1, or nBands)
+      Byte* pValidBytes);              // masks (fails if not big enough to take the masks decoded, fills with 1 if all valid)
 
   private:
+
+    template<class T> static ErrCode EncodeInternal(
+      const T* pData,                  // raw image data, row by row, band by band
+      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4
+      int nDim,                        // number of values per pixel
+      int nCols,                       // number of cols
+      int nRows,                       // number of rows
+      int nBands,                      // number of bands
+      int nMasks,                      // number of masks (0, 1, or nBands)
+      const Byte* pValidBytes,         // masks (size = nMasks * nRows * nCols)
+      double maxZErr,                  // max coding error per pixel, defines the precision
+      unsigned int& numBytes,          // size of outgoing Lerc blob
+      Byte* pBuffer,                   // buffer to write to, function will fail if buffer too small
+      unsigned int numBytesBuffer,     // buffer size
+      unsigned int& numBytesWritten);  // num bytes written to buffer
+
 #ifdef HAVE_LERC1_DECODE
-    template<class T> static bool Convert(const CntZImage& zImg, T* arr, BitMask* pBitMask);
+    template<class T> static bool Convert(const CntZImage& zImg, T* arr, Byte* pByteMask, bool bMustFillMask);
 #endif
     template<class T> static ErrCode ConvertToDoubleTempl(const T* pDataIn, size_t nDataValues, double* pDataOut);
 
-    template<class T> static ErrCode CheckForNaN(const T* arr, int nDim, int nCols, int nRows, const BitMask* pBitMask);
+    template<class T> static ErrCode CheckForNaN(const T* arr, int nDim, int nCols, int nRows, const Byte* pByteMask);
+
+    template<class T> static bool ReplaceNaNValues(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDim, int nCols, int nRows);
+
+    template<class T> static bool Resize(std::vector<T>& buffer, int nElem);
+
+    bool static Convert(const Byte* pByteMask, int nCols, int nRows, BitMask& bitMask);
+    bool static Convert(const BitMask& bitMask, Byte* pByteMask);
+    bool static MasksDiffer(const Byte* p0, const Byte* p1, size_t n);
   };
 NAMESPACE_LERC_END

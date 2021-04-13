@@ -37,7 +37,6 @@ Contributors:  Thomas Maurer, Lucian Plesea
 #define USING_NAMESPACE_LERC using namespace LercNS;
 
 #define HAVE_LERC1_DECODE
-//#define CHECK_FOR_NAN
 
 NAMESPACE_LERC_START
 
