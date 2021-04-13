@@ -22,6 +22,10 @@ See the sample program `src/LercTest/main.cpp` which demonstrates how the above 
 
 About multiple bands, or multiple values per pixel. This has changed with Lerc version 2.4. Before, you could either store each band into its own Lerc byte blob which allowed you to access / decode each band individually. Lerc also allowed to stack bands together into one single Lerc byte blob. This could be useful if the bands are always used together anyway. Now, since Lerc version 2.4, you can additionally store multiple values per pixel interleaved, meaning an array of values for pixel 1, next array of values for pixel 2, and so forth. We have added a new parameter "nDim" for this number of values per pixel.
 
+While the above can be used as an "interleave flag" to store multiple raster bands as a 3D array as either [nBands, nRows, nCols] for band interleaved or as [nRows, nCols, nDim] for pixel interleaved, it also allows to do both at the same time and store a 4D array as [nBands, nRows, nCols, nDim]. 
+
+Note that the valid / invalid pixel byte mask is not 4D but limited to [nBands, nRows, nCols]. This mask is per pixel per band. For nDim > 1 or an array of values per pixel, Lerc assumes all values in that array at that pixel are either valid or invalid. If the values in the innermost array per pixel can be partially valid and invalid, use a predefined noData value or NaN. 
+
 ## When to use
 
 In image or raster compression, there are two different options:

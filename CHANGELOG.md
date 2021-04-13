@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+### Added
+
+* If multiple bands are concatenated into one binary Lerc blob, and not all pixels are valid, Lerc now allows different valid / invalid byte masks per band. Before, there was just one such mask for all bands. To support this, one new parameter has been added to the API function calls called "nMasks" (int). It can be set to 0 (no mask), 1 (one mask for all bands), or nBands (allowing one mask per band). Allocate the mask byte array accordingly to (nMasks * nRows * nCols). It is ok to always use nBands masks or more masks than needed, for both encode and decode. 
+
+* Support NaN values in floating point images. Lerc checks for NaN values at valid pixels. If found, it translates them into invalid mask pixels. For the special case of array per pixel (nDim > 1) and a mix of NaN's and valid floating point values inside such an array, the NaN's get converted to -FLT_MAX (or -DBL_MAX). 
 
 ## [2.2.1](https://github.com/Esri/lerc/releases/tag/v2.2.1) - 2020-12-28
 
