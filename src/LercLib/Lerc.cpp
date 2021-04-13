@@ -316,9 +316,6 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
     return ErrCode::WrongParam;
 
   const Byte* pByte = pLercBlob;
-#ifdef HAVE_LERC1_DECODE
-  Byte* pByte1 = const_cast<Byte*>(pLercBlob);
-#endif
   Lerc2::HeaderInfo hdInfo;
   bool bHasMask = false;
 
@@ -348,7 +345,8 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
         if ((pByte - pLercBlob) + (size_t)hdInfo.blobSize > numBytesBlob)
           return ErrCode::BufferTooSmall;
 
-        T* arr = pData + nDim * nCols * nRows * iBand;
+        size_t nPix = (size_t)iBand * nRows * nCols;
+        T* arr = pData + nPix * nDim;
 
         bool bGetMask = iBand < nMasks;
 
@@ -358,7 +356,7 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
         if (!lerc2.Decode(&pByte, nBytesRemaining, arr, bGetMask ? bitMask.Bits() : nullptr))
           return ErrCode::Failed;
 
-        if (bGetMask && !Convert(bitMask, pValidBytes + iBand * nCols * nRows))
+        if (bGetMask && !Convert(bitMask, pValidBytes + nPix))
           return ErrCode::Failed;
       }
     }  // iBand
@@ -369,6 +367,7 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
 #ifdef HAVE_LERC1_DECODE
     unsigned int numBytesHeaderBand0 = CntZImage::computeNumBytesNeededToReadHeader(false);
     unsigned int numBytesHeaderBand1 = CntZImage::computeNumBytesNeededToReadHeader(true);
+    Byte* pByte1 = const_cast<Byte*>(pLercBlob);
     CntZImage zImg;
 
     for (int iBand = 0; iBand < nBands; iBand++)
@@ -384,8 +383,9 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
       if (zImg.getWidth() != nCols || zImg.getHeight() != nRows)
         return ErrCode::Failed;
 
-      T* arr = pData + nCols * nRows * iBand;
-      Byte* pDst = iBand < nMasks ? pValidBytes + nCols * nRows * iBand : nullptr;
+      size_t nPix = (size_t)iBand * nRows * nCols;
+      T* arr = pData + nPix;
+      Byte* pDst = iBand < nMasks ? pValidBytes + nPix : nullptr;
 
       if (!Convert(zImg, arr, pDst, iBand == 0))
         return ErrCode::Failed;
@@ -415,8 +415,8 @@ ErrCode Lerc::EncodeInternal(const T* pData, int version, int nDim, int nCols, i
 
   Byte* pDst = pBuffer;
 
-  const int nPixels = nCols * nRows;
-  const int nElem = nDim * nPixels;
+  const size_t nPix = (size_t)nCols * nRows;
+  const size_t nElem = nPix * nDim;
 
   const Byte* pPrevByteMask = nullptr;
   vector<T> dataBuffer;
@@ -430,7 +430,7 @@ ErrCode Lerc::EncodeInternal(const T* pData, int version, int nDim, int nCols, i
 
     // using the proper section of valid bytes, check this band for NaN
     const T* arr = pData + nElem * iBand;
-    const Byte* pByteMask = (nMasks > 0) ? (pValidBytes + ((nMasks > 1) ? nPixels * iBand : 0)) : nullptr;
+    const Byte* pByteMask = (nMasks > 0) ? (pValidBytes + ((nMasks > 1) ? nPix * iBand : 0)) : nullptr;
 
     ErrCode errCode = CheckForNaN(arr, nDim, nCols, nRows, pByteMask);
     if (errCode != ErrCode::Ok && errCode != ErrCode::NaN)
@@ -438,16 +438,16 @@ ErrCode Lerc::EncodeInternal(const T* pData, int version, int nDim, int nCols, i
 
     if (errCode == ErrCode::NaN)    // found NaN values
     {
-      if (!Resize(dataBuffer, nElem) || !Resize(maskBuffer, nPixels))
+      if (!Resize(dataBuffer, nElem) || !Resize(maskBuffer, nPix))
         return ErrCode::Failed;
 
       memcpy(&dataBuffer[0], arr, nElem * sizeof(T));
-      pByteMask ? memcpy(&maskBuffer[0], pByteMask, nPixels) : memset(&maskBuffer[0], 1, nPixels);
+      pByteMask ? memcpy(&maskBuffer[0], pByteMask, nPix) : memset(&maskBuffer[0], 1, nPix);
 
       if (!ReplaceNaNValues(dataBuffer, maskBuffer, nDim, nCols, nRows))
         return ErrCode::Failed;
 
-      if (iBand > 0 && MasksDiffer(&maskBuffer[0], pPrevByteMask, nPixels))
+      if (iBand > 0 && MasksDiffer(&maskBuffer[0], pPrevByteMask, nPix))
         bEncMsk = true;
 
       if (iBand < nBands - 1)
@@ -463,7 +463,7 @@ ErrCode Lerc::EncodeInternal(const T* pData, int version, int nDim, int nCols, i
 
     else    // no NaN in this band, the common case
     {
-      if (iBand > 0 && MasksDiffer(pByteMask, pPrevByteMask, nPixels))
+      if (iBand > 0 && MasksDiffer(pByteMask, pPrevByteMask, nPix))
         bEncMsk = true;
 
       pPrevByteMask = pByteMask;
@@ -576,21 +576,21 @@ template<class T> ErrCode Lerc::CheckForNaN(const T* arr, int nDim, int nCols, i
   if (typeid(T) != typeid(double) && typeid(T) != typeid(float))
     return ErrCode::Ok;
 
-  for (int k = 0, i = 0; i < nRows; i++)
+  for (size_t k = 0, i = 0; i < (size_t)nRows; i++)
   {
     bool bFoundNaN = false;
     const T* rowArr = &(arr[i * nCols * nDim]);
 
     if (!pByteMask)    // all valid
     {
-      int num = nCols * nDim;
-      for (int m = 0; m < num; m++)
+      size_t num = (size_t)nCols * nDim;
+      for (size_t m = 0; m < num; m++)
         if (std::isnan((double)rowArr[m]))
           bFoundNaN = true;
     }
     else    // not all valid
     {
-      for (int n = 0, j = 0; j < nCols; j++, k++, n += nDim)
+      for (size_t n = 0, j = 0; j < (size_t)nCols; j++, k++, n += nDim)
         if (pByteMask[k])
         {
           for (int m = 0; m < nDim; m++)
@@ -610,17 +610,17 @@ template<class T> ErrCode Lerc::CheckForNaN(const T* arr, int nDim, int nCols, i
 
 template<class T> bool Lerc::ReplaceNaNValues(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDim, int nCols, int nRows)
 {
-  if (nDim <= 0 || nCols <= 0 || nRows <= 0 || dataBuffer.size() != nDim * nCols * nRows || maskBuffer.size() != nCols * nRows)
+  if (nDim <= 0 || nCols <= 0 || nRows <= 0 || dataBuffer.size() != (size_t)nDim * nCols * nRows || maskBuffer.size() != (size_t)nCols * nRows)
     return false;
 
   bool bIsFloat = (typeid(T) == typeid(float));
   const T noDataValue = (T)(bIsFloat ? -FLT_MAX : -DBL_MAX);
 
-  for (int k = 0, i = 0; i < nRows; i++)
+  for (size_t k = 0, i = 0; i < (size_t)nRows; i++)
   {
     T* rowArr = &(dataBuffer[i * nCols * nDim]);
 
-    for (int n = 0, j = 0; j < nCols; j++, k++, n += nDim)
+    for (size_t n = 0, j = 0; j < nCols; j++, k++, n += nDim)
     {
       if (maskBuffer[k])
       {
@@ -644,11 +644,8 @@ template<class T> bool Lerc::ReplaceNaNValues(std::vector<T>& dataBuffer, std::v
 
 // -------------------------------------------------------------------------- ;
 
-template<class T> bool Lerc::Resize(std::vector<T>& buffer, int nElem)
+template<class T> bool Lerc::Resize(std::vector<T>& buffer, size_t nElem)
 {
-  if (nElem < 0)
-    return false;
-
   try
   {
     buffer.resize(nElem);
@@ -691,7 +688,7 @@ bool Lerc::Convert(const BitMask& bitMask, Byte* pByteMask)
   if (nCols <= 0 || nRows <= 0 || !pByteMask)
     return false;
 
-  memset(pByteMask, 0, nCols * nRows);
+  memset(pByteMask, 0, (size_t)nCols * nRows);
 
   for (int k = 0, i = 0; i < nRows; i++)
     for (int j = 0; j < nCols; j++, k++)
