@@ -620,7 +620,7 @@ template<class T> bool Lerc::ReplaceNaNValues(std::vector<T>& dataBuffer, std::v
   {
     T* rowArr = &(dataBuffer[i * nCols * nDim]);
 
-    for (size_t n = 0, j = 0; j < nCols; j++, k++, n += nDim)
+    for (size_t n = 0, j = 0; j < (size_t)nCols; j++, k++, n += nDim)
     {
       if (maskBuffer[k])
       {
