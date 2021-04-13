@@ -375,15 +375,17 @@ int main(int argc, char* arcv[])
   maxDelta = 0;
   for (int iBand = 0; iBand < 4; iBand++)
   {
-    float* arr = &fImg[iBand * w * h];
-    Byte* mask = (iBand < nMasks) ? &maskByteImg3[iBand * w * h] : nullptr;
+    const float* arr = &fImg[iBand * w * h];
+    const float* arr3 = &fImg3[iBand * w * h];
+    const Byte* mask = (nMasks == 4) ? &maskByteImg3[iBand * w * h] 
+      : ((nMasks == 1) ? &maskByteImg3[w * h] : nullptr);
 
     for (int k = 0, i = 0; i < h; i++)
       for (int j = 0; j < w; j++, k++)
         if (!mask || mask[k])
         {
-          double delta = abs(fImg3[k] - fImg[k]);
-          if (delta > maxDelta)
+          double delta = abs(arr3[k] - arr[k]);
+          if (delta > maxDelta || std::isnan(delta))
             maxDelta = delta;
         }
   }

@@ -216,7 +216,7 @@ NAMESPACE_LERC_START
 
     template<class T> static bool ReplaceNaNValues(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDim, int nCols, int nRows);
 
-    template<class T> static bool Resize(std::vector<T>& buffer, int nElem);
+    template<class T> static bool Resize(std::vector<T>& buffer, size_t nElem);
 
     bool static Convert(const Byte* pByteMask, int nCols, int nRows, BitMask& bitMask);
     bool static Convert(const BitMask& bitMask, Byte* pByteMask);
