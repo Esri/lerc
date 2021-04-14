@@ -28,6 +28,23 @@ Contributors:  Thomas Maurer
 extern "C" {
 #endif
 
+/* LERC version numbers and related macros added in 3.0.0 */
+
+#define LERC_VERSION_MAJOR 3
+#define LERC_VERSION_MINOR 0
+#define LERC_VERSION_PATCH 0
+
+/* Macro to compute a LERC version number from its components */
+#define LERC_COMPUTE_VERSION(maj,min,patch) ((maj)*10000+(min)*100+(patch))
+
+/* Current LERC version from the above version numbers */
+#define LERC_VERSION_NUMBER                 \
+    LERC_COMPUTE_VERSION(LERC_VERSION_MAJOR, LERC_VERSION_MINOR, LERC_VERSION_PATCH)
+
+/* Macro that returns true if the current LERC version is at least the version specified by (maj,min,patch) */
+#define LERC_AT_LEAST_VERSION(maj,min,patch) \
+    (LERC_VERSION_NUMBER >= LERC_COMPUTE_VERSION(maj,min,patch))
+
 #if defined(_MSC_VER)
   #define LERCDLL_API __declspec(dllexport)
 #elif __GNUC__ >= 4
