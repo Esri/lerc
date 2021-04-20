@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 file(GLOB SOURCES
     "src/LercLib/*"
     "src/LercLib/Lerc1Decode/*"
-    "include"
+    "src/LercLib/include"
 )
 message(${SOURCES})
 
@@ -25,6 +25,6 @@ install(
 )
 
 install(
-    FILES "include/Lerc_types.h" "include/Lerc_c_api.h"
+    FILES "src/LercLib/include/Lerc_types.h" "src/LercLib/include/Lerc_c_api.h"
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )

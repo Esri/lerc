@@ -25,7 +25,7 @@ Contributors:  Thomas Maurer
 
 #include <cstring>
 #include <vector>
-#include "Lerc_types.h"
+#include "include/Lerc_types.h"
 #include "BitMask.h"
 #include "Lerc2.h"
 

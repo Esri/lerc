@@ -18,7 +18,7 @@ Function | Description
 
 To support the case that not all image pixels are valid, a mask image can be passed. It has one byte per pixel, 1 for valid, 0 for invalid.
 
-See the sample program `src/LercTest/main.cpp` which demonstrates how the above functions are called and used. Also see the two header files in the `include/` folder and the comments in there.
+See the sample program `src/LercTest/main.cpp` which demonstrates how the above functions are called and used. Also see the two header files in the `src/LercLib/include/` folder and the comments in there.
 
 About multiple bands, or multiple values per pixel. This has changed with Lerc version 2.4. Before, you could either store each band into its own Lerc byte blob which allowed you to access / decode each band individually. Lerc also allowed to stack bands together into one single Lerc byte blob. This could be useful if the bands are always used together anyway. Now, since Lerc version 2.4, you can additionally store multiple values per pixel interleaved, meaning an array of values for pixel 1, next array of values for pixel 2, and so forth. We have added a new parameter "nDim" for this number of values per pixel.
 
