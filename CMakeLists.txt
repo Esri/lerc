@@ -8,20 +8,18 @@ set(CMAKE_CXX_STANDARD 17)
 file(GLOB SOURCES
     "src/LercLib/*"
     "src/LercLib/Lerc1Decode/*"
-    "src/LercLib/include"
+    "src/LercLib/include/*"
 )
-message(${SOURCES})
 
 add_library(Lerc SHARED ${SOURCES})
-
-target_link_libraries (Lerc)
+set_target_properties(Lerc PROPERTIES DEFINE_SYMBOL LERC_EXPORTS)
 
 install(
     TARGETS Lerc
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    PUBLIC_HEADER DESTINATION  ${CMAKE_INSTALL_INCLUDEDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(
