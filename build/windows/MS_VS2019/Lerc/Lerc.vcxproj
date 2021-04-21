@@ -34,14 +34,14 @@
     <ClInclude Include="..\..\..\..\src\LercLib\BitStuffer2.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Defines.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Huffman.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\include\Lerc_c_api.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\include\Lerc_types.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc1Decode\BitStuffer.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc1Decode\CntZImage.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc1Decode\Image.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc1Decode\TImage.hpp" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc2.h" />
-    <ClInclude Include="..\..\..\..\src\LercLib\Lerc_c_api.h" />
-    <ClInclude Include="..\..\..\..\src\LercLib\Lerc_types.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\RLE.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -107,6 +107,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>LERC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -143,6 +144,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <DebugInformationFormat>None</DebugInformationFormat>
+      <PreprocessorDefinitions>LERC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

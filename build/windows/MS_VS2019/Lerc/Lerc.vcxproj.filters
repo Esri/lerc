@@ -4,6 +4,9 @@
     <Filter Include="Lerc1Decode">
       <UniqueIdentifier>{0137a9e3-5d90-4dc3-b698-8dec754f0128}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{8290996a-c8a6-4c11-840d-fddc0415db29}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\LercLib\Lerc1Decode\BitStuffer.cpp">
@@ -38,9 +41,13 @@
     <ClInclude Include="..\..\..\..\src\LercLib\Defines.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Huffman.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc.h" />
-    <ClInclude Include="..\..\..\..\src\LercLib\Lerc_c_api.h" />
-    <ClInclude Include="..\..\..\..\src\LercLib\Lerc_types.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc2.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\RLE.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\include\Lerc_c_api.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\LercLib\include\Lerc_types.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

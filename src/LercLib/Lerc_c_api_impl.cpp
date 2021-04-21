@@ -22,8 +22,8 @@ Contributors:  Thomas Maurer
 */
 
 #include "Defines.h"
-#include "Lerc_c_api.h"
-#include "Lerc_types.h"
+#include "include/Lerc_c_api.h"
+#include "include/Lerc_types.h"
 #include "Lerc.h"
 
 USING_NAMESPACE_LERC
