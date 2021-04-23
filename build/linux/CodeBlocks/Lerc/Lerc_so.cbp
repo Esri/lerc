@@ -58,11 +58,11 @@
 		<Unit filename="../../../../src/LercLib/Lerc1Decode/TImage.hpp" />
 		<Unit filename="../../../../src/LercLib/Lerc2.cpp" />
 		<Unit filename="../../../../src/LercLib/Lerc2.h" />
-		<Unit filename="../../../../src/LercLib/Lerc_c_api.h" />
 		<Unit filename="../../../../src/LercLib/Lerc_c_api_impl.cpp" />
-		<Unit filename="../../../../src/LercLib/Lerc_types.h" />
 		<Unit filename="../../../../src/LercLib/RLE.cpp" />
 		<Unit filename="../../../../src/LercLib/RLE.h" />
+		<Unit filename="../../../../src/LercLib/include/Lerc_c_api.h" />
+		<Unit filename="../../../../src/LercLib/include/Lerc_types.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
