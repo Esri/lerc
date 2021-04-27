@@ -11,7 +11,12 @@ file(GLOB SOURCES
     "src/LercLib/include/*"
 )
 
-add_library(Lerc SHARED ${SOURCES})
+# Make an option, defaulting to shared libs, but allow -DBUILD_SHARED_LIBS=OFF
+option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
+
+# If no SHARED or STATIC is specified explicitly, add_library will honor BUILD_SHARED_LIBS
+add_library(Lerc ${SOURCES})
+
 set_target_properties(Lerc PROPERTIES DEFINE_SYMBOL LERC_EXPORTS)
 
 install(
