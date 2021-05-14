@@ -1996,20 +1996,20 @@ Contributors:  Johannes Schmid, (LERC v1)
     var Lerc2Decode = {
       /*
       * ********removed options compared to LERC1. We can bring some of them back if needed.
-      * removed pixel type. LERC2 is typed and doesn't require user to give pixel type
-      * changed encodedMaskData to maskData. LERC2 's js version make it faster to use maskData directly.
-      * removed returnMask. mask is used by LERC2 internally and is cost free. In case of user input mask, it's returned as well and has neglible cost.
-      * removed nodatavalue. Because LERC2 pixels are typed, nodatavalue will sacrify a useful value for many types (8bit, 16bit) etc,
-      *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now.
-      *       We can add it back later if their's a clear requirement.
-      * removed encodedMask. This option was not implemented in LercDecode. It can be done after decoding (less efficient)
-      * removed computeUsedBitDepths.
-      *
-      *
-      * response changes compared to LERC1
-      * 1. encodedMaskData is not available
-      * 2. noDataValue is optional (returns only if user's noDataValue is with in the valid data type range)
-      * 3. maskData is always available
+       * removed pixel type. LERC2 is typed and doesn't require user to give pixel type
+       * changed encodedMaskData to maskData. LERC2 's js version make it faster to use maskData directly.
+       * removed returnMask. mask is used by LERC2 internally and is cost free. In case of user input mask, it's returned as well and has neglible cost.
+       * removed nodatavalue. Because LERC2 pixels are typed, nodatavalue will sacrify a useful value for many types (8bit, 16bit) etc,
+       *       user has to be knowledgable enough about raster and their data to avoid usability issues. so nodata value is simply removed now.
+       *       We can add it back later if their's a clear requirement.
+       * removed encodedMask. This option was not implemented in LercDecode. It can be done after decoding (less efficient)
+       * removed computeUsedBitDepths.
+       *
+       *
+       * response changes compared to LERC1
+       * 1. encodedMaskData is not available
+       * 2. noDataValue is optional (returns only if user's noDataValue is with in the valid data type range)
+       * 3. maskData is always available
       */
       /*****************
       *  public properties
