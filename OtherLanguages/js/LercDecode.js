@@ -2206,6 +2206,7 @@ Contributors:  Johannes Schmid, (LERC v1)
      * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
      * @param {string} [options.pixelType] (LERC1 only) Default value is F32. Valid pixel types for input are U8/S8/S16/U16/S32/U32/F32.
      * @param {number} [options.noDataValue] (LERC1 only). It is recommended to use the returned mask instead of setting this value.
+     * @param {boolean} [options.returnPixelInterleavedDims] (nDim LERC2 only) If true, returned dimensions are pixel-interleaved, a.k.a [p1_dim0, p1_dim1, p1_dimn, p2_dim0...], default is [p1_dim0, p2_dim0, ..., p1_dim1, p2_dim1...]
      * @returns {{width, height, pixels, pixelType, mask, statistics}}
        * @property {number} width Width of decoded image.
        * @property {number} height Height of decoded image.
@@ -2254,6 +2255,7 @@ Contributors:  Johannes Schmid, (LERC v1)
           returnMask: iPlane === 0 ? true : false,//lerc1 only
           returnEncodedMask: iPlane === 0 ? true : false,//lerc1 only
           returnFileInfo: true,//for both lerc1 and lerc2
+          returnPixelInterleavedDims: options.returnPixelInterleavedDims,//for ndim lerc2 only
           pixelType: options.pixelType || null,//lerc1 only
           noDataValue: options.noDataValue || null//lerc1 only
         });
@@ -2270,7 +2272,9 @@ Contributors:  Johannes Schmid, (LERC v1)
           decodedPixelBlock.mask = maskData;
         }
         if (majorVersion > 1) {
-          bandMasks.push(maskData);
+          if (maskData) {
+            bandMasks.push(maskData);
+          }
           if (result.fileInfo.mask && result.fileInfo.mask.numBytes > 0) {
             uniqueBandMaskCount++;
           }
