@@ -1,6 +1,6 @@
 ﻿/* jshint forin: false, bitwise: false */
 /*
-Copyright 2015-2019 Esri
+Copyright 2015-2021 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,17 +24,18 @@ Contributors:  Johannes Schmid, (LERC v1)
                Wenxue Ju (LERC v1, v2.x)
 */
 
-/* Copyright 2015-2019 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
+/* Copyright 2015-2021 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
 
 /**
  * a module for decoding LERC blobs
  * @module Lerc
  */
 (function() {
+  //this decoder supports all lerc versions, each version has its own class (LercDecode and Lerc2Decode). 
+  //the exported module handles format variation autoamtically.
+
   //the original LercDecode for Version 1
   var LercDecode = (function() {
-
-    // WARNING: This decoder version can only read old version 1 Lerc blobs. Use with caution.
 
     // Note: currently, this module only has an implementation for decoding LERC data, not encoding. The name of
     // the class was chosen to be future proof.
@@ -1817,7 +1818,7 @@ Contributors:  Johannes Schmid, (LERC v1)
             tp = "F32";
             break;
           case 7:
-            tp = "F64"; //not supported
+            tp = "F64";
             break;
           default:
             tp = "F32";
@@ -1853,7 +1854,7 @@ Contributors:  Johannes Schmid, (LERC v1)
             isValid = val >= -3.4027999387901484e+38 && val <= 3.4027999387901484e+38;
             break;
           case 7:
-            isValid = val >= 5e-324 && val <= 1.7976931348623157e+308;
+            isValid = val >= -1.7976931348623157e+308 && val <= 1.7976931348623157e+308;
             break;
           default:
             isValid = false;
@@ -1948,9 +1949,6 @@ Contributors:  Johannes Schmid, (LERC v1)
             temp = view.getFloat32(blockPtr, true);
             break;
           case 7:
-            //temp = view.getFloat64(blockPtr, true);
-            //blockPtr += 8;
-            //lerc2 encoding doesnt handle float 64, force to float32???
             temp = view.getFloat64(blockPtr, true);
             break;
           default:
