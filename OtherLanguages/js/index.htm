@@ -176,7 +176,7 @@
             }
           }
           context.putImageData(imageData, 0, 0);
-          div_Info.innerHTML = "max: " + max + ", min: " + min + ", width: " + width + ", height: " + height + ", planes: " + planes + ", decode time:" + duration;
+          div_Info.innerHTML = "max: " + max + ", min: " + min + ", width: " + width + ", height: " + height + ", planes: " + planes + ", dims: " + decodedPixelBlock.dimCount +", decode time:" + duration;
 
         }
         imageCanvas.onmousemove = function(evt) {

@@ -1,6 +1,6 @@
 ﻿/* jshint forin: false, bitwise: false */
 /*
-Copyright 2015-2019 Esri
+Copyright 2015-2021 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,17 +24,18 @@ Contributors:  Johannes Schmid, (LERC v1)
                Wenxue Ju (LERC v1, v2.x)
 */
 
-/* Copyright 2015-2019 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
+/* Copyright 2015-2021 Esri. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 @preserve */
 
 /**
  * a module for decoding LERC blobs
  * @module Lerc
  */
 (function() {
+  //this decoder supports all lerc versions, each version has its own class (LercDecode and Lerc2Decode). 
+  //the exported module handles format variation autoamtically.
+
   //the original LercDecode for Version 1
   var LercDecode = (function() {
-
-    // WARNING: This decoder version can only read old version 1 Lerc blobs. Use with caution.
 
     // Note: currently, this module only has an implementation for decoding LERC data, not encoding. The name of
     // the class was chosen to be future proof.
@@ -906,7 +907,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         return true;
       },
 
-      readDataOneSweep: function(input, data, OutPixelTypeArray) {
+      readDataOneSweep: function(input, data, OutPixelTypeArray, useBSQForOutputDim) {
         var ptr = data.ptr;
         var headerInfo = data.headerInfo;
         var numDims = headerInfo.numDims;
@@ -926,18 +927,35 @@ Contributors:  Johannes Schmid, (LERC v1)
           rawData = new OutPixelTypeArray(arrayBuf);
         }
         if (rawData.length === numPixels * numDims) {
-          data.pixels.resultPixels = rawData;
+          if (useBSQForOutputDim) {
+            data.pixels.resultPixels = Lerc2Helpers.swapDimensionOrder(rawData, numPixels, numDims, OutPixelTypeArray, true);
+          }
+          else {
+            data.pixels.resultPixels = rawData;
+          }
         }
         else  //mask
         {
           data.pixels.resultPixels = new OutPixelTypeArray(numPixels * numDims);
           var z = 0, k = 0, i = 0, nStart = 0;
           if (numDims > 1) {
-            for (i = 0; i < numDims; i++) {
-              nStart = i * numPixels;
+            if (useBSQForOutputDim) {
               for (k = 0; k < numPixels; k++) {
                 if (mask[k]) {
-                  data.pixels.resultPixels[nStart + k] = rawData[z++];
+                  nStart = k;
+                  for (i = 0; i < numDims; i++, nStart+=numPixels) {
+                    data.pixels.resultPixels[nStart] = rawData[z++];
+                  }
+                }
+              }
+            }
+            else {
+              for (k = 0; k < numPixels; k++) {
+                if (mask[k]) {
+                  nStart = k * numDims;
+                  for (i = 0; i < numDims; i++) {
+                    data.pixels.resultPixels[nStart + i] = rawData[z++];
+                  }
                 }
               }
             }
@@ -1085,7 +1103,7 @@ Contributors:  Johannes Schmid, (LERC v1)
         };
       },
 
-      readHuffman: function(input, data, OutPixelTypeArray) {
+      readHuffman: function(input, data, OutPixelTypeArray, useBSQForOutputDim) {
         var headerInfo = data.headerInfo;
         var numDims = headerInfo.numDims;
         var height = data.headerInfo.height;
@@ -1120,77 +1138,17 @@ Contributors:  Johannes Schmid, (LERC v1)
         var resultPixelsAllDim = new OutPixelTypeArray(numPixels * numDims);
         var resultPixels = resultPixelsAllDim;
         var iDim;
-        for (iDim = 0; iDim < headerInfo.numDims; iDim++) {
-          if (numDims > 1) {
-            //get the mem block of current dimension
-            resultPixels = new OutPixelTypeArray(resultPixelsAllDim.buffer, numPixels * iDim, numPixels);
-            prevVal = 0;
-          }
-          if (data.headerInfo.numValidPixel === width * height) { //all valid
-            for (k = 0, i = 0; i < height; i++) {
-              for (j = 0; j < width; j++, k++) {
-                val = 0;
-                valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
-                valTmpQuick = valTmp;// >>> deltaBits;
-                if (32 - bitPos < numBitsLUTQick) {
-                  valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUTQick));
-                  valTmpQuick = valTmp;// >>> deltaBits;
-                }
-                if (decodeLut[valTmpQuick])    // if there, move the correct number of bits and done
-                {
-                  val = decodeLut[valTmpQuick][1];
-                  bitPos += decodeLut[valTmpQuick][0];
-                }
-                else {
-                  valTmp = (word << bitPos) >>> (32 - numBitsLUT);
-                  valTmpQuick = valTmp;// >>> deltaBits;
-                  if (32 - bitPos < numBitsLUT) {
-                    valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
-                    valTmpQuick = valTmp;// >>> deltaBits;
-                  }
-                  node = tree;
-                  for (ii = 0; ii < numBitsLUT; ii++) {
-                    currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
-                    node = currentBit ? node.right : node.left;
-                    if (!(node.left || node.right)) {
-                      val = node.val;
-                      bitPos = bitPos + ii + 1;
-                      break;
-                    }
-                  }
-                }
-
-                if (bitPos >= 32) {
-                  bitPos -= 32;
-                  srcPtr++;
-                  word = stuffedData[srcPtr];
-                }
-
-                delta = val - offset;
-                if (deltaEncode) {
-                  if (j > 0) {
-                    delta += prevVal;    // use overflow
-                  }
-                  else if (i > 0) {
-                    delta += resultPixels[k - width];
-                  }
-                  else {
-                    delta += prevVal;
-                  }
-                  delta &= 0xFF; //overflow
-                  resultPixels[k] = delta;//overflow
-                  prevVal = delta;
-                }
-                else {
-                  resultPixels[k] = delta;
-                }
-              }
+        // TODO: reevaluate the need to keep inlined decoding code as IE support is phasing out
+        if (numDims < 2 || deltaEncode) {
+          for (iDim = 0; iDim < numDims; iDim++) {
+            if (numDims > 1) {
+              //get the mem block of current dimension
+              resultPixels = new OutPixelTypeArray(resultPixelsAllDim.buffer, numPixels * iDim, numPixels);
+              prevVal = 0;
             }
-          }
-          else { //not all valid, use mask
-            for (k = 0, i = 0; i < height; i++) {
-              for (j = 0; j < width; j++, k++) {
-                if (mask[k]) {
+            if (data.headerInfo.numValidPixel === width * height) { //all valid
+              for (k = 0, i = 0; i < height; i++) {
+                for (j = 0; j < width; j++, k++) {
                   val = 0;
                   valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
                   valTmpQuick = valTmp;// >>> deltaBits;
@@ -1221,25 +1179,24 @@ Contributors:  Johannes Schmid, (LERC v1)
                       }
                     }
                   }
-
+    
                   if (bitPos >= 32) {
                     bitPos -= 32;
                     srcPtr++;
                     word = stuffedData[srcPtr];
                   }
-
+    
                   delta = val - offset;
                   if (deltaEncode) {
-                    if (j > 0 && mask[k - 1]) {
+                    if (j > 0) {
                       delta += prevVal;    // use overflow
                     }
-                    else if (i > 0 && mask[k - width]) {
+                    else if (i > 0) {
                       delta += resultPixels[k - width];
                     }
                     else {
                       delta += prevVal;
                     }
-
                     delta &= 0xFF; //overflow
                     resultPixels[k] = delta;//overflow
                     prevVal = delta;
@@ -1250,10 +1207,128 @@ Contributors:  Johannes Schmid, (LERC v1)
                 }
               }
             }
+            else { //not all valid, use mask
+              for (k = 0, i = 0; i < height; i++) {
+                for (j = 0; j < width; j++, k++) {
+                  if (mask[k]) {
+                    val = 0;
+                    valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
+                    valTmpQuick = valTmp;// >>> deltaBits;
+                    if (32 - bitPos < numBitsLUTQick) {
+                      valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUTQick));
+                      valTmpQuick = valTmp;// >>> deltaBits;
+                    }
+                    if (decodeLut[valTmpQuick])    // if there, move the correct number of bits and done
+                    {
+                      val = decodeLut[valTmpQuick][1];
+                      bitPos += decodeLut[valTmpQuick][0];
+                    }
+                    else {
+                      valTmp = (word << bitPos) >>> (32 - numBitsLUT);
+                      valTmpQuick = valTmp;// >>> deltaBits;
+                      if (32 - bitPos < numBitsLUT) {
+                        valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
+                        valTmpQuick = valTmp;// >>> deltaBits;
+                      }
+                      node = tree;
+                      for (ii = 0; ii < numBitsLUT; ii++) {
+                        currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
+                        node = currentBit ? node.right : node.left;
+                        if (!(node.left || node.right)) {
+                          val = node.val;
+                          bitPos = bitPos + ii + 1;
+                          break;
+                        }
+                      }
+                    }
+    
+                    if (bitPos >= 32) {
+                      bitPos -= 32;
+                      srcPtr++;
+                      word = stuffedData[srcPtr];
+                    }
+    
+                    delta = val - offset;
+                    if (deltaEncode) {
+                      if (j > 0 && mask[k - 1]) {
+                        delta += prevVal;    // use overflow
+                      }
+                      else if (i > 0 && mask[k - width]) {
+                        delta += resultPixels[k - width];
+                      }
+                      else {
+                        delta += prevVal;
+                      }
+    
+                      delta &= 0xFF; //overflow
+                      resultPixels[k] = delta;//overflow
+                      prevVal = delta;
+                    }
+                    else {
+                      resultPixels[k] = delta;
+                    }
+                  }
+                }
+              }
+            }
           }
-          data.ptr = data.ptr + (srcPtr + 1) * 4 + (bitPos > 0 ? 4 : 0);
         }
+        else {
+          for (k = 0, i = 0; i < height; i++) {
+            for (j = 0; j < width; j++) {
+              k = i * width + j;
+              if (!mask || mask[k]) {
+                for (iDim = 0; iDim < numDims; iDim++, k+=numPixels) {
+                  val = 0;
+                  valTmp = (word << bitPos) >>> (32 - numBitsLUTQick);
+                  valTmpQuick = valTmp;
+                  if (32 - bitPos < numBitsLUTQick) {
+                    valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUTQick));
+                    valTmpQuick = valTmp;
+                  }
+                  if (decodeLut[valTmpQuick])
+                  {
+                    val = decodeLut[valTmpQuick][1];
+                    bitPos += decodeLut[valTmpQuick][0];
+                  }
+                  else {
+                    valTmp = (word << bitPos) >>> (32 - numBitsLUT);
+                    valTmpQuick = valTmp;
+                    if (32 - bitPos < numBitsLUT) {
+                      valTmp |= ((stuffedData[srcPtr + 1]) >>> (64 - bitPos - numBitsLUT));
+                      valTmpQuick = valTmp;
+                    }
+                    node = tree;
+                    for (ii = 0; ii < numBitsLUT; ii++) {
+                      currentBit = valTmp >>> (numBitsLUT - ii - 1) & 1;
+                      node = currentBit ? node.right : node.left;
+                      if (!(node.left || node.right)) {
+                        val = node.val;
+                        bitPos = bitPos + ii + 1;
+                        break;
+                      }
+                    }
+                  }
+
+                  if (bitPos >= 32) {
+                    bitPos -= 32;
+                    srcPtr++;
+                    word = stuffedData[srcPtr];
+                  }
+
+                  delta = val - offset;
+                  resultPixels[k] = delta;
+                }
+              }
+            }
+          }
+        }
+        data.ptr = data.ptr + (srcPtr + 1) * 4 + (bitPos > 0 ? 4 : 0);
         data.pixels.resultPixels = resultPixelsAllDim;
+        //swap for BIP layout
+        if (numDims > 1 && !useBSQForOutputDim) {
+          data.pixels.resultPixels = Lerc2Helpers.swapDimensionOrder(resultPixelsAllDim, numPixels, numDims, OutPixelTypeArray);
+        }
       },
 
       decodeBits: function(input, data, blockDataBuffer, offset, iDim) {
@@ -1364,10 +1439,11 @@ Contributors:  Johannes Schmid, (LERC v1)
 
       },
 
-      readTiles: function(input, data, OutPixelTypeArray) {
+      readTiles: function(input, data, OutPixelTypeArray, useBSQForOutputDim) {
         var headerInfo = data.headerInfo;
         var width = headerInfo.width;
         var height = headerInfo.height;
+        var numPixels = width * height;
         var microBlockSize = headerInfo.microBlockSize;
         var imageType = headerInfo.imageType;
         var dataTypeSize = Lerc2Helpers.getDataTypeSize(imageType);
@@ -1405,7 +1481,7 @@ Contributors:  Johannes Schmid, (LERC v1)
               if (numDims > 1) {
                 resultPixelsPrevDim = resultPixels;
                 outPtr = blockY * width * microBlockSize + blockX * microBlockSize;
-                resultPixels = new OutPixelTypeArray(data.pixels.resultPixels.buffer, width * height * iDim * dataTypeSize, width * height);
+                resultPixels = new OutPixelTypeArray(data.pixels.resultPixels.buffer, numPixels * iDim * dataTypeSize, numPixels);
                 zMax = headerInfo.maxValues[iDim];
               } else {
                 resultPixelsPrevDim = null;
@@ -1450,7 +1526,7 @@ Contributors:  Johannes Schmid, (LERC v1)
                         resultPixels[outPtr] = resultPixelsPrevDim[outPtr];
                         outPtr++;
                       }
-                    }                    
+                    }
                   }
                 }
                 data.counter.constant++;
@@ -1577,6 +1653,10 @@ Contributors:  Johannes Schmid, (LERC v1)
             }
           }
         }
+        //swap for BIP: it's always easier for clients to handle BSQ so we keep existing logic and introduce a swap here to minimze changes
+        if (numDims > 1 && !useBSQForOutputDim) {
+          data.pixels.resultPixels = Lerc2Helpers.swapDimensionOrder(data.pixels.resultPixels, numPixels, numDims, OutPixelTypeArray);
+        }
       },
 
       /*****************
@@ -1610,8 +1690,10 @@ Contributors:  Johannes Schmid, (LERC v1)
         };
       },
 
-      constructConstantSurface: function(data) {
+      constructConstantSurface: function(data, useBSQForOutputDim) {
         var val = data.headerInfo.zMax;
+        var valMin = data.headerInfo.zMin;
+        var maxValues = data.headerInfo.maxValues;
         var numDims = data.headerInfo.numDims;
         var numPixels = data.headerInfo.height * data.headerInfo.width;
         var i = 0, k = 0, nStart = 0;
@@ -1619,14 +1701,24 @@ Contributors:  Johannes Schmid, (LERC v1)
         var resultPixels = data.pixels.resultPixels;
         if (mask) {
           if (numDims > 1) {
-            for (i = 0; i < numDims; i++) {
-              nStart = i * numPixels;
-              if (data.headerInfo.maxValues) {
-                val = data.headerInfo.maxValues[i];
-              }
+            if (useBSQForOutputDim) {
+              for (i = 0; i < numDims; i++) {
+                nStart = i * numPixels;
+                val = maxValues[i];
+                for (k = 0; k < numPixels; k++) {
+                  if (mask[k]) {
+                    resultPixels[nStart + k] = val;
+                  }
+                }
+              }  
+            }
+            else {
               for (k = 0; k < numPixels; k++) {
                 if (mask[k]) {
-                  resultPixels[nStart + k] = val;
+                  nStart = k * numDims;
+                  for (i = 0; i < numDims; i++) {
+                    resultPixels[nStart + numDims] = maxValues[i];
+                  }
                 }
               }
             }
@@ -1640,19 +1732,27 @@ Contributors:  Johannes Schmid, (LERC v1)
           }
         }
         else {
-          if (numDims > 1) {
-            for (i = 0; i < numDims; i++) {
-              nStart = i * numPixels;
-              if (data.headerInfo.maxValues) {
-                val = data.headerInfo.maxValues[i];
+          if (numDims > 1 && valMin !== val) {
+            if (useBSQForOutputDim) {
+              for (i = 0; i < numDims; i++) {
+                nStart = i * numPixels;
+                val = maxValues[i];
+                for (k = 0; k < numPixels; k++) {
+                  resultPixels[nStart + k] = val;
+                }
               }
+            }
+            else {
               for (k = 0; k < numPixels; k++) {
-                resultPixels[nStart + k] = val;
+                nStart = k * numDims;
+                for (i = 0; i < numDims; i++) {
+                  resultPixels[nStart + i] = maxValues[i];
+                }
               }
             }
           }
           else {
-            for (k = 0; k < numPixels; k++) {
+            for (k = 0; k < numPixels * numDims; k++) {
               resultPixels[k] = val;
             }
           }
@@ -1718,7 +1818,7 @@ Contributors:  Johannes Schmid, (LERC v1)
             tp = "F32";
             break;
           case 7:
-            tp = "F64"; //not supported
+            tp = "F64";
             break;
           default:
             tp = "F32";
@@ -1754,7 +1854,7 @@ Contributors:  Johannes Schmid, (LERC v1)
             isValid = val >= -3.4027999387901484e+38 && val <= 3.4027999387901484e+38;
             break;
           case 7:
-            isValid = val >= 5e-324 && val <= 1.7976931348623157e+308;
+            isValid = val >= -1.7976931348623157e+308 && val <= 1.7976931348623157e+308;
             break;
           default:
             isValid = false;
@@ -1849,15 +1949,36 @@ Contributors:  Johannes Schmid, (LERC v1)
             temp = view.getFloat32(blockPtr, true);
             break;
           case 7:
-            //temp = view.getFloat64(blockPtr, true);
-            //blockPtr += 8;
-            //lerc2 encoding doesnt handle float 64, force to float32???
             temp = view.getFloat64(blockPtr, true);
             break;
           default:
             throw ("the decoder does not understand this pixel type");
         }
         return temp;
+      },
+
+      swapDimensionOrder: function(pixels, numPixels, numDims, OutPixelTypeArray, inputIsBIP) {
+        var i = 0, j = 0, iDim = 0, temp = 0, swap = pixels;
+        if (numDims > 1) {
+          swap = new OutPixelTypeArray(numPixels * numDims);
+          if (inputIsBIP) {
+            for (i=0; i<numPixels; i++) {
+              temp = i;
+              for (iDim=0; iDim < numDims; iDim++, temp += numPixels) {
+                swap[temp] = pixels[j++];
+              }
+            }  
+          }
+          else {
+            for (i=0; i<numPixels; i++) {
+              temp = i;
+              for (iDim=0; iDim < numDims; iDim++, temp += numPixels) {
+                swap[j++] = pixels[temp];
+              }
+            }
+          }
+        }
+        return swap;
       }
     };
 
@@ -1904,6 +2025,7 @@ Contributors:  Johannes Schmid, (LERC v1)
        * @param {object} [options] options Decoding options
        * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid LERC file is expected at that position
        * @param {boolean} [options.returnFileInfo] If true, the return value will have a fileInfo property that contains metadata obtained from the LERC headers and the decoding process
+       * @param {boolean} [options.returnPixelInterleavedDims]  If true, returned dimensions are pixel-interleaved, a.k.a [p1_dim0, p1_dim1, p1_dimn, p2_dim0...], default is [p1_dim0, p2_dim0, ..., p1_dim1, p2_dim1...]
        */
       decode: function(/*byte array*/ input, /*object*/ options) {
         //currently there's a bug in the sparse array, so please do not set to false
@@ -1946,14 +2068,15 @@ Contributors:  Johannes Schmid, (LERC v1)
           constant: 0,
           constantoffset: 0
         };
+        var useBSQForOutputDim = !options.returnPixelInterleavedDims;
         if (headerInfo.numValidPixel !== 0) {
           //not tested
           if (headerInfo.zMax === headerInfo.zMin) //constant surface
           {
-            Lerc2Helpers.constructConstantSurface(data);
+            Lerc2Helpers.constructConstantSurface(data, useBSQForOutputDim);
           }
           else if (fileVersion >= 4 && Lerc2Helpers.checkMinMaxRanges(input, data)) {
-            Lerc2Helpers.constructConstantSurface(data);
+            Lerc2Helpers.constructConstantSurface(data, useBSQForOutputDim);
           }
           else {
             var view = new DataView(input, data.ptr, 2);
@@ -1961,7 +2084,7 @@ Contributors:  Johannes Schmid, (LERC v1)
             data.ptr++;
             if (bReadDataOneSweep) {
               //console.debug("OneSweep");
-              Lerc2Helpers.readDataOneSweep(input, data, OutPixelTypeArray);
+              Lerc2Helpers.readDataOneSweep(input, data, OutPixelTypeArray, useBSQForOutputDim);
             }
             else {
               //lerc2.1: //bitstuffing + lut
@@ -1977,16 +2100,16 @@ Contributors:  Johannes Schmid, (LERC v1)
                 }
                 if (flagHuffman) {//1 - delta Huffman, 2 - Huffman
                   //console.log("Huffman");
-                  Lerc2Helpers.readHuffman(input, data, OutPixelTypeArray);
+                  Lerc2Helpers.readHuffman(input, data, OutPixelTypeArray, useBSQForOutputDim);
                 }
                 else {
                   //console.log("Tiles");
-                  Lerc2Helpers.readTiles(input, data, OutPixelTypeArray);
+                  Lerc2Helpers.readTiles(input, data, OutPixelTypeArray, useBSQForOutputDim);
                 }
               }
               else { //lerc2.x non-8 bit data
                 //console.log("Tiles");
-                Lerc2Helpers.readTiles(input, data, OutPixelTypeArray);
+                Lerc2Helpers.readTiles(input, data, OutPixelTypeArray, useBSQForOutputDim);
               }
             }
           }
@@ -2081,6 +2204,7 @@ Contributors:  Johannes Schmid, (LERC v1)
      * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
      * @param {string} [options.pixelType] (LERC1 only) Default value is F32. Valid pixel types for input are U8/S8/S16/U16/S32/U32/F32.
      * @param {number} [options.noDataValue] (LERC1 only). It is recommended to use the returned mask instead of setting this value.
+     * @param {boolean} [options.returnPixelInterleavedDims] (nDim LERC2 only) If true, returned dimensions are pixel-interleaved, a.k.a [p1_dim0, p1_dim1, p1_dimn, p2_dim0...], default is [p1_dim0, p2_dim0, ..., p1_dim1, p2_dim1...]
      * @returns {{width, height, pixels, pixelType, mask, statistics}}
        * @property {number} width Width of decoded image.
        * @property {number} height Height of decoded image.
@@ -2129,6 +2253,7 @@ Contributors:  Johannes Schmid, (LERC v1)
           returnMask: iPlane === 0 ? true : false,//lerc1 only
           returnEncodedMask: iPlane === 0 ? true : false,//lerc1 only
           returnFileInfo: true,//for both lerc1 and lerc2
+          returnPixelInterleavedDims: options.returnPixelInterleavedDims,//for ndim lerc2 only
           pixelType: options.pixelType || null,//lerc1 only
           noDataValue: options.noDataValue || null//lerc1 only
         });
@@ -2145,7 +2270,9 @@ Contributors:  Johannes Schmid, (LERC v1)
           decodedPixelBlock.mask = maskData;
         }
         if (majorVersion > 1) {
-          bandMasks.push(maskData);
+          if (maskData) {
+            bandMasks.push(maskData);
+          }
           if (result.fileInfo.mask && result.fileInfo.mask.numBytes > 0) {
             uniqueBandMaskCount++;
           }
