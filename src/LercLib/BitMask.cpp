@@ -29,7 +29,7 @@ USING_NAMESPACE_LERC
 
 // -------------------------------------------------------------------------- ;
 
-BitMask::BitMask(const BitMask& src) : m_pBits(nullptr)
+BitMask::BitMask(const BitMask& src) : m_pBits(nullptr), m_nCols(0), m_nRows(0)
 {
   SetSize(src.m_nCols, src.m_nRows);
   if (m_pBits && src.m_pBits)
@@ -65,16 +65,33 @@ void BitMask::SetAllInvalid() const
 
 bool BitMask::SetSize(int nCols, int nRows)
 {
+  if (nCols <= 0 || nRows <= 0)
+  {
+    Clear();
+    return (nCols == 0 && nRows == 0);
+  }
+
   if (nCols != m_nCols || nRows != m_nRows)
   {
     Clear();
-    m_pBits = new Byte[(nCols * nRows + 7) >> 3];
-    if (m_pBits)
+
+    try
     {
-      m_nCols = nCols;
-      m_nRows = nRows;
+      size_t nPix = (size_t)nCols * (size_t)nRows;
+      m_pBits = new Byte[(nPix + 7) >> 3];
     }
+    catch (...)
+    {
+      return false;
+    }
+
+    if (!m_pBits)
+      return false;
+
+    m_nCols = nCols;
+    m_nRows = nRows;
   }
+
   return m_pBits != nullptr;
 }
 
