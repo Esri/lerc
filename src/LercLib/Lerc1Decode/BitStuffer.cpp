@@ -29,7 +29,7 @@ using namespace LercNS;
 
 // -------------------------------------------------------------------------- ;
 
-bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec)
+bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
 {
   if (!ppByte)
     return false;
@@ -55,8 +55,14 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec)
 
   if (numUInts > 0)    // numBits can be 0
   {
+    m_tmpBitStuffVec.resize(numUInts);
+    m_tmpBitStuffVec[numUInts - 1] = 0;    // set last uint to 0
+
+    unsigned int nBytesToCopy = (numElements * numBits + 7) / 8;
+    memcpy(&m_tmpBitStuffVec[0], *ppByte, nBytesToCopy);
+
     unsigned int numBytes = numUInts * sizeof(unsigned int);
-    unsigned int* arr = (unsigned int*)(*ppByte);
+    unsigned int* arr = &m_tmpBitStuffVec[0];
 
     unsigned int* srcPtr = arr;
     for (unsigned int i = 0; i < numUInts; i++)
@@ -65,19 +71,10 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec)
       srcPtr++;
     }
 
-    // needed to save the 0-3 bytes not used in the last UInt
-    srcPtr--;
-    unsigned int lastUInt;
-    memcpy(&lastUInt, srcPtr, sizeof(unsigned int));
-    unsigned int numBytesNotNeeded = numTailBytesNotNeeded(numElements, numBits);
-    unsigned int n = numBytesNotNeeded;
+    unsigned int* pLastULong = &m_tmpBitStuffVec[numUInts - 1];
+    unsigned int n = numTailBytesNotNeeded(numElements, numBits);
     while (n--)
-    {
-      unsigned int val;
-      memcpy(&val, srcPtr, sizeof(unsigned int));
-      val <<= 8;
-      memcpy(srcPtr, &val, sizeof(unsigned int));
-    }
+      *pLastULong <<= 8;
 
     // do the un-stuffing
     srcPtr = arr;
@@ -113,10 +110,7 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec)
       }
     }
 
-    if (numBytesNotNeeded > 0)
-      memcpy(srcPtr, &lastUInt, sizeof(unsigned int));    // restore the last UInt
-
-    *ppByte += numBytes - numBytesNotNeeded;
+    *ppByte += nBytesToCopy;
   }
 
   return true;
