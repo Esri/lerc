@@ -14,8 +14,9 @@
 ```
 ```js
 Lerc.decode(xhrResponse, {
-  pixelType: "U8", // leave pixelType out in favor of F32 for lerc1
-  inputOffset: 10 // start from the 10th byte
+  inputOffset: 10, // start from the 10th byte (default is 0)
+  pixelType: "U8", // only needed for lerc1 (default is F32)
+  returnPixelInterleavedDims: false // only applicable to n-dim lerc2 blobs (default is false)
 });
 ```
 
@@ -73,7 +74,7 @@ A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling mul
 
 ## Licensing
 
-Copyright &copy; 2017-2018 Esri
+Copyright &copy; 2017-2021 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

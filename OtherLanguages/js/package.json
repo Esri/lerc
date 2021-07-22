@@ -5,7 +5,7 @@
     "url": "https://github.com/esri/lerc/issues"
   },
   "description": "Rapid decoding of Lerc compressed raster data for any standard pixel type.",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "author": "Esri <dev_tools@esri.com> (http://developers.arcgis.com)",
   "contributors": [
     "Johannes Schmid",
@@ -15,8 +15,8 @@
   "devDependencies": {
     "gh-release": "^2.2.1",
     "jsdoc-to-markdown": "^2.0.1",
-    "jshint": "^2.9.4",
-    "uglify-js": "^2.7.5"
+    "jshint": "^2.13.0",
+    "uglify-js": "^3.14.0"
   },
   "files": [
     "LercDecode.js",
