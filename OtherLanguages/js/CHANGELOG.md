@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][HEAD]
 
+## [3.0.0] - 2021-07
+
+The decoder is in sync with ArcMap 10.8.1 and ArcGIS Pro 2.8. LERC encoded binary blobs from any previous version of ArcMap or ArcGIS Pro can also be read / decoded.
+
+### Added
+* Added an option to return decoded n-dim blob using pixel-interleaved layout
+
+### Changed
+* Upgrade Lerc codec to new version Lerc 2.5.
+
 ## [2.0.0] - 2018-11-06
 
 The decoder is in sync with ArcMap 10.7 and ArcGIS Pro 2.3. LERC encoded binary blobs from any previous version of ArcMap or ArcGIS Pro can also be read / decoded.
