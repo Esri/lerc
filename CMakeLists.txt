@@ -17,6 +17,10 @@ option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static li
 # If no SHARED or STATIC is specified explicitly, add_library will honor BUILD_SHARED_LIBS
 add_library(Lerc ${SOURCES})
 
+set_target_properties(Lerc
+    PROPERTIES
+    PUBLIC_HEADER "src/LercLib/include/Lerc_types.h" "src/LercLib/include/Lerc_c_api.h")
+
 if(BUILD_SHARED_LIBS)
     set_target_properties(Lerc PROPERTIES DEFINE_SYMBOL LERC_EXPORTS)
 endif()
@@ -27,9 +31,4 @@ install(
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
-install(
-    FILES "src/LercLib/include/Lerc_types.h" "src/LercLib/include/Lerc_c_api.h"
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
