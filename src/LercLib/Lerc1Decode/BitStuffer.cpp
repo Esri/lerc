@@ -61,9 +61,7 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
     unsigned int nBytesToCopy = (numElements * numBits + 7) / 8;
     memcpy(&m_tmpBitStuffVec[0], *ppByte, nBytesToCopy);
 
-    unsigned int numBytes = numUInts * sizeof(unsigned int);
     unsigned int* arr = &m_tmpBitStuffVec[0];
-
     unsigned int* srcPtr = arr;
     for (unsigned int i = 0; i < numUInts; i++)
     {
