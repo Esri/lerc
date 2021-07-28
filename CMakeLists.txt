@@ -19,7 +19,7 @@ add_library(Lerc ${SOURCES})
 
 set_target_properties(Lerc
     PROPERTIES
-    PUBLIC_HEADER "src/LercLib/include/Lerc_types.h" "src/LercLib/include/Lerc_c_api.h")
+    PUBLIC_HEADER "src/LercLib/include/Lerc_types.h;src/LercLib/include/Lerc_c_api.h")
 
 if(BUILD_SHARED_LIBS)
     set_target_properties(Lerc PROPERTIES DEFINE_SYMBOL LERC_EXPORTS)
