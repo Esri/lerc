@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased][unreleased]
 
 
+## [3.0](https://github.com/Esri/lerc/releases/tag/v3.0) - 2021-07-30
+
+### Milestones reached
+- This LERC API and all language decoders (C++, C, C#, Python, JavaScript) and encoders (C++, C, Python) are now in sync with these ESRI ArcGIS versions: ESRI ArcGIS Pro 2.8, ESRI ArcMap 10.8.1.
+LERC encoded binary blobs of any previous version of ArcGIS Pro or ArcMap can be read / decoded.
+
 ### Fixed
 
 * Moved include/ folder to src/LercLib/ and removed duplicate header files. Some updates in Lerc_c_api.h for dll export / import switch, and in CMakeLists.txt. 
