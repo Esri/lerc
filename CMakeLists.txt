@@ -38,8 +38,6 @@ install(
 )
 
 # Configure and install pkgconfig file
-if(NOT MSVC AND NOT APPLE)
-    configure_file(Lerc.pc.in ${CMAKE_CURRENT_BINARY_DIR}/Lerc.pc @ONLY)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Lerc.pc
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-endif()
+configure_file(Lerc.pc.in ${CMAKE_CURRENT_BINARY_DIR}/Lerc.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Lerc.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
