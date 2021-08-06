@@ -1,5 +1,8 @@
-cmake_minimum_required (VERSION 3.11)
-project (Lerc)
+cmake_minimum_required(VERSION 3.11)
+
+project(Lerc
+        DESCRIPTION "Limited Error Raster Compression"
+        VERSION 3.0.0) # Keep in sync with Lerc_c_api.h
 
 include(GNUInstallDirs)
 
@@ -32,3 +35,10 @@ install(
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
+
+# Configure and install pkgconfig file
+if(NOT MSVC AND NOT APPLE)
+    configure_file(Lerc.pc.in ${CMAKE_CURRENT_BINARY_DIR}/Lerc.pc @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Lerc.pc
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
