@@ -24,6 +24,12 @@ Contributors:  Thomas Maurer
 #ifndef LERC_API_INCLUDE_GUARD
 #define LERC_API_INCLUDE_GUARD
 
+//#define USE_EMSCRIPTEN
+
+#ifdef USE_EMSCRIPTEN
+  #include <emscripten/emscripten.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -155,6 +161,9 @@ extern "C" {
   // If in doubt, check the code in Lerc::GetLercInfo(...) for the exact logic. 
 
   LERCDLL_API
+#ifdef USE_EMSCRIPTEN
+  EMSCRIPTEN_KEEPALIVE
+#endif
   lerc_status lerc_getBlobInfo(
     const unsigned char* pLercBlob,    // Lerc blob to decode
     unsigned int blobSize,             // blob size in bytes
@@ -169,6 +178,9 @@ extern "C" {
   //! The valid pixels array, if not all pixels valid, must have been allocated to size (nCols * nRows * nMasks). 
 
   LERCDLL_API
+#ifdef USE_EMSCRIPTEN
+  EMSCRIPTEN_KEEPALIVE
+#endif
   lerc_status lerc_decode(
     const unsigned char* pLercBlob,    // Lerc blob to decode
     unsigned int blobSize,             // blob size in bytes

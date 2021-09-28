@@ -38,6 +38,8 @@ Contributors:  Thomas Maurer, Lucian Plesea
 
 #define HAVE_LERC1_DECODE
 
+//#define USE_EMSCRIPTEN_FOR_ENCODE    // temporary, to be removed once bug in Emscripten is fixed
+
 NAMESPACE_LERC_START
 
 typedef unsigned char Byte;

@@ -52,6 +52,9 @@ Check out the Lerc decoders and encoders in `OtherLanguages/`. You may need to a
 
 ### How to compile LERC and the C++ test program
 
+For building the Lerc library on any platform using CMake, use `CMakeLists.txt`. 
+For the most common platforms you can find alternative project files under `build/`. 
+
 #### Windows
 
 - Open `build/Windows/MS_VS2019/Lerc.sln` with Microsoft Visual Studio. 
