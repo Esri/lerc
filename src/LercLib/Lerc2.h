@@ -435,9 +435,8 @@ inline int Lerc2::NumBytesTile(int numValidPixel, T zMin, T zMax, DataType dtZ, 
 template<class T>
 inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
 {
-#ifdef USE_EMSCRIPTEN_FOR_ENCODE    // temporary, to be removed once bug in Emscripten is fixed
-  // Emscripten can promote variable types to prevent overflow, causing unexpected behavior;
-  //   here, casting the value 320 to a byte can result in 320 instead of the expected 64;
+  // clamp to dst range first to guarantee portable code, see  https://www.cplusplus.com/doc/tutorial/typecasting/
+
   Byte b = (z >= 0 && z <= 255) ? (Byte)z : 0;
   switch (dt)
   {
@@ -480,62 +479,7 @@ inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
     {
       short s = (z >= SHRT_MIN && z <= SHRT_MAX) ? (short)z : 0;
       int l = (z >= INT_MIN && z <= INT_MAX) ? (int)z : 0;
-      //float f = (float)z;  // ?
-      //int tc = (T)s == z ? 3 : (T)l == z ? 2 : (T)f == z ? 1 : 0;
-      int tc = (T)s == z ? 3 : (T)l == z ? 2 : 0;    // give up on reduce to float; different from C++ encode, less efficient, but always correct;
-      dtReduced = tc == 0 ? dt : (DataType)(dt - 2 * tc + 1);
-      return tc;
-    }
-    default:
-    {
-      dtReduced = dt;
-      return 0;
-    }
-  }
-#else
-  Byte b = (Byte)z;
-  switch (dt)
-  {
-    case DT_Short:
-    {
-      signed char c = (signed char)z;
-      int tc = (T)c == z ? 2 : (T)b == z ? 1 : 0;
-      dtReduced = (DataType)(dt - tc);
-      return tc;
-    }
-    case DT_UShort:
-    {
-      int tc = (T)b == z ? 1 : 0;
-      dtReduced = (DataType)(dt - 2 * tc);
-      return tc;
-    }
-    case DT_Int:
-    {
-      short s = (short)z;
-      unsigned short us = (unsigned short)z;
-      int tc = (T)b == z ? 3 : (T)s == z ? 2 : (T)us == z ? 1 : 0;
-      dtReduced = (DataType)(dt - tc);
-      return tc;
-    }
-    case DT_UInt:
-    {
-      unsigned short us = (unsigned short)z;
-      int tc = (T)b == z ? 2 : (T)us == z ? 1 : 0;
-      dtReduced = (DataType)(dt - 2 * tc);
-      return tc;
-    }
-    case DT_Float:
-    {
-      short s = (short)z;
-      int tc = (T)b == z ? 2 : (T)s == z ? 1 : 0;
-      dtReduced = tc == 0 ? dt : (tc == 1 ? DT_Short : DT_Byte);
-      return tc;
-    }
-    case DT_Double:
-    {
-      short s = (short)z;
-      int l = (int)z;
-      float f = (float)z;
+      float f = (z >= -FLT_MAX && z <= FLT_MAX) ? (float)z : 0;
       int tc = (T)s == z ? 3 : (T)l == z ? 2 : (T)f == z ? 1 : 0;
       dtReduced = tc == 0 ? dt : (DataType)(dt - 2 * tc + 1);
       return tc;
@@ -546,7 +490,6 @@ inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
       return 0;
     }
   }
-#endif
 }
 
 // -------------------------------------------------------------------------- ;
