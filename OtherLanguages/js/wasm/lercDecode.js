@@ -158,7 +158,7 @@ function initLercDecode(lercFactory) {
     //   zMax,             // max pixel value, over all data values
     //   maxZError;        // maxZError used for encoding
     stackRestore(stack);
-    // _free(ptr);
+    _free(ptr);
     return {
       info: {
         version,
@@ -230,7 +230,7 @@ function initLercDecode(lercFactory) {
     data.set(heapU8.slice(ptr_data, ptr_data + numDataBytes));
     maskData.set(heapU8.slice(ptr_mask, ptr_mask + numPixels));
     stackRestore(stack);
-    // _free(ptr);
+    _free(ptr);
     return {
       blobInfo,
       data,
@@ -370,9 +370,9 @@ export function decode(input, options = {}) {
 
   if (maskCount > 1) {
     mask.set(masks[0]);
-    for (i = 1; i < masks.length; i++) {
+    for (let i = 1; i < masks.length; i++) {
       const bandMask = masks[i];
-      for (j = 0; j < numPixels; j++) {
+      for (let j = 0; j < numPixels; j++) {
         mask[j] = mask[j] & bandMask[j];
       }
     }
