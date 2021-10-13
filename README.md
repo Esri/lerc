@@ -50,6 +50,11 @@ Lerc can be run anywhere without external dependencies. This project includes te
 
 Check out the Lerc decoders and encoders in `OtherLanguages/`. You may need to adjust the paths to input or output data and the dll or .so file. Other than that they should just work.
 
+### Popular download sites with easy to install packages
+
+[Python / Conda](https://anaconda.org/conda-forge/lerc)
+[JavaScript / npm](https://www.npmjs.com/package/lerc)
+
 ### How to compile LERC and the C++ test program
 
 For building the Lerc library on any platform using CMake, use `CMakeLists.txt`. 
