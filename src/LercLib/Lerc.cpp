@@ -283,6 +283,21 @@ ErrCode Lerc::ComputeCompressedSizeTempl(const T* pData, int version, int nDim, 
     numBytesNeeded, nullptr, 0, numBytesWritten);
 }
 
+#define EXPORT_ComputeCompressedSizeTempl(T) \
+  template ErrCode Lerc::ComputeCompressedSizeTempl<T>(const T* pData, int version, int nDim, int nCols, int nRows, int nBands, \
+  int nMasks, const Byte* pValidBytes, double maxZErr, unsigned int& numBytesNeeded);
+
+EXPORT_ComputeCompressedSizeTempl(signed char)
+EXPORT_ComputeCompressedSizeTempl(Byte)
+EXPORT_ComputeCompressedSizeTempl(short)
+EXPORT_ComputeCompressedSizeTempl(unsigned short)
+EXPORT_ComputeCompressedSizeTempl(int)
+EXPORT_ComputeCompressedSizeTempl(unsigned int)
+EXPORT_ComputeCompressedSizeTempl(float)
+EXPORT_ComputeCompressedSizeTempl(double)
+
+#undef EXPORT_ComputeCompressedSizeTempl
+
 // -------------------------------------------------------------------------- ;
 
 template<class T>
@@ -302,6 +317,21 @@ ErrCode Lerc::EncodeTempl(const T* pData, int version, int nDim, int nCols, int 
   return EncodeInternal(pData, version, nDim, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
     numBytesNeeded, pBuffer, numBytesBuffer, numBytesWritten);
 }
+
+#define EXPORT_EncodeTempl(T) \
+  template ErrCode Lerc::EncodeTempl<T>(const T* pData, int version, DataType dt, int nDim, int nCols, int nRows, int nBands, \
+  int nMasks, const Byte* pValidBytes, double maxZErr, Byte* pBuffer, unsigned int numBytesBuffer, unsigned int& numBytesWritten);
+
+EXPORT_EncodeTempl(signed char)
+EXPORT_EncodeTempl(Byte)
+EXPORT_EncodeTempl(short)
+EXPORT_EncodeTempl(unsigned short)
+EXPORT_EncodeTempl(int)
+EXPORT_EncodeTempl(unsigned int)
+EXPORT_EncodeTempl(float)
+EXPORT_EncodeTempl(double)
+
+#undef EXPORT_EncodeTempl
 
 // -------------------------------------------------------------------------- ;
 
