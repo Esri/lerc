@@ -26,6 +26,7 @@ Contributors:  Thomas Maurer
 
 #include <cfloat>
 #include <cmath>
+#include <climits>
 #include <algorithm>
 #include <string>
 #include "BitMask.h"
