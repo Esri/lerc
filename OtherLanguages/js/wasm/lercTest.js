@@ -1,4 +1,4 @@
-import { load, getBandCount, decode } from "./lercDecode.js";
+import { load, getBandCount, decode } from "./LercDecode.js";
 
 function decodeTest() {
   const t000 =
@@ -14,7 +14,7 @@ function demo() {
   // decodeTest();
   // http://wju2.esri.com/data/lerc/testuv_w30_h20_float.lerc2: decode hr is 1, incorrect mask
   var defaultUrl =
-    "http://wju2.esri.com/data/lerc/landsat_6band_8bit.lerc24";
+    "http://wju2.esri.com/data/lerc/test_huffman_byte_dim3.lerc25";
   //http://sampleserver6.arcgisonline.com/arcgis/rest/services/Toronto/ImageServer/exportImage?bbox=-8844874.0651,5401062.402699997,-8828990.0651,5420947.402699997&bboxSR=&size=&imageSR=&time=&format=lerc&pixelType=UNKNOWN&noData=&noDataInterpretation=esriNoDataMatchAny&interpolation= RSP_BilinearInterpolation&compression=&compressionQuality=&bandIds=&mosaicRule=&renderingRule=&f=image
   var url =
     location.search.indexOf("?url=") === 0
@@ -241,9 +241,9 @@ load().then(() => demo());
 // onesweep
 // testall_w1922_h1083_ushort.lerc2
 // js getBandCount:0.006
-// lercTest.js:112 wasm getBandCount:0.634
-// lercTest.js:118 js:0.248
-// lercTest.js:124 wasm:0.528
+// lercTest.js:112 wasm getBandCount:0.042
+// lercTest.js:118 js decode:0.265
+// lercTest.js:124 wasm decode:0.457
 
 // charlottelas_256_256.lerc2
 // read tiles lerc
