@@ -78,7 +78,7 @@ ErrCode Lerc::Encode(const void* pData, int version, DataType dt, int nDim, int 
 
 // -------------------------------------------------------------------------- ;
 
-ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, struct LercInfo& lercInfo)
+ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, struct LercInfo& lercInfo, double* pMins, double* pMaxs, size_t nElem)
 {
   lercInfo.RawInit();
 
@@ -94,7 +94,6 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
     lercInfo.nCols = lerc2Info.nCols;
     lercInfo.nRows = lerc2Info.nRows;
     lercInfo.numValidPixel = lerc2Info.numValidPixel;    // for 1st band
-    lercInfo.nBands = 1;
     lercInfo.blobSize = lerc2Info.blobSize;
     lercInfo.dt = (DataType)lerc2Info.dt;
     lercInfo.zMin = lerc2Info.zMin;
@@ -103,6 +102,15 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
 
     if (bHasMask || lercInfo.numValidPixel == 0)
       nMasks = 1;
+
+    if (pMins && pMaxs)
+    {
+      ErrCode errCode = GetRanges(pLercBlob, numBytesBlob, 0, lerc2Info, pMins, pMaxs, nElem);    // band 0
+      if (errCode != ErrCode::Ok)
+        return errCode;
+    }
+
+    lercInfo.nBands = 1;
 
     if (lercInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
       return ErrCode::BufferTooSmall;
@@ -122,18 +130,25 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
       if (bHasMask || hdInfo.numValidPixel != lercInfo.numValidPixel)    // support mask per band
         nMasks = 2;
 
-      if (lercInfo.blobSize > std::numeric_limits<int>::max() - hdInfo.blobSize)
+      if (lercInfo.blobSize > std::numeric_limits<int>::max() - hdInfo.blobSize)    // guard against overflow
         return ErrCode::Failed;
 
-      lercInfo.blobSize += hdInfo.blobSize;
-
-      if (lercInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
+      if (lercInfo.blobSize + hdInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
         return ErrCode::BufferTooSmall;
 
-      lercInfo.nBands++;
       lercInfo.zMin = min(lercInfo.zMin, hdInfo.zMin);
       lercInfo.zMax = max(lercInfo.zMax, hdInfo.zMax);
       lercInfo.maxZError = max(lercInfo.maxZError, hdInfo.maxZError);  // with the new bitplane compression, maxZError can vary between bands
+
+      if (pMins && pMaxs)
+      {
+        ErrCode errCode = GetRanges(pLercBlob + lercInfo.blobSize, numBytesBlob - lercInfo.blobSize, lercInfo.nBands, hdInfo, pMins, pMaxs, nElem);
+        if (errCode != ErrCode::Ok)
+          return errCode;
+      }
+
+      lercInfo.blobSize += hdInfo.blobSize;
+      lercInfo.nBands++;
     }
 
     lercInfo.nMasks = nMasks > 1 ? lercInfo.nBands : nMasks;
@@ -187,8 +202,6 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
         return (lercInfo.nBands > 0) ? ErrCode::Ok : ErrCode::Failed;    // no other band, we are done
 
       onlyZPart = true;
-
-      lercInfo.nBands++;
       lercInfo.blobSize = (int)(pByte - pLercBlob);
 
       // now that we have decoded it, we can go the extra mile and collect some extra info
@@ -212,6 +225,14 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
       lercInfo.zMin = std::min(lercInfo.zMin, (double)zMin);
       lercInfo.zMax = std::max(lercInfo.zMax, (double)zMax);
       lercInfo.nMasks = numValidPixels < width * height ? 1 : 0;
+
+      if (pMins && pMaxs)
+      {
+        pMins[lercInfo.nBands] = zMin;
+        pMaxs[lercInfo.nBands] = zMax;
+      }
+
+      lercInfo.nBands++;
     }
 
     return ErrCode::Ok;
@@ -711,6 +732,35 @@ bool Lerc::MasksDiffer(const Byte* p0, const Byte* p1, size_t n)
     return memchr(p0, 0, n);
   else
     return memcmp(p0, p1, n);
+}
+
+// -------------------------------------------------------------------------- ;
+
+ErrCode Lerc::GetRanges(const Byte* pLercBlob, unsigned int numBytesBlob, int iBand,
+  const struct Lerc2::HeaderInfo& lerc2Info, double* pMins, double* pMaxs, size_t nElem)
+{
+  const int nDim = lerc2Info.nDim;
+
+  if (nDim <= 0 || iBand < 0 || !pMins || !pMaxs)
+    return ErrCode::WrongParam;
+
+  if (nElem < ((size_t)iBand + 1) * (size_t)nDim)
+    return ErrCode::BufferTooSmall;
+
+  if (nDim == 1)
+  {
+    pMins[iBand] = lerc2Info.zMin;
+    pMaxs[iBand] = lerc2Info.zMax;
+  }
+  else
+  {
+    // read header, mask, ranges, and copy them out
+    Lerc2 lerc2;
+    if (!lerc2.GetRanges(pLercBlob, numBytesBlob, &pMins[iBand * nDim], &pMaxs[iBand * nDim]))
+      return ErrCode::Failed;
+  }
+
+  return ErrCode::Ok;
 }
 
 // -------------------------------------------------------------------------- ;

@@ -380,6 +380,69 @@ bool Lerc2::GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct Head
 
 // -------------------------------------------------------------------------- ;
 
+bool Lerc2::GetRanges(const Byte* pByte, size_t nBytesRemaining, double* pMins, double* pMaxs)
+{
+  if (!pByte || !IsLittleEndianSystem() || m_headerInfo.version < 4 || !pMins || !pMaxs)
+    return false;
+
+  if (!ReadHeader(&pByte, nBytesRemaining, m_headerInfo))
+    return false;
+
+  if (!ReadMask(&pByte, nBytesRemaining))
+    return false;
+
+  const int nDim = m_headerInfo.nDim;
+
+  if (m_headerInfo.numValidPixel == 0)    // image is empty
+  {
+    memset(pMins, 0, nDim * sizeof(double));    // fill with 0
+    memset(pMaxs, 0, nDim * sizeof(double));
+
+    return true;
+  }
+
+  if (m_headerInfo.zMin == m_headerInfo.zMax)    // image is const
+  {
+    double val = m_headerInfo.zMin;
+
+    for (int i = 0; i < nDim; i++)    // fill with const
+      pMins[i] = pMaxs[i] = val;
+
+    return true;
+  }
+
+  bool rv = false;
+  void* ptr = nullptr;
+
+  switch (m_headerInfo.dt)
+  {
+  case DT_Char:   rv = ReadMinMaxRanges(&pByte, nBytesRemaining, (signed char*)   ptr); break;
+  case DT_Byte:   rv = ReadMinMaxRanges(&pByte, nBytesRemaining, (Byte*)          ptr); break;
+  case DT_Short:  rv = ReadMinMaxRanges(&pByte, nBytesRemaining, (short*)         ptr); break;
+  case DT_UShort: rv = ReadMinMaxRanges(&pByte, nBytesRemaining, (unsigned short*)ptr); break;
+  case DT_Int:    rv = ReadMinMaxRanges(&pByte, nBytesRemaining, (int*)           ptr); break;
+  case DT_UInt:   rv = ReadMinMaxRanges(&pByte, nBytesRemaining, (unsigned int*)  ptr); break;
+  case DT_Float : rv = ReadMinMaxRanges(&pByte, nBytesRemaining, (float*)         ptr); break;
+  case DT_Double: rv = ReadMinMaxRanges(&pByte, nBytesRemaining, (double*)        ptr); break;
+
+  default:
+    return false;
+  }
+
+  if (!rv)
+    return false;
+
+  for (int i = 0; i < nDim; i++)
+  {
+    pMins[i] = m_zMinVec[i];
+    pMaxs[i] = m_zMaxVec[i];
+  }
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
 template<class T>
 bool Lerc2::Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* pMaskBits)
 {

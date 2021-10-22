@@ -114,6 +114,8 @@ public:
 
   static bool GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct HeaderInfo& headerInfo, bool& bHasMask);
 
+  bool GetRanges(const Byte* pByte, size_t nBytesRemaining, double* pMins, double* pMaxs);
+
   /// dst buffer already allocated;  byte ptr is moved like a file pointer
   template<class T>
   bool Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* pMaskBits = nullptr);    // if mask ptr is not 0, mask bits are returned (even if all valid or same as previous)
@@ -443,7 +445,7 @@ inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
   {
     case DT_Short:
     {
-      signed char c = (z >= -128 && z <= 127) ? (signed char)z : 0;
+      signed char c = (z >= (double)-128 && z <= 127) ? (signed char)z : 0;    // avoid signed / unsigned warnings on some compilers
       int tc = (T)c == z ? 2 : (T)b == z ? 1 : 0;
       dtReduced = (DataType)(dt - tc);
       return tc;
@@ -456,7 +458,7 @@ inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
     }
     case DT_Int:
     {
-      short s = (z >= SHRT_MIN && z <= SHRT_MAX) ? (short)z : 0;
+      short s = (z >= (double)SHRT_MIN && z <= SHRT_MAX) ? (short)z : 0;
       unsigned short us = (z >= 0 && z <= USHRT_MAX) ? (unsigned short)z : 0;
       int tc = (T)b == z ? 3 : (T)s == z ? 2 : (T)us == z ? 1 : 0;
       dtReduced = (DataType)(dt - tc);
@@ -471,15 +473,15 @@ inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
     }
     case DT_Float:
     {
-      short s = (z >= SHRT_MIN && z <= SHRT_MAX) ? (short)z : 0;
+      short s = (z >= (float)SHRT_MIN && z <= SHRT_MAX) ? (short)z : 0;
       int tc = (T)b == z ? 2 : (T)s == z ? 1 : 0;
       dtReduced = tc == 0 ? dt : (tc == 1 ? DT_Short : DT_Byte);
       return tc;
     }
     case DT_Double:
     {
-      short s = (z >= SHRT_MIN && z <= SHRT_MAX) ? (short)z : 0;
-      int l = (z >= INT_MIN && z <= INT_MAX) ? (int)z : 0;
+      short s = (z >= (double)SHRT_MIN && z <= SHRT_MAX) ? (short)z : 0;
+      int l = (z >= (double)INT_MIN && z <= (double)INT_MAX) ? (int)z : 0;
       float f = (z >= -FLT_MAX && z <= FLT_MAX) ? (float)z : 0;
       int tc = (T)s == z ? 3 : (T)l == z ? 2 : (T)f == z ? 1 : 0;
       dtReduced = tc == 0 ? dt : (DataType)(dt - 2 * tc + 1);
@@ -497,7 +499,7 @@ inline int Lerc2::ReduceDataType(T z, DataType dt, DataType& dtReduced)
 
 inline Lerc2::DataType Lerc2::ValidateDataType(int dt)
 {
-  if( dt >= DT_Char && dt <= DT_Double )
+  if (dt >= DT_Char && dt <= DT_Double)
     return static_cast<DataType>(dt);
   return DT_Undefined;
 }

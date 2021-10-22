@@ -126,8 +126,11 @@ NAMESPACE_LERC_START
     // If in doubt, check the code in Lerc::GetLercInfo(...) for the exact logic. 
 
     static ErrCode GetLercInfo(const Byte* pLercBlob,       // Lerc blob to decode
-                               unsigned int numBytesBlob,   // size of Lerc blob in bytes
-                               struct LercInfo& lercInfo);
+      unsigned int numBytesBlob,   // size of Lerc blob in bytes
+      struct LercInfo& lercInfo,
+      double* pMins = nullptr,     // pass array of size (nDim * nBands) to get the min values per dimension and band
+      double* pMaxs = nullptr,     // same as pMins, to get the max values
+      size_t nElem = 0);           // (nDim * nBands), if passed
 
     // setup outgoing arrays accordingly, then call Decode()
 
@@ -218,8 +221,11 @@ NAMESPACE_LERC_START
 
     template<class T> static bool Resize(std::vector<T>& buffer, size_t nElem);
 
-    bool static Convert(const Byte* pByteMask, int nCols, int nRows, BitMask& bitMask);
-    bool static Convert(const BitMask& bitMask, Byte* pByteMask);
-    bool static MasksDiffer(const Byte* p0, const Byte* p1, size_t n);
+    static bool Convert(const Byte* pByteMask, int nCols, int nRows, BitMask& bitMask);
+    static bool Convert(const BitMask& bitMask, Byte* pByteMask);
+    static bool MasksDiffer(const Byte* p0, const Byte* p1, size_t n);
+
+    static ErrCode GetRanges(const Byte* pLercBlob, unsigned int numBytesBlob, int iBand,
+      const struct Lerc2::HeaderInfo& lerc2Info, double* pMins, double* pMaxs, size_t nElem);
   };
 NAMESPACE_LERC_END

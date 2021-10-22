@@ -15,7 +15,7 @@ using namespace std::chrono;
 
 //#define TestLegacyData
 //#define DumpDecodedTiles
-#define CompareAgainstDumpedTiles
+//#define CompareAgainstDumpedTiles
 
 typedef unsigned char Byte;    // convenience
 typedef unsigned int uint32;
@@ -181,6 +181,29 @@ bool CompareTwoTiles(int nMasks, const Byte* pValidBytes, int nDim, int w, int h
     return false;
   }
 
+  return true;
+}
+
+bool ReadListFile(const string& listFn, vector<string>& fnVec)
+{
+  FILE* fp = fopen(listFn.c_str(), "r");
+  if (!fp)
+  {
+    printf("Cannot open file %s\n", listFn.c_str());
+    return false;
+  }
+
+  char buffer[1024];
+  int num = 0;
+  fscanf(fp, "%d", &num);
+  for (int i = 0; i < num; i++)
+  {
+    fscanf(fp, "%s", buffer);
+    string s = buffer;
+    fnVec.push_back(s);
+  }
+
+  fclose(fp);
   return true;
 }
 
@@ -389,6 +412,11 @@ int main(int argc, char* arcv[])
   if (!BlobInfo_Equal(infoArr, 3, w, h, 1, (uint32)dt_uchar))
     cout << "got wrong lerc info" << endl;
 
+  vector<double> zMinVec(3, 0), zMaxVec(3, 0);
+  hr = lerc_getDataRanges(pLercBlob, numBytesBlob, 3, 1, &zMinVec[0], &zMaxVec[0]);
+  if (hr)
+    cout << "lerc_getDataRanges(...) failed" << endl;
+
   // new data storage
   Byte* byteImg3 = new Byte[3 * w * h];
   memset(byteImg3, 0, 3 * w * h);
@@ -572,59 +600,12 @@ int main(int argc, char* arcv[])
   pathDecoded = "PreLoadedFiles/DecodedTiles/";
 #endif
 
-  fnVec.push_back("amazon3.lerc1");
-  fnVec.push_back("tuna.lerc1");
-  fnVec.push_back("tuna_0_to_1_w1920_h925.lerc1");
-  fnVec.push_back("world.lerc1");
-
-  fnVec.push_back("bluemarble_256_256_3_byte.lerc2");
-  fnVec.push_back("california_400_400_1_float.lerc2");
-  fnVec.push_back("landsat_512_512_6_byte.lerc2");
-
-  fnVec.push_back("testall_w30_h20_char.lerc2");
-  fnVec.push_back("testall_w30_h20_byte.lerc2");
-  fnVec.push_back("testall_w30_h20_short.lerc2");
-  fnVec.push_back("testall_w30_h20_ushort.lerc2");
-  fnVec.push_back("testall_w30_h20_long.lerc2");
-  fnVec.push_back("testall_w30_h20_ulong.lerc2");
-  fnVec.push_back("testall_w30_h20_float.lerc2");
-
-  fnVec.push_back("testall_w1922_h1083_char.lerc2");
-  fnVec.push_back("testall_w1922_h1083_byte.lerc2");
-  fnVec.push_back("testall_w1922_h1083_short.lerc2");
-  fnVec.push_back("testall_w1922_h1083_ushort.lerc2");
-  fnVec.push_back("testall_w1922_h1083_long.lerc2");
-  fnVec.push_back("testall_w1922_h1083_ulong.lerc2");
-  fnVec.push_back("testall_w1922_h1083_float.lerc2");
-
-  fnVec.push_back("testbytes.lerc2");
-  fnVec.push_back("testHuffman_w30_h20_uchar0.lerc2");
-  fnVec.push_back("testHuffman_w30_h20_ucharx.lerc2");
-  fnVec.push_back("testHuffman_w1922_h1083_uchar.lerc2");
-
-  fnVec.push_back("testuv_w30_h20_char.lerc2");
-  fnVec.push_back("testuv_w30_h20_byte.lerc2");
-  fnVec.push_back("testuv_w30_h20_short.lerc2");
-  fnVec.push_back("testuv_w30_h20_ushort.lerc2");
-  fnVec.push_back("testuv_w30_h20_long.lerc2");
-  fnVec.push_back("testuv_w30_h20_ulong.lerc2");
-  fnVec.push_back("testuv_w30_h20_float.lerc2");
-
-  fnVec.push_back("testuv_w1922_h1083_char.lerc2");
-  fnVec.push_back("testuv_w1922_h1083_byte.lerc2");
-  fnVec.push_back("testuv_w1922_h1083_short.lerc2");
-  fnVec.push_back("testuv_w1922_h1083_ushort.lerc2");
-  fnVec.push_back("testuv_w1922_h1083_long.lerc2");
-  fnVec.push_back("testuv_w1922_h1083_ulong.lerc2");
-  fnVec.push_back("testuv_w1922_h1083_float.lerc2");
-
-  fnVec.push_back("ShortBlob/LercTileCrash.lerc1");
-  fnVec.push_back("Fixed_Failures/missedLastBand.lerc1");
-  fnVec.push_back("Fixed_Failures/failedOn2ndBand.lerc2");
-  fnVec.push_back("Different_Masks/lerc_level_0.lerc2");
+  string listFn = path + "list.txt";
+  if (!ReadListFile(listFn, fnVec))
+    cout << "Read file " << listFn << " failed." << endl;
 
   //fnVec.clear();
-  //fnVec.push_back("bluemarble_256_256_3_byte.lerc2");
+  //fnVec.push_back("bluemarble_256_256.lerc2");
 
   for (size_t n = 0; n < fnVec.size(); n++)
   {
@@ -652,6 +633,18 @@ int main(int argc, char* arcv[])
       int nMasks = infoArr[8];
       double zMin = dataRangeArr[0];
       double zMax = dataRangeArr[1];
+
+      vector<double> zMinVec(nDim * nBands, 0), zMaxVec(nDim * nBands, 0);
+      hr = lerc_getDataRanges(pLercBuffer, (uint32)fileSize, nDim, nBands, &zMinVec[0], &zMaxVec[0]);
+      if (hr)
+        cout << "lerc_getDataRanges(...) failed" << endl;
+
+      double minFound = *std::min_element(zMinVec.begin(), zMinVec.end());
+      double maxFound = *std::max_element(zMaxVec.begin(), zMaxVec.end());
+      if (minFound != zMin)
+        cout << "data ranges overall min differs from overall min: " << minFound << " vs " << zMin << endl;
+      if (maxFound != zMax)
+        cout << "data ranges overall max differs from overall max: " << maxFound << " vs " << zMax << endl;
 
       const int bpp[] = { 1, 1, 2, 2, 4, 4, 4, 8 };
 

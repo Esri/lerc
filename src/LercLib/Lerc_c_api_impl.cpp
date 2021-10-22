@@ -146,6 +146,22 @@ lerc_status lerc_getBlobInfo(const unsigned char* pLercBlob, unsigned int blobSi
 
 // -------------------------------------------------------------------------- ;
 
+lerc_status lerc_getDataRanges(const unsigned char* pLercBlob, unsigned int blobSize,
+  int nDim, int nBands, double* pMins, double* pMaxs)
+{
+  if (!pLercBlob || !blobSize || !pMins || !pMaxs || nDim <= 0 || nBands <= 0)
+    return (lerc_status)ErrCode::WrongParam;
+
+  Lerc::LercInfo lercInfo;
+  ErrCode errCode = Lerc::GetLercInfo(pLercBlob, blobSize, lercInfo, pMins, pMaxs, (size_t)nDim * (size_t)nBands);
+  if (errCode != ErrCode::Ok)
+    return (lerc_status)errCode;
+
+  return (lerc_status)ErrCode::Ok;
+}
+
+// -------------------------------------------------------------------------- ;
+
 lerc_status lerc_decode(const unsigned char* pLercBlob, unsigned int blobSize, int nMasks,
   unsigned char* pValidBytes, int nDim, int nCols, int nRows, int nBands, unsigned int dataType, void* pData)
 {
