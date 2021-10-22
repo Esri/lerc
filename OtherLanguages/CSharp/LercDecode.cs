@@ -48,6 +48,17 @@ namespace Lerc2017
         [DllImport(lercDll)]
         public static extern UInt32 lerc_getBlobInfo(byte[] pLercBlob, UInt32 blobSize, UInt32[] infoArray, double[] dataRangeArray, int infoArraySize, int dataRangeArraySize);
 
+        // from Lerc_c_api.h :
+        //
+        // // Call this to quickly get the data ranges [min, max] per dimension and band without having to decode the pixels. Optional.
+        // // The 2 output data arrays must have been allocated to the same size (nDim * nBands).
+        // // The output data array's layout is an image with nDim columns and nBands rows.
+        //
+        // lerc_status lerc_getDataRanges(const unsigned char* pLercBlob, unsigned int blobSize, int nDim, int nBands, double* pMins, double* pMaxs);
+
+        [DllImport(lercDll)]
+        public static extern UInt32 lerc_getDataRanges(byte[] pLercBlob, UInt32 blobSize, int nDim, int nBands, double[] mins, double[] maxs);
+
         public enum DataType { dt_char, dt_uchar, dt_short, dt_ushort, dt_int, dt_uint, dt_float, dt_double }
 
         // Lerc decode functions for all Lerc compressed data types
@@ -132,6 +143,8 @@ namespace Lerc2017
             //byte[] pLercBlob = File.ReadAllBytes(@"bluemarble_256_256_3_byte.lerc2");
             byte[] pLercBlob = File.ReadAllBytes(@"lerc_level_0.lerc2");
 
+            // get blob info
+
             String[] infoLabels = { "version", "data type", "nDim", "nCols", "nRows", "nBands", "num valid pixels", "blob size", "nMasks" };
             String[] dataRangeLabels = { "zMin", "zMax", "maxZErrorUsed" };
 
@@ -162,12 +175,38 @@ namespace Lerc2017
             int nBands = (int)infoArr[5];
             int nMasks = (int)infoArr[8];
 
-            Console.WriteLine("[zMin, zMax] = [{0}, {1}]", dataRangeArr[0], dataRangeArr[1]);
+            Console.WriteLine("[zMin, zMax] = [{0}, {1}]\n", dataRangeArr[0], dataRangeArr[1]);
+
+            // get data ranges per dimension and band
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            double[] mins = new double[nDim * nBands];
+            double[] maxs = new double[nDim * nBands];
+
+            hr = LercDecode.lerc_getDataRanges(pLercBlob, (UInt32)pLercBlob.Length, nDim, nBands, mins, maxs);
+            if (hr > 0)
+            {
+                Console.WriteLine("function lerc_getDataRanges(...) failed with error code {0}.", hr);
+                return;
+            }
+
+            sw.Stop();
+
+            Console.WriteLine("Data ranges read from Lerc headers:");
+            for (int i = 0; i < nBands; i++)
+                for (int j = 0; j < nDim; j++)
+                    Console.WriteLine("Band {0}, depth {1}: [{2}, {3}]", i, j, mins[i * nDim + j], maxs[i * nDim + j]);
+
+            Console.WriteLine("total time for lerc_getDataRanges(...) = {0} ms\n", sw.ElapsedMilliseconds);
+
+
+            // decode the pixel values
 
             byte[] pValidBytes = new byte[nCols * nRows * nMasks];
             uint nValues = (uint)(nDim * nCols * nRows * nBands);
 
-            Stopwatch sw = new Stopwatch();
             sw.Start();
 
             switch ((LercDecode.DataType)dataType)
