@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+### Added
+
+* Added a new function to the LERC API called 'lerc_getDataRanges(...)'. It allows fast access to the data ranges in a compressed Lerc blob without having to decode it. It returns 2 double arrays with the minimum and maximum values per band and depth.
+
 
 ## [3.0](https://github.com/Esri/lerc/releases/tag/v3.0) - 2021-07-30
 
