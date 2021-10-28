@@ -13,10 +13,15 @@
     "Wenxue Ju"
   ],
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^4.33.0",
+    "eslint": "^7.32.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "gh-release": "^2.2.1",
     "jsdoc-to-markdown": "^2.0.1",
-    "jshint": "^2.13.0",
-    "uglify-js": "^3.14.0"
+    "prettier": "^2.4.1",
+    "rollup": "^2.58.3",
+    "typescript": "^4.4.4"
   },
   "files": [
     "LercDecode.js",
@@ -31,9 +36,19 @@
     "url": "https://github.com/Esri/lerc.git"
   },
   "scripts": {
-    "lint": "jshint LercDecode.js",
-    "build": "uglifyjs LercDecode.js -o LercDecode.min.js --comments",
+    "build": "npm run dev && npm run terser",
+    "build:wasm": "npm run rollup:wasm && npm run terser:wasm",
+    "dev": "npm run ts && npm run ts && npm run rollup",
     "docs": "jsdoc2md --template README.hbs --files LercDecode.js",
-    "release": "./release.sh"
+    "lint": "eslint . --ext .ts",
+    "release": "./release.sh",
+    "rollup": "rollup wasm/Lerc.js --file dist/LercDecode.js --format umd --name Lerc --sourcemap true",
+    "rollup:wasm": "rollup wasm/lerc-wasm.js --file dist/lerc-wasm.js --format umd --name lerc-wasm",
+    "terser": "terser --compress --mangle --output dist/LercDecode.min.js -- dist/LercDecode.js",
+    "terser:wasm": "terser --compress --mangle --output dist/lerc-wasm.min.js -- dist/lerc-wasm.js",
+    "ts": "tsc"
+  },
+  "dependencies": {
+    "terser": "^5.9.0"
   }
 }
