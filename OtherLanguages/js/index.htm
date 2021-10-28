@@ -28,7 +28,7 @@
     const defaultUrl =
       "http://wju2.esri.com/data/lerc/test_huffman_byte_dim3.lerc25";
     function main() {
-      const { load, isLoaded, getBandCount, decode } = Lerc;
+      const { load, isLoaded, decode } = Lerc;
       showTile = (next) => (load().then(() => showTile1(next)));
       const decodeTest = () => load().then(() => {
         const t000 =
@@ -123,13 +123,13 @@
         xhr.open("Get", lercBlobUrl, true);
         xhr.responseType = "arraybuffer";
         xhr.send();
-        xhr.onreadystatechange = function() {
+        let pixels, width;
+        xhr.onreadystatechange = () => {
           if (xhr.readyState == 4 && xhr.status == 200) {
             const t0 = performance.now();
-            // for (let i = 0; i < 100; i++) {
-            //   getBandCount(xhr.response);
-            // }
-            const { width, height, pixels, mask, statistics, dimCount } = decode(xhr.response);
+            const result = decode(xhr.response);
+            ({ pixels, width } = result);
+            const { height, mask, statistics, dimCount } = result;
             const duration = performance.now() - t0;
             imageCanvas.width = width;
             imageCanvas.height = height;
@@ -185,7 +185,7 @@
               ", decode time:" +
               duration;
           }
-          imageCanvas.onmousemove = function(evt) {
+          imageCanvas.onmousemove = (evt) => {
             if (!pixels) {
               return;
             }

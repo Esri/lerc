@@ -410,10 +410,27 @@ interface DecodeOptions {
   inputOffset?: number;
   returnPixelInterleavedDims?: boolean;
   noDataValue?: number;
-  // TODO: returnFileInfo?: boolean;
-  // TODO: pixelType
+  pixelType?: LercPixelType;
 }
 
+/**
+ * Decoding a LERC1/LERC2 byte stream and return an object containing the pixel data.
+ *
+ * @alias module:Lerc
+ * @param {ArrayBuffer} input The LERC input byte stream
+ * @param {object} [options] The decoding options below are optional.
+ * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
+ * @param {string} [options.pixelType] (LERC1 only) Default value is F32. Valid pixel types for input are U8/S8/S16/U16/S32/U32/F32.
+ * @param {number} [options.noDataValue] (LERC1 only). It is recommended to use the returned mask instead of setting this value.
+ * @param {boolean} [options.returnPixelInterleavedDims] (nDim LERC2 only) If true, returned dimensions are pixel-interleaved, a.k.a [p1_dim0, p1_dim1, p1_dimn, p2_dim0...], default is [p1_dim0, p2_dim0, ..., p1_dim1, p2_dim1...]
+ * @returns {{width, height, pixels, pixelType, mask, statistics}}
+ * @property {number} width Width of decoded image.
+ * @property {number} height Height of decoded image.
+ * @property {array} pixels [band1, band2, …] Each band is a typed array of width*height.
+ * @property {string} pixelType The type of pixels represented in the output: U8/S8/S16/U16/S32/U32/F32.
+ * @property {mask} mask Typed array with a size of width*height, or null if all pixels are valid.
+ * @property {array} statistics [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values
+ **/
 export function decode(
   input: ArrayBuffer,
   options: DecodeOptions = {}
@@ -508,11 +525,17 @@ export function decode(
   // only keep band masks when there's per-band unique mask
   const bandMasks = maskCount === bandCount && bandCount > 1 ? masks : null;
 
+  // lerc2.0 was never released
+  const pixelType =
+    options.pixelType && blobInfo.version === 0
+      ? options.pixelType
+      : pixelTypeInfo.pixelType;
+
   return {
     width,
     height,
     bandCount,
-    pixelType: pixelTypeInfo.pixelType,
+    pixelType,
     dimCount,
     statistics,
     pixels,
@@ -520,15 +543,40 @@ export function decode(
     bandMasks
   };
 }
+/**
+ * Get the header information of a LERC1/LERC2 byte stream.
+ *
+ * @alias module:Lerc
+ * @param {ArrayBuffer} input The LERC input byte stream
+ * @param {object} [options] The decoding options below are optional.
+ * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
+ * @returns {{version, width, height, bandCount, dimCount, validPixelCount, blobSize, dataType, mask, minValue, maxValue, maxZerror, statistics}}
+ * @property {number} version Compression algorithm version.
+ * @property {number} width Width of decoded image.
+ * @property {number} height Height of decoded image.
+ * @property {number} bandCount Number of bands.
+ * @property {number} dimCount Number of dimensions.
+ * @property {number} validPixelCount Number of valid pixels.
+ * @property {number} blobSize Lerc blob size in bytes.
+ * @property {number} dataType Data type represented in number.
+ * @property {number} minValue Minimum pixel value.
+ * @property {number} maxValue Maximum pixel value.
+ * @property {number} maxZerror Maximum Z error.
+ * @property {array} statistics [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values
+ **/
+export function getBlobInfo(
+  input: ArrayBuffer,
+  options: { inputOffset?: number } = {}
+): LercHeaderInfo {
+  const blob = new Uint8Array(input, options.inputOffset ?? 0);
+  return lercLib.getBlobInfo(blob);
+}
 
 export function getBandCount(
   input: ArrayBuffer | Uint8Array,
   options: { inputOffset?: number } = {}
 ): number {
-  const blob =
-    input instanceof Uint8Array
-      ? input.subarray(options.inputOffset ?? 0)
-      : new Uint8Array(input, options.inputOffset ?? 0);
-  const result = lercLib.getBlobInfo(blob);
-  return result.bandCount;
+  // this was available in the old JS version but not documented. Keep as is for backward compatiblity
+  const info = getBlobInfo(input, options);
+  return info.bandCount;
 }
