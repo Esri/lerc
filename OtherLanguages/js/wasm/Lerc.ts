@@ -218,6 +218,7 @@ function initLercLib(lercFactory: LercFactory): void {
     // decode
     let hr = _lerc_getBlobInfo(ptr, blob.length, ptr_info, ptr_range, 10, 3);
     if (hr) {
+      _free(ptr);
       throw `lerc-getBlobInfo: error code is ${hr}`;
     }
     heapU8 = new Uint8Array(memory.buffer);
@@ -252,6 +253,7 @@ function initLercLib(lercFactory: LercFactory): void {
       statistics: []
     };
     if (dimCount === 1 && bandCount === 1) {
+      _free(ptr);
       headerInfo.statistics.push({
         minValue: statsArr[0],
         maxValue: statsArr[1]
@@ -283,7 +285,7 @@ function initLercLib(lercFactory: LercFactory): void {
     heapU8.set(bandStatsMinArr, ptr_min);
     heapU8.set(bandStatsMaxArr, ptr_max);
     hr = _lerc_getDataRanges(
-      ptr,
+      ptr_blob,
       blob.length,
       dimCount,
       bandCount,
@@ -291,6 +293,11 @@ function initLercLib(lercFactory: LercFactory): void {
       ptr_max
     );
     if (hr) {
+      _free(ptr_blob);
+      if (!blob_freed) {
+        // we have two pointers in two wasm function calls
+        _free(ptr_min);
+      }
       throw `lerc-getDataRanges: error code is ${hr}`;
     }
     heapU8 = new Uint8Array(memory.buffer);
@@ -366,6 +373,7 @@ function initLercLib(lercFactory: LercFactory): void {
       ptr_data
     );
     if (hr) {
+      _free(ptr);
       throw `lerc-decode: error code is ${hr}`;
     }
     heapU8 = new Uint8Array(memory.buffer);
