@@ -332,15 +332,8 @@ function initLercLib(lercFactory: LercFactory): void {
     return headerInfo;
   };
   lercLib.decode = (blob: Uint8Array, blobInfo: LercHeaderInfo) => {
-    const {
-      blobSize,
-      maskCount,
-      dimCount,
-      bandCount,
-      width,
-      height,
-      dataType
-    } = blobInfo;
+    const { maskCount, dimCount, bandCount, width, height, dataType } =
+      blobInfo;
 
     // if the heap is increased dynamically between raw data, mask, and data, the malloc pointer is invalid as it will raise error when accessing mask:
     // Cannot perform %TypedArray%.prototype.slice on a detached ArrayBuffer
