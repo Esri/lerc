@@ -362,7 +362,7 @@ function initLercLib(lercFactory: LercFactory): void {
 
     const hr = _lerc_decode(
       ptr,
-      blobSize,
+      blob.length,
       maskCount,
       ptr_mask,
       dimCount,
