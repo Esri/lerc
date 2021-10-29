@@ -24,11 +24,10 @@
 
 #-------------------------------------------------------------------------------
 #
-#   How to use:
+#   How to run the test:
 #
 #   You need 2 files, this file "_lerc.py" and the Lerc dll (for Windows) or the
-#   Lerc .so file (for Linux). Set the path below so the Lerc dll or .so file
-#   can be read from here. You don't need a pip install or any installer. Then
+#   Lerc .so file (for Linux) next to it. Then
 #
 #   >>> import _lerc
 #   >>> _lerc.test()
@@ -138,6 +137,9 @@ lercDll.lerc_encode.argtypes = (ct.c_void_p, ct.c_uint, ct.c_int, ct.c_int, ct.c
 
 lercDll.lerc_getBlobInfo.restype = ct.c_uint
 lercDll.lerc_getBlobInfo.argtypes = (ct.c_char_p, ct.c_uint, ct.POINTER(ct.c_uint), ct.POINTER(ct.c_double), ct.c_int, ct.c_int)
+
+lercDll.lerc_getBlobInfo.restype = ct.c_uint
+lercDll.lerc_getDataRanges.argtypes = (ct.c_char_p, ct.c_uint, ct.c_int, ct.c_int, ct.POINTER(ct.c_double), ct.POINTER(ct.c_double))
 
 lercDll.lerc_decode.restype = ct.c_uint
 lercDll.lerc_decode.argtypes = (ct.c_char_p, ct.c_uint, ct.c_int, ct.c_char_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_uint, ct.c_void_p)
@@ -260,6 +262,43 @@ def getLercBlobInfo(lercBlob, printInfo = False):
             print(dataRange[i], p1[i])
     
     return (result, p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7], p0[8], p1[0], p1[1], p1[2])
+
+#-------------------------------------------------------------------------------
+
+def getLercDataRanges(lercBlob, nDim, nBands, printInfo = False):
+    global lercDll
+
+    nBytes = len(lercBlob)
+    len0 = nDim * nBands;
+
+    cpBytes = ct.cast(lercBlob, ct.c_char_p)
+
+    mins = ct.create_string_buffer(len0 * 8)
+    maxs = ct.create_string_buffer(len0 * 8)
+    cpMins = ct.cast(mins, ct.POINTER(ct.c_double))
+    cpMaxs = ct.cast(maxs, ct.POINTER(ct.c_double))
+
+    start = timer()
+    result = lercDll.lerc_getDataRanges(cpBytes, nBytes, nDim, nBands, cpMins, cpMaxs)
+    end = timer()
+
+    if result > 0:
+        print('Error in getLercDataRanges(): lercDLL.lerc_getDataRanges() failed with error code = ', result)
+        return (result)
+
+    if printInfo:
+        print('time lerc_getDataRanges() = ', (end - start))
+        print('data ranges per band and depth:')
+        for i in range(nBands):
+            for j in range(nDim):
+                print('band', i, 'depth', j, ': [', cpMins[i * nDim + j], ',', cpMaxs[i * nDim + j], ']')
+
+    npMins = np.frombuffer(mins, 'd')
+    npMaxs = np.frombuffer(maxs, 'd')
+    npMins.shape = (nBands, nDim)
+    npMaxs.shape = (nBands, nDim)
+
+    return (result, npMins, npMaxs)
 
 #-------------------------------------------------------------------------------
 
@@ -424,7 +463,7 @@ def test():
     if False:
         print(' -------- decode tests -------- ')
 
-        folder = 'D:/GitHub/LercOpenSource_v2.5/testData/'
+        folder = 'D:/GitHub/LercOpenSource_v2.5/testDataPrev/'
         files = ['california_400_400_1_float.lerc2',
                  'bluemarble_256_256_3_byte.lerc2',
                  'landsat_512_512_6_byte.lerc2',
@@ -439,6 +478,12 @@ def test():
             (result, version, dataType, nValuesPerPixel, nCols, nRows, nBands, nValidPixels, blobSize, nMasks, zMin, zMax, maxZErrUsed) = getLercBlobInfo(bytesRead, False)
             if result > 0:
                 print('Error in test(): getLercBlobInfo() failed with error code = ', result)
+                return result
+
+            # read the data ranges, optional
+            (result, npMins, npMaxs) = getLercDataRanges(bytesRead, nValuesPerPixel, nBands, True)
+            if result > 0:
+                print('Error in test(): getLercDataRanges() failed with error code = ', result)
                 return result
 
             # decode

@@ -172,6 +172,21 @@ extern "C" {
     int infoArraySize,                 // number of elements of infoArray
     int dataRangeArraySize);           // number of elements of dataRangeArray
 
+  //! Call this to quickly get the data ranges [min, max] per dimension and band without having to decode the pixels. Optional.
+  //! The 2 output data arrays must have been allocated to the same size (nDim * nBands).
+  //! The output data array's layout is an image with nDim columns and nBands rows.
+
+  LERCDLL_API
+#ifdef USE_EMSCRIPTEN
+    EMSCRIPTEN_KEEPALIVE
+#endif
+    lerc_status lerc_getDataRanges(
+      const unsigned char* pLercBlob,    // Lerc blob to decode
+      unsigned int blobSize,             // blob size in bytes
+      int nDim,                          // number of values per pixel (e.g., 3 for RGB, data is stored as [RGB, RGB, ...])
+      int nBands,                        // number of bands (e.g., 3 for [RRRR ..., GGGG ..., BBBB ...])
+      double* pMins,                     // outgoing minima per dimension and band
+      double* pMaxs);                    // outgoing maxima per dimension and band
 
   //! Decode the compressed Lerc blob into a raw data array.
   //! The data array must have been allocated to size (nDim * nCols * nRows * nBands * sizeof(dataType)).
