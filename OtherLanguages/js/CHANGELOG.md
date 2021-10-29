@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][HEAD]
 
+Now uses web assembly, as a result:
+* The existing Javascript decoder ```js/LercDecode.js``` is deprecated. It will be removed in next major release.
+* IE11 is no longer supported.
+* Updated build script ```npm run build```. A dev build result (unminified UMD bundle) is included in the ```js/dist``` folder for convenience.
+* Extra requriement to use the ```decode``` API: ```load``` then ```decode```. ```load``` only needs to be invoked once per thread (main or worker). However there's no extra cost when invoked multiple times as the internal wasm load promise is cached.
+
 ## [3.0.0] - 2021-07-30
 
 The decoder is in sync with ArcMap 10.8.1 and ArcGIS Pro 2.8. LERC encoded binary blobs from any previous version of ArcMap or ArcGIS Pro can also be read / decoded.
