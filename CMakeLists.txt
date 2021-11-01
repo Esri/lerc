@@ -26,7 +26,10 @@ set_target_properties(Lerc
     PUBLIC_HEADER "src/LercLib/include/Lerc_types.h;src/LercLib/include/Lerc_c_api.h")
 
 if(BUILD_SHARED_LIBS)
-    set_target_properties(Lerc PROPERTIES DEFINE_SYMBOL LERC_EXPORTS)
+    set_target_properties(Lerc
+        PROPERTIES
+        SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
+        DEFINE_SYMBOL LERC_EXPORTS)
 endif()
 
 install(
