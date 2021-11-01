@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+* Using [Emscripten](https://emscripten.org/), we compiled the Lerc C++ code into web assembly, resulting in a [new JS Lerc decoder](https://github.com/Esri/lerc/tree/master/OtherLanguages/js/dist). From now on, updates to the Lerc C++ code will be converted to JS automatically.
+
 * Added a new function to the LERC API called 'lerc_getDataRanges(...)'. It allows fast access to the data ranges in a compressed Lerc blob without having to decode it. It returns 2 double arrays with the minimum and maximum values per band and depth.
 
 
