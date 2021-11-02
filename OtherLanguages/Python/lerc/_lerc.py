@@ -39,14 +39,27 @@ import ctypes as ct
 from timeit import default_timer as timer
 import platform
 import os
-dir_path = os.path.dirname(os.path.realpath(__file__))
 
-if platform.system() == "Windows":
-    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.dll'))
-if platform.system() == "Linux":
-    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.so'))
-if platform.system() == "Darwin":
-    lercDll = ct.CDLL (os.path.join(dir_path, 'Lerc.dylib'))
+def _get_lib():
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
+    if platform.system() == "Windows":
+        lib = os.path.join(dir_path, 'Lerc.dll')
+    elif platform.system() == "Linux":
+        lib = os.path.join(dir_path, 'Lerc.so')
+    elif platform.system() == "Darwin":
+        lib = os.path.join(dir_path, 'Lerc.dylib')
+    else:
+        lib = None
+
+    if not lib or not os.path.exists(lib):
+        import ctypes.util
+        lib = ctypes.util.find_library('Lerc')
+
+    return lib
+
+lercDll = ct.CDLL (_get_lib())
+del _get_lib
 
 #-------------------------------------------------------------------------------
 
