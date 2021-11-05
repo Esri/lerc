@@ -49,5 +49,9 @@
     <ClInclude Include="..\..\..\..\src\LercLib\include\Lerc_types.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Lerc.rc" />
   </ItemGroup>
 </Project>

@@ -43,6 +43,10 @@
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc1Decode\TImage.hpp" />
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc2.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\RLE.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Lerc.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1455E789-5BA9-463D-8244-44B47C3E0ECE}</ProjectGuid>
