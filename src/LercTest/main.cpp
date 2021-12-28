@@ -94,7 +94,7 @@ bool ReadDecodedTile(const string& fn, int& nMasks, Byte* pValidBytes, int& nDim
   }
 
   int dims[6] = { 0 };
-  fread(dims, 1, 6 * sizeof(int), fp);
+  size_t nbRead = fread(dims, 1, 6 * sizeof(int), fp);
   nMasks = dims[0];
   nDim = dims[1];
   w = dims[2];
@@ -103,9 +103,9 @@ bool ReadDecodedTile(const string& fn, int& nMasks, Byte* pValidBytes, int& nDim
   bpp = dims[5];
 
   if (nMasks > 0)
-    fread(pValidBytes, 1, nMasks * w * h, fp);
+    nbRead += fread(pValidBytes, 1, nMasks * w * h, fp);
 
-  fread(pArr, 1, nBands * w * h * nDim * bpp, fp);
+  nbRead += fread(pArr, 1, nBands * w * h * nDim * bpp, fp);
   fclose(fp);
   return true;
 }
@@ -195,10 +195,10 @@ bool ReadListFile(const string& listFn, vector<string>& fnVec)
 
   char buffer[1024];
   int num = 0;
-  fscanf(fp, "%d", &num);
+  int rv = fscanf(fp, "%d", &num);
   for (int i = 0; i < num; i++)
   {
-    fscanf(fp, "%s", buffer);
+    rv = fscanf(fp, "%s", buffer);
     string s = buffer;
     fnVec.push_back(s);
   }
@@ -605,7 +605,7 @@ int main(int argc, char* arcv[])
     cout << "Read file " << listFn << " failed." << endl;
 
   //fnVec.clear();
-  //fnVec.push_back("bluemarble_256_256.lerc2");
+  //fnVec.push_back("bluemarble_256_256_3_byte.lerc2");
 
   for (size_t n = 0; n < fnVec.size(); n++)
   {
@@ -663,8 +663,8 @@ int main(int argc, char* arcv[])
       auto duration = duration_cast<milliseconds>(t1 - t0).count();
       totalDecodeTime += duration;
 
-      printf("nDim = %1d, w = %4d, h = %4d, nBands = %1d, nMasks = %1d, dt = %1d, min = %10.4f, max = %16.4f, time = %3lld ms,  %s :  %s\n",
-          nDim, w, h, nBands, nMasks, dt, zMin, zMax, duration, resultMsg.c_str(), fnVec[n].c_str());
+      printf("nDim = %1d, w = %4d, h = %4d, nBands = %1d, nMasks = %1d, dt = %1d, min = %10.4lf, max = %16.4lf, time = %4d ms,  %s :  %s\n",
+          nDim, w, h, nBands, nMasks, dt, zMin, zMax, (int)duration, resultMsg.c_str(), fnVec[n].c_str());
 
       string fnDec = pathDecoded;
       string s = fnVec[n];
