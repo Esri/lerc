@@ -12,11 +12,10 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-std=c++11" />
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add library="../Lerc/bin/Debug/libLerc_so.so" />
+					<Add library="../Lerc/bin/Debug/libLerc.so" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -25,23 +24,21 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-O2" />
-					<Add option="-std=c++11" />
+					<Add option="-O3" />
 				</Compiler>
 				<Linker>
+					<Add option="-O3" />
 					<Add option="-s" />
-					<Add library="../Lerc/bin/Release/libLerc_so.so" />
+					<Add library="../Lerc/bin/Release/libLerc.so.3" />
 				</Linker>
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-Wall" />
+			<Add option="-std=c++17" />
+			<Add option="-fPIC" />
 			<Add option="-fexceptions" />
 		</Compiler>
 		<Unit filename="../../../../src/LercTest/main.cpp" />
-		<Extensions>
-			<code_completion />
-			<debugger />
-		</Extensions>
+		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
