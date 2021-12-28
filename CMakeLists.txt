@@ -30,6 +30,10 @@ if(BUILD_SHARED_LIBS)
         PROPERTIES
         SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
         DEFINE_SYMBOL LERC_EXPORTS)
+else()
+    set_target_properties(Lerc
+        PROPERTIES
+        COMPILE_DEFINITIONS LERC_STATIC)
 endif()
 
 install(
