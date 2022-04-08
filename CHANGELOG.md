@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+* The older Lerc codec v2.2 (used around 2016) required 3 extra padding bytes at the end of the Lerc blob. If those padding bytes are missing, Lerc decode could fail. With this fix, decode works on such v2.2 Lerc blobs with missing padding bytes. 
+
 ### Added
 
 * Using [Emscripten](https://emscripten.org/), we compiled the Lerc C++ code into web assembly, resulting in a [new JS Lerc decoder](https://github.com/Esri/lerc/tree/master/OtherLanguages/js/dist). From now on, updates to the Lerc C++ code will be converted to JS automatically.
