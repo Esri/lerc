@@ -381,8 +381,11 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
   memcpy(&m_tmpBitStuffVec[0], *ppByte, nBytesToCopy);
 
   unsigned int* pLastULong = &m_tmpBitStuffVec[numUInts - 1];
-  while (ntbnn--)
+  while (ntbnn)
+  {
+    -- ntbnn;
     *pLastULong <<= 8;
+  }
 
   unsigned int* srcPtr = &m_tmpBitStuffVec[0];
   unsigned int* dstPtr = &dataVec[0];
