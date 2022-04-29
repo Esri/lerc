@@ -21,11 +21,15 @@ To support the case that not all image pixels are valid, a mask image can be pas
 
 See the sample program `src/LercTest/main.cpp` which demonstrates how the above functions are called and used. Also see the two header files in the `src/LercLib/include/` folder and the comments in there.
 
-About multiple bands, or multiple values per pixel. This has changed with Lerc version 2.4. Before, you could either store each band into its own Lerc byte blob which allowed you to access / decode each band individually. Lerc also allowed to stack bands together into one single Lerc byte blob. This could be useful if the bands are always used together anyway. Now, since Lerc version 2.4, you can additionally store multiple values per pixel interleaved, meaning an array of values for pixel 1, next array of values for pixel 2, and so forth. We have added a new parameter "nDim" for this number of values per pixel.
+About multiple bands, or multiple values per pixel. This has changed with Lerc version 2.4. Before, you could either store each band into its own Lerc byte blob which allowed you to access / decode each band individually. Lerc also allowed to stack bands together into one single Lerc byte blob. This could be useful if the bands are always used together anyway. Now, since Lerc version 2.4, you can additionally store multiple values per pixel interleaved, meaning an array of values for pixel 1, next array of values for pixel 2, and so forth. We have added a new parameter "nDepth" for this number of values per pixel.
 
-While the above can be used as an "interleave flag" to store multiple raster bands as a 3D array as either [nBands, nRows, nCols] for band interleaved or as [nRows, nCols, nDim] for pixel interleaved, it also allows to do both at the same time and store a 4D array as [nBands, nRows, nCols, nDim]. 
+While the above can be used as an "interleave flag" to store multiple raster bands as a 3D array as either [nBands, nRows, nCols] for band interleaved or as [nRows, nCols, nDepth] for pixel interleaved, it also allows to do both at the same time and store a 4D array as [nBands, nRows, nCols, nDepth]. 
 
-Note that the valid / invalid pixel byte mask is not 4D but limited to [nBands, nRows, nCols]. This mask is per pixel per band. For nDim > 1 or an array of values per pixel, Lerc assumes all values in that array at that pixel are either valid or invalid. If the values in the innermost array per pixel can be partially valid and invalid, use a predefined noData value or NaN. 
+Note that the valid / invalid pixel byte mask is not 4D but limited to [nBands, nRows, nCols]. This mask is per pixel per band. For nDepth > 1 or an array of values per pixel, up to Lerc version 3.0, Lerc assumed all values in that array at that pixel are either valid or invalid. If the values in the innermost array per pixel can be partially valid and invalid, use a predefined noData value or NaN. 
+
+To better support this special "mixed" case, we have added new Lerc API functions *_4D() in Lerc version 3.1, see [Lerc_c_api.h](https://github.com/Esri/lerc/blob/master/src/LercLib/include/Lerc_c_api.h). These functions allow to pass one noData value per band to the encode_4D() function and can receive it back in the decode_4D() function. This way such data can be compressed with maxZError > 0 or lossy, despite the presence of noData values in the data. Note that Lerc will convert noData values to 0 bytes in the valid / invalid byte mask whenever possible. This also allows now to pass raster data with noData values to the encoder without first creating the valid / invalid byte mask. NoData values can be passed both ways, as noData or as byte mask. Note that on decode Lerc only returns a noData value for the mixed case of valid and invalid values at the same pixel (which can only happen for nDepth > 1). The valid / invalid byte mask remains the preferred way to represent void or noData values. 
+
+Remark about NaN. As Lerc supports both integer and floating point data types, and there is no NaN for integer types, Lerc filters out NaN values and replaces them. Preferred it pushes NaN's into the valid / invalid byte mask. For the mixed case, it replaces NaN by the passed noData value. If there is no noData value, encode will fail. Lerc decode won't return any NaN's. 
 
 ## When to use
 
@@ -53,8 +57,8 @@ Check out the Lerc decoders and encoders in `OtherLanguages/`. You may need to a
 
 ### Other download sites
 
-- [Python / Conda](https://anaconda.org/conda-forge/lerc)
-- [JavaScript / npm](https://www.npmjs.com/package/lerc)
+- [Lerc for Python / Conda](https://anaconda.org/conda-forge/lerc)
+- [Lerc for JavaScript / npm](https://www.npmjs.com/package/lerc)
 
 ### How to compile LERC and the C++ test program
 
@@ -63,7 +67,7 @@ For the most common platforms you can find alternative project files under `buil
 
 #### Windows
 
-- Open `build/Windows/MS_VS2019/Lerc.sln` with Microsoft Visual Studio. 
+- Open `build/Windows/MS_VS2022/Lerc.sln` with Microsoft Visual Studio. 
 - Build and run.
 
 #### Linux
@@ -102,7 +106,7 @@ LERC can also be used as a compression mode for the GDAL image formats GeoTIFF (
   the error allowed, the stronger the compression.
   Compression factors larger than 100x have been reported.
 
-- this Lerc package can read all (legacy) versions of Lerc, such as Lerc1, Lerc2 v1 to v4, and the current Lerc2 v5. It always writes the latest stable version.
+- this Lerc package can read all (legacy) codec versions of Lerc, such as Lerc1, Lerc2 v1 to v5, and the current Lerc2 v6. It always writes the latest stable version.
 
 The main principle of Lerc and history can be found in [doc/MORE.md](doc/MORE.md)
 
@@ -117,7 +121,7 @@ The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level m
 
 ## Licensing
 
-Copyright 2015-2019 Esri
+Copyright 2015-2022 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

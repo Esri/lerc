@@ -14,7 +14,8 @@ namespace LercNS
     Failed,
     WrongParam,
     BufferTooSmall,
-    NaN
+    NaN,
+    HasNoData
   };
 
   enum class DataType : int
@@ -31,22 +32,26 @@ namespace LercNS
 
   enum class InfoArrOrder : int
   {
-    version = 0,
+    version = 0,    // codec version
     dataType,
-    nDim,
+    nDim,    // = nDepth (we renamed nDim to nDepth but don't want to break anything)
     nCols,
     nRows,
     nBands,
     nValidPixels,  // for 1st band
     blobSize,
-    nMasks  // 0 - all valid, 1 - same mask for all bands, nBands - masks can differ between bands
+    nMasks,  // 0 - all valid, 1 - same mask for all bands, nBands - masks can differ between bands
+    nDepth,  // = nDim (we renamed nDim to nDepth but don't want to break anything)
+    nUsesNoDataValue,  // 0 - no noData value used, nBands - noData value used in 1 or more bands (only possible for nDepth > 1)
+    _last
   };
 
   enum class DataRangeArrOrder : int
   {
     zMin = 0,
     zMax,
-    maxZErrUsed
+    maxZErrUsed,
+    _last
   };
 
 }    // namespace

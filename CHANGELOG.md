@@ -7,15 +7,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
-### Fixed
-
-* The older Lerc codec v2.2 (used around 2016) required 3 extra padding bytes at the end of the Lerc blob. If those padding bytes are missing, Lerc decode could fail. With this fix, decode works on such v2.2 Lerc blobs with missing padding bytes. 
+### Milestones reached
+- Upgraded Lerc version to 3.1, Lerc codec version to v2.6. 
+- This LERC API and all language decoders (C++, C, C#, Python, JavaScript) and encoders (C++, C, Python) are now in sync with these ESRI ArcGIS versions: ESRI ArcGIS Pro 3.0, ESRI ArcMap 10.9.1.
 
 ### Added
+
+* New, additional LERC API functions *_4D(). Main reason for this upgrade is to support special cases of void or invalid data not supported yet. For 3D or 4D data with an array of values per pixel, and some of such values valid and others invalid, the new functions allow to pass one noData value per band to represent such "mixed cases". There is no change to the valid / invalid byte masks that mark each pixel as valid or invalid. There can be one mask per band, one mask for all bands, or no mask. For more details see the [Readme.md](https://github.com/Esri/lerc/blob/master/README.md), [Lerc_c_api.h](https://github.com/Esri/lerc/blob/master/src/LercLib/include/Lerc_c_api.h), and [Lerc_ByteStream_Specification.pdf](https://github.com/Esri/lerc/blob/master/doc/Lerc_ByteStream_Specification.pdf), in increasing level of detail. [Main.cpp](https://github.com/Esri/lerc/blob/master/src/LercTest/main.cpp) has some sample calls. 
+
+* New lossless compression for data types float and double. 
+
+* Support for large integers > 32 bit up to 53 bit. Pass them as double. 
+
+* Renamed nDim to nDepth, the size of the array per pixel. 
+
+* New #define ENCODE_VERIFY in [Defines.h](https://github.com/Esri/lerc/blob/master/src/LercLib/Defines.h). If enabled, Lerc, as an added last step in encode, will decode the compressed blob again and compare it against the input data. 
 
 * Using [Emscripten](https://emscripten.org/), we compiled the Lerc C++ code into web assembly, resulting in a [new JS Lerc decoder](https://github.com/Esri/lerc/tree/master/OtherLanguages/js/dist). From now on, updates to the Lerc C++ code will be converted to JS automatically.
 
 * Added a new function to the LERC API called 'lerc_getDataRanges(...)'. It allows fast access to the data ranges in a compressed Lerc blob without having to decode it. It returns 2 double arrays with the minimum and maximum values per band and depth.
+
+### Fixed
+
+* The older Lerc codec v2.2 (used around 2016) required 3 extra padding bytes at the end of the Lerc blob. If those padding bytes are missing, Lerc decode could fail. With this fix, decode works on such v2.2 Lerc blobs with missing padding bytes. 
 
 
 ## [3.0](https://github.com/Esri/lerc/releases/tag/v3.0) - 2021-07-30

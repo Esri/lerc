@@ -31,6 +31,7 @@ Contributors:  Thomas Maurer
 #include <string>
 #include "BitMask.h"
 #include "BitStuffer2.h"
+#include "fpl_Lerc2Ext.h"
 
 NAMESPACE_LERC_START
 
@@ -57,13 +58,13 @@ NAMESPACE_LERC_START
  *
  *    Lerc2 v4
  *
- *    -- allow array per pixel, nDim values per pixel. Such as RGB, complex number, or larger arrays per pixel
+ *    -- allow array per pixel, nDepth values per pixel. Such as RGB, complex number, or larger arrays per pixel
  *    -- extend Huffman coding for 8 bit data types from delta only to trying both delta and orig
  *    -- for integer data types, allow to drop bit planes containing only random noise
  *
  *    Lerc2 v5
  *    -- for float data (as it might be lower precision like %.2f), try raise maxZError if possible w/o extra loss
- *    -- add delta encoding of a block iDim relative to previous block (iDim - 1)
+ *    -- add delta encoding of a block iDepth relative to previous block (iDepth - 1)
  *
  */
 
@@ -71,14 +72,19 @@ class Lerc2
 {
 public:
   Lerc2();
-  Lerc2(int nDim, int nCols, int nRows, const Byte* pMaskBits = nullptr);    // valid / invalid bits as byte array
+  Lerc2(int nDepth, int nCols, int nRows, const Byte* pMaskBits = nullptr);    // valid / invalid bits as byte array
   virtual ~Lerc2()  {}
 
-  static int CurrentVersion() { return 5; }
+  static int CurrentVersion() { return 6; }
 
   bool SetEncoderToOldVersion(int version);    // call this to encode compatible to an old decoder
 
-  bool Set(int nDim, int nCols, int nRows, const Byte* pMaskBits = nullptr);
+  bool Set(int nDepth, int nCols, int nRows, const Byte* pMaskBits = nullptr);     // set mask and dimensions
+
+  // v6
+  bool SetNoDataValues(bool bNeedsNoDataVal, double noDataVal, double noDataValOrig);
+  bool SetNumBlobsMoreToCome(int nBlobsMore);    // for safer decode of multi-band blobs
+  bool SetIsAllInt(bool bIsAllInt);
 
   template<class T>
   unsigned int ComputeNumBytesNeededToWrite(const T* arr, double maxZError, bool encodeMask);
@@ -95,21 +101,30 @@ public:
     int version;
     unsigned int checksum;
     int nRows,
-        nCols,
-        nDim,
-        numValidPixel,
-        microBlockSize,
-        blobSize;
+      nCols,
+      nDepth,
+      numValidPixel,
+      microBlockSize,
+      blobSize,
+      nBlobsMore;         // for multi-band Lerc blob, how many more blobs or bands appended to this one
+
+    Byte bPassNoDataValues,  // 1 - pass noData values to decoder, 0 - don't pass, ignore
+      bIsInt,    // 1 - float or double data is all integer numbers, 0 - not
+      bReserved3,
+      bReserved4;
 
     DataType dt;
 
-    double  maxZError,
-            zMin,    // if nDim > 1, this is the overall range
-            zMax;
+    double maxZError,
+      zMin,    // if nDepth > 1, this is the overall range
+      zMax,
+      noDataVal,      // temp noData value used for nDepth > 1 if bit mask cannot cover it
+      noDataValOrig;  // orig noData value to map to in decode
 
     void RawInit()  { memset(this, 0, sizeof(struct HeaderInfo)); }
 
-    bool TryHuffman() const  { return version > 1 && (dt == DT_Byte || dt == DT_Char) && maxZError == 0.5; }
+    bool TryHuffmanInt() const { return (version >= 2) && (dt == DT_Byte || dt == DT_Char) && (maxZError == 0.5); }
+    bool TryHuffmanFlt() const { return (version >= 6) && (dt == DT_Float || dt == DT_Double) && (maxZError == 0); }
   };
 
   static bool GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct HeaderInfo& headerInfo, bool& bHasMask);
@@ -122,7 +137,7 @@ public:
 
 private:
 
-  enum ImageEncodeMode { IEM_Tiling = 0, IEM_DeltaHuffman, IEM_Huffman };
+  enum ImageEncodeMode { IEM_Tiling = 0, IEM_DeltaHuffman, IEM_Huffman, IEM_DeltaDeltaHuffman };
   enum BlockEncodeMode { BEM_RawBinary = 0, BEM_BitStuffSimple, BEM_BitStuffLUT };
 
   int         m_microBlockSize,
@@ -136,6 +151,8 @@ private:
 
   std::vector<double> m_zMinVec, m_zMaxVec;
   std::vector<std::pair<unsigned short, unsigned int> > m_huffmanCodes;    // <= 256 codes, 1.5 kB
+
+  LosslessFPCompression m_lfpc;
 
 private:
   static std::string FileKey()  { return "Lerc2 "; }
@@ -180,7 +197,7 @@ private:
   bool ReadTiles(const Byte** ppByte, size_t& nBytesRemaining, T* data) const;
 
   template<class T>
-  bool GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, int iDim,
+  bool GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, int iDepth,
     T* dataBuf, T& zMin, T& zMax, int& numValidPixel, bool& tryLut) const;
 
   template<class T>
@@ -219,7 +236,7 @@ private:
     const std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const;
 
   template<class T>
-  bool ReadTile(const Byte** ppByte, size_t& nBytesRemaining, T* data, int i0, int i1, int j0, int j1, int iDim,
+  bool ReadTile(const Byte** ppByte, size_t& nBytesRemaining, T* data, int i0, int i1, int j0, int j1, int iDepth,
                 std::vector<unsigned int>& bufferVec) const;
 
   template<class T>
@@ -271,8 +288,7 @@ private:
 // -------------------------------------------------------------------------- ;
 // -------------------------------------------------------------------------- ;
 
-inline
-void Lerc2::AddUIntToCounts(int* pCounts, unsigned int val, int nBits)
+inline void Lerc2::AddUIntToCounts(int* pCounts, unsigned int val, int nBits)
 {
   pCounts[0] += val & 1;
   for (int i = 1; i < nBits; i++)
@@ -281,8 +297,7 @@ void Lerc2::AddUIntToCounts(int* pCounts, unsigned int val, int nBits)
 
 // -------------------------------------------------------------------------- ;
 
-inline
-void Lerc2::AddIntToCounts(int* pCounts, int val, int nBits)
+inline void Lerc2::AddIntToCounts(int* pCounts, int val, int nBits)
 {
   pCounts[0] += val & 1;
   for (int i = 1; i < nBits; i++)
@@ -709,11 +724,11 @@ unsigned int Lerc2::GetDataTypeSize(DataType dt)
 inline
 bool Lerc2::CheckMinMaxRanges(bool& minMaxEqual) const
 {
-  int nDim = m_headerInfo.nDim;
-  if ((int)m_zMinVec.size() != nDim || (int)m_zMaxVec.size() != nDim)
+  int nDepth = m_headerInfo.nDepth;
+  if ((int)m_zMinVec.size() != nDepth || (int)m_zMaxVec.size() != nDepth)
     return false;
 
-  minMaxEqual = (0 == memcmp(&m_zMinVec[0], &m_zMaxVec[0], nDim * sizeof(m_zMinVec[0])));
+  minMaxEqual = (0 == memcmp(&m_zMinVec[0], &m_zMaxVec[0], nDepth * sizeof(m_zMinVec[0])));
   return true;
 }
 

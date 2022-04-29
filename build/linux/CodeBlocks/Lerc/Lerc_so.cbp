@@ -63,6 +63,16 @@
 		<Unit filename="../../../../src/LercLib/Lerc_c_api_impl.cpp" />
 		<Unit filename="../../../../src/LercLib/RLE.cpp" />
 		<Unit filename="../../../../src/LercLib/RLE.h" />
+		<Unit filename="../../../../src/LercLib/fpl_Compression.cpp" />
+		<Unit filename="../../../../src/LercLib/fpl_Compression.h" />
+		<Unit filename="../../../../src/LercLib/fpl_EsriHuffman.cpp" />
+		<Unit filename="../../../../src/LercLib/fpl_EsriHuffman.h" />
+		<Unit filename="../../../../src/LercLib/fpl_Lerc2Ext.cpp" />
+		<Unit filename="../../../../src/LercLib/fpl_Lerc2Ext.h" />
+		<Unit filename="../../../../src/LercLib/fpl_Predictor.cpp" />
+		<Unit filename="../../../../src/LercLib/fpl_Predictor.h" />
+		<Unit filename="../../../../src/LercLib/fpl_UnitTypes.cpp" />
+		<Unit filename="../../../../src/LercLib/fpl_UnitTypes.h" />
 		<Unit filename="../../../../src/LercLib/include/Lerc_c_api.h" />
 		<Unit filename="../../../../src/LercLib/include/Lerc_types.h" />
 		<Extensions />

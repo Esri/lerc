@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.12)
 project(Lerc
         DESCRIPTION "Limited Error Raster Compression"
         HOMEPAGE_URL "https://github.com/Esri/lerc"
-        VERSION 3.0.0) # Keep in sync with Lerc_c_api.h
+        VERSION 3.1.0) # Keep in sync with Lerc_c_api.h
 
 include(GNUInstallDirs)
 
