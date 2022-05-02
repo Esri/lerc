@@ -22,6 +22,11 @@
     <ClCompile Include="..\..\..\..\src\LercLib\Lerc_c_api_impl.cpp" />
     <ClCompile Include="..\..\..\..\src\LercLib\Lerc2.cpp" />
     <ClCompile Include="..\..\..\..\src\LercLib\RLE.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_Compression.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_EsriHuffman.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_Lerc2Ext.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_Predictor.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_UnitTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\LercLib\Lerc1Decode\BitStuffer.h">
@@ -50,6 +55,11 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_Compression.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_EsriHuffman.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_Lerc2Ext.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_Predictor.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_UnitTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Lerc.rc" />

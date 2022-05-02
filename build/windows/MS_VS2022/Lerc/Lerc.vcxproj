@@ -21,6 +21,11 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\LercLib\BitMask.cpp" />
     <ClCompile Include="..\..\..\..\src\LercLib\BitStuffer2.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_Compression.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_EsriHuffman.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_Lerc2Ext.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_Predictor.cpp" />
+    <ClCompile Include="..\..\..\..\src\LercLib\fpl_UnitTypes.cpp" />
     <ClCompile Include="..\..\..\..\src\LercLib\Huffman.cpp" />
     <ClCompile Include="..\..\..\..\src\LercLib\Lerc.cpp" />
     <ClCompile Include="..\..\..\..\src\LercLib\Lerc1Decode\BitStuffer.cpp" />
@@ -33,6 +38,11 @@
     <ClInclude Include="..\..\..\..\src\LercLib\BitMask.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\BitStuffer2.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Defines.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_Compression.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_EsriHuffman.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_Lerc2Ext.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_Predictor.h" />
+    <ClInclude Include="..\..\..\..\src\LercLib\fpl_UnitTypes.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\Huffman.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\include\Lerc_c_api.h" />
     <ClInclude Include="..\..\..\..\src\LercLib\include\Lerc_types.h" />
@@ -56,26 +66,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>

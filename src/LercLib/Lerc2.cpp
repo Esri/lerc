@@ -40,10 +40,10 @@ Lerc2::Lerc2()
 
 // -------------------------------------------------------------------------- ;
 
-Lerc2::Lerc2(int nDim, int nCols, int nRows, const Byte* pMaskBits)
+Lerc2::Lerc2(int nDepth, int nCols, int nRows, const Byte* pMaskBits)
 {
   Init();
-  Set(nDim, nCols, nRows, pMaskBits);
+  Set(nDepth, nCols, nRows, pMaskBits);
 }
 
 // -------------------------------------------------------------------------- ;
@@ -53,7 +53,7 @@ bool Lerc2::SetEncoderToOldVersion(int version)
   if (version < 2 || version > CurrentVersion())
     return false;
 
-  if (version < 4 && m_headerInfo.nDim > 1)
+  if (version < 4 && m_headerInfo.nDepth > 1)
     return false;
 
   m_headerInfo.version = version;
@@ -78,9 +78,9 @@ void Lerc2::Init()
 
 // -------------------------------------------------------------------------- ;
 
-bool Lerc2::Set(int nDim, int nCols, int nRows, const Byte* pMaskBits)
+bool Lerc2::Set(int nDepth, int nCols, int nRows, const Byte* pMaskBits)
 {
-  if (nDim > 1 && m_headerInfo.version < 4)
+  if (nDepth > 1 && m_headerInfo.version < 4)
     return false;
 
   if (!m_bitMask.SetSize(nCols, nRows))
@@ -97,9 +97,47 @@ bool Lerc2::Set(int nDim, int nCols, int nRows, const Byte* pMaskBits)
     m_bitMask.SetAllValid();
   }
 
-  m_headerInfo.nDim  = nDim;
+  m_headerInfo.nDepth  = nDepth;
   m_headerInfo.nCols = nCols;
   m_headerInfo.nRows = nRows;
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+bool Lerc2::SetNoDataValues(bool bNeedsNoDataVal, double noDataVal, double noDataValOrig)
+{
+  if (m_headerInfo.version < 6)
+    return false;
+
+  m_headerInfo.bPassNoDataValues = bNeedsNoDataVal;
+  m_headerInfo.noDataVal = bNeedsNoDataVal ? noDataVal : 0;
+  m_headerInfo.noDataValOrig = bNeedsNoDataVal ? noDataValOrig : 0;
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+bool Lerc2::SetNumBlobsMoreToCome(int nBlobsMore)
+{
+  if (m_headerInfo.version < 6)
+    return false;
+
+  m_headerInfo.nBlobsMore = nBlobsMore;
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+bool Lerc2::SetIsAllInt(bool bIsAllInt)
+{
+  if (m_headerInfo.version < 6)
+    return false;
+
+  m_headerInfo.bIsInt = bIsAllInt ? 1 : 0;
 
   return true;
 }
@@ -154,7 +192,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
       return 0;
 
     double maxZErrorNew = maxZError;
-    if (TryRaiseMaxZError(arr, maxZErrorNew))
+    if (maxZError > 0 && TryRaiseMaxZError(arr, maxZErrorNew))
     {
       //printf("%f --> %f\n", maxZError, maxZErrorNew);
       maxZError = maxZErrorNew;
@@ -184,20 +222,20 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   if (m_headerInfo.zMin == m_headerInfo.zMax)    // image is const
     return nBytesHeaderMask;
 
-  int nDim = m_headerInfo.nDim;
+  int nDepth = m_headerInfo.nDepth;
 
   if (m_headerInfo.version >= 4)
   {
     // add the min max ranges behind the mask and before the main data;
     // so we do not write it if no valid pixel or all same value const
-    m_headerInfo.blobSize += 2 * nDim * sizeof(T);
+    m_headerInfo.blobSize += 2 * nDepth * sizeof(T);
 
     bool minMaxEqual = false;
     if (!CheckMinMaxRanges(minMaxEqual))
       return 0;
 
     if (minMaxEqual)
-      return m_headerInfo.blobSize;    // all nDim bands are const
+      return m_headerInfo.blobSize;    // all nDepth bands are const
   }
 
   // data
@@ -208,7 +246,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   int nBytesData = nBytesTiling;
   int nBytesHuffman = 0;
 
-  if (m_headerInfo.TryHuffman())
+  if (m_headerInfo.TryHuffmanInt())
   {
     ImageEncodeMode huffmanEncMode;
     ComputeHuffmanCodes(arr, nBytesHuffman, huffmanEncMode, m_huffmanCodes);    // save Huffman codes for later use
@@ -221,13 +259,34 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
     else
       m_huffmanCodes.resize(0);
   }
+  else if (m_headerInfo.TryHuffmanFlt())
+  {
+    m_huffmanCodes.resize(0);
+
+    bool rv = m_lfpc.ComputeHuffmanCodesFlt(arr, (m_headerInfo.dt == DT_Double),
+      m_headerInfo.nCols, m_headerInfo.nRows, m_headerInfo.nDepth);
+
+    if (!rv)    // remove this check before next release to fall back to regular Lerc instead of fail
+      return 0;
+
+    if (rv)
+    {
+      nBytesHuffman = m_lfpc.compressedLength();
+
+      if (nBytesHuffman < nBytesTiling * 0.9)    // demand at least 10% better than not Huffman
+      {
+        nBytesData = nBytesHuffman;
+        m_imageEncodeMode = IEM_DeltaDeltaHuffman;
+      }
+    }
+  }
 
   m_writeDataOneSweep = false;
-  int nBytesDataOneSweep = (int)(numValid * nDim * sizeof(T));
+  int nBytesDataOneSweep = (int)(numValid * nDepth * sizeof(T));
 
   {
     // try with double block size to reduce block header overhead, if
-    if ((nBytesTiling * 8 < numTotal * nDim * 1.5)    // resulting bit rate < x (2 bpp)
+    if (((size_t)nBytesTiling * 8 < (size_t)numTotal * nDepth * 1.5)    // resulting bit rate < x (2 bpp)
       && (nBytesTiling < 4 * nBytesDataOneSweep)     // bit stuffing is effective
       && (nBytesHuffman == 0 || nBytesTiling < 2 * nBytesHuffman)    // not much worse than huffman (otherwise huffman wins anyway)
       && (m_headerInfo.nRows > m_microBlockSize || m_headerInfo.nCols > m_microBlockSize))
@@ -251,7 +310,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
     }
   }
 
-  if (m_headerInfo.TryHuffman())
+  if (m_headerInfo.TryHuffmanInt() || m_headerInfo.TryHuffmanFlt())
     nBytesData += 1;    // flag for image encode mode
 
   if (nBytesDataOneSweep <= nBytesData)
@@ -318,20 +377,39 @@ bool Lerc2::Encode(const T* arr, Byte** ppByte)
 
   if (!m_writeDataOneSweep)
   {
-    if (m_headerInfo.TryHuffman())
+    if (m_headerInfo.TryHuffmanInt() || m_headerInfo.TryHuffmanFlt())
     {
       **ppByte = (Byte)m_imageEncodeMode;    // Huffman or tiling encode mode
       (*ppByte)++;
 
-      if (!m_huffmanCodes.empty())   // Huffman, no tiling
+      if (m_imageEncodeMode != IEM_Tiling)
       {
-        if (m_imageEncodeMode != IEM_DeltaHuffman && m_imageEncodeMode != IEM_Huffman)
-          return false;
+        if (m_headerInfo.TryHuffmanFlt())
+        {
+          if (!(m_imageEncodeMode == IEM_DeltaHuffman || m_imageEncodeMode == IEM_Huffman || m_imageEncodeMode == IEM_DeltaDeltaHuffman))
+            return false;
 
-        if (!EncodeHuffman(arr, ppByte))    // data bit stuffed
-          return false;
+          if (!m_lfpc.EncodeHuffmanFlt(ppByte))
+            return false;
 
-        return DoChecksOnEncode(ptrBlob, *ppByte);
+          return DoChecksOnEncode(ptrBlob, *ppByte);
+        }
+
+        if (!m_huffmanCodes.empty())   // Huffman, no tiling
+        {
+          if (m_headerInfo.TryHuffmanInt())
+          {
+            if (!(m_imageEncodeMode == IEM_DeltaHuffman || m_imageEncodeMode == IEM_Huffman))
+              return false;
+
+            if (!EncodeHuffman(arr, ppByte))    // data bit stuffed
+              return false;
+          }
+          else
+            return false;
+
+          return DoChecksOnEncode(ptrBlob, *ppByte);
+        }
       }
     }
 
@@ -391,12 +469,12 @@ bool Lerc2::GetRanges(const Byte* pByte, size_t nBytesRemaining, double* pMins, 
   if (!ReadMask(&pByte, nBytesRemaining))
     return false;
 
-  const int nDim = m_headerInfo.nDim;
+  const int nDepth = m_headerInfo.nDepth;
 
   if (m_headerInfo.numValidPixel == 0)    // image is empty
   {
-    memset(pMins, 0, nDim * sizeof(double));    // fill with 0
-    memset(pMaxs, 0, nDim * sizeof(double));
+    memset(pMins, 0, nDepth * sizeof(double));    // fill with 0
+    memset(pMaxs, 0, nDepth * sizeof(double));
 
     return true;
   }
@@ -405,7 +483,7 @@ bool Lerc2::GetRanges(const Byte* pByte, size_t nBytesRemaining, double* pMins, 
   {
     double val = m_headerInfo.zMin;
 
-    for (int i = 0; i < nDim; i++)    // fill with const
+    for (int i = 0; i < nDepth; i++)    // fill with const
       pMins[i] = pMaxs[i] = val;
 
     return true;
@@ -432,7 +510,7 @@ bool Lerc2::GetRanges(const Byte* pByte, size_t nBytesRemaining, double* pMins, 
   if (!rv)
     return false;
 
-  for (int i = 0; i < nDim; i++)
+  for (int i = 0; i < nDepth; i++)
   {
     pMins[i] = m_zMinVec[i];
     pMaxs[i] = m_zMaxVec[i];
@@ -475,7 +553,7 @@ bool Lerc2::Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* p
   if (pMaskBits)    // return proper mask bits even if they were not stored
     memcpy(pMaskBits, m_bitMask.Bits(), m_bitMask.Size());
 
-  memset(arr, 0, m_headerInfo.nCols * m_headerInfo.nRows * m_headerInfo.nDim * sizeof(T));
+  memset(arr, 0, (size_t)m_headerInfo.nCols * m_headerInfo.nRows * m_headerInfo.nDepth * sizeof(T));
 
   if (m_headerInfo.numValidPixel == 0)
     return true;
@@ -515,7 +593,7 @@ bool Lerc2::Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* p
 
   if (!readDataOneSweep)
   {
-    if (m_headerInfo.TryHuffman())
+    if (m_headerInfo.TryHuffmanInt() || m_headerInfo.TryHuffmanFlt())
     {
       if (nBytesRemaining < 1)
         return false;
@@ -524,17 +602,31 @@ bool Lerc2::Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* p
       (*ppByte)++;
       nBytesRemaining--;
 
-      if (flag > 2 || (m_headerInfo.version < 4 && flag > 1))
+      if (flag > 3
+        || (flag > 2 && m_headerInfo.version < 6)
+        || (flag > 1 && m_headerInfo.version < 4))
         return false;
 
       m_imageEncodeMode = (ImageEncodeMode)flag;
 
-      if (m_imageEncodeMode == IEM_DeltaHuffman || m_imageEncodeMode == IEM_Huffman)
+      if (m_imageEncodeMode != IEM_Tiling)
       {
-        if (!DecodeHuffman(ppByte, nBytesRemaining, arr))
+        if (m_headerInfo.TryHuffmanInt())
+        {
+          if (m_imageEncodeMode == IEM_DeltaHuffman || (m_headerInfo.version >= 4 && m_imageEncodeMode == IEM_Huffman))
+            return DecodeHuffman(ppByte, nBytesRemaining, arr);    // done.
+          else
+            return false;
+        }
+        else if (m_headerInfo.TryHuffmanFlt() && m_imageEncodeMode == IEM_DeltaDeltaHuffman)
+        {
+          //return DecodeHuffmanFlt(ppByte, nBytesRemaining, arr);    // done.
+          // return false;  // not impl yet
+          return LosslessFPCompression::DecodeHuffmanFlt(ppByte, nBytesRemaining, arr,
+            (m_headerInfo.dt == DT_Double), m_headerInfo.nCols, m_headerInfo.nRows, m_headerInfo.nDepth);
+        }
+        else
           return false;
-
-        return true;    // done.
       }
     }
 
@@ -570,7 +662,9 @@ unsigned int Lerc2::ComputeNumBytesHeaderToWrite(const struct HeaderInfo& hd)
   numBytes += 1 * sizeof(int);
   numBytes += (hd.version >= 3 ? 1 : 0) * sizeof(unsigned int);
   numBytes += (hd.version >= 4 ? 7 : 6) * sizeof(int);
-  numBytes += 3 * sizeof(double);
+  numBytes += (hd.version >= 6 ? 1 : 0) * sizeof(int);
+  numBytes += (hd.version >= 6 ? 4 : 0) * sizeof(Byte);
+  numBytes += (hd.version >= 6 ? 5 : 3) * sizeof(double);
   return numBytes;
 }
 
@@ -601,25 +695,36 @@ bool Lerc2::WriteHeader(Byte** ppByte, const struct HeaderInfo& hd)
   vector<int> intVec;
   intVec.push_back(hd.nRows);
   intVec.push_back(hd.nCols);
-
-  if (hd.version >= 4)
-  {
-    intVec.push_back(hd.nDim);
-  }
-
+  if (hd.version >= 4) intVec.push_back(hd.nDepth);
   intVec.push_back(hd.numValidPixel);
   intVec.push_back(hd.microBlockSize);
   intVec.push_back(hd.blobSize);
   intVec.push_back((int)hd.dt);
+  if (hd.version >= 6) intVec.push_back(hd.nBlobsMore);
 
   len = intVec.size() * sizeof(int);
   memcpy(ptr, &intVec[0], len);
   ptr += len;
 
+  if (hd.version >= 6)
+  {
+    vector<Byte> byteVec;
+    byteVec.push_back(hd.bPassNoDataValues);
+    byteVec.push_back(hd.bIsInt);
+    byteVec.push_back(hd.bReserved3);
+    byteVec.push_back(hd.bReserved4);
+
+    len = byteVec.size();
+    memcpy(ptr, &byteVec[0], len);
+    ptr += len;
+  }
+
   vector<double> dblVec;
   dblVec.push_back(hd.maxZError);
   dblVec.push_back(hd.zMin);
   dblVec.push_back(hd.zMax);
+  if (hd.version >= 6) dblVec.push_back(hd.noDataVal);
+  if (hd.version >= 6) dblVec.push_back(hd.noDataValOrig);
 
   len = dblVec.size() * sizeof(double);
   memcpy(ptr, &dblVec[0], len);
@@ -668,9 +773,19 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
     nBytesRemaining -= sizeof(unsigned int);
   }
 
-  int nInts = (hd.version >= 4) ? 7 : 6;
+  int nInts = 6;
+  nInts += (hd.version >= 4) ? 1 : 0;
+  nInts += (hd.version >= 6) ? 1 : 0;
+
+  int nBytes = 0;
+  nBytes += (hd.version >= 6) ? 4 : 0;
+
+  int nDbls = 3;
+  nDbls += (hd.version >= 6) ? 2 : 0;
+
   vector<int> intVec(nInts, 0);
-  vector<double> dblVec(3, 0);
+  vector<Byte> byteVec(nBytes, 0);
+  vector<double> dblVec(nDbls, 0);
 
   size_t len = sizeof(int) * intVec.size();
 
@@ -679,6 +794,17 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
 
   ptr += len;
   nBytesRemaining -= len;
+
+  if (hd.version >= 6)
+  {
+    len = byteVec.size();
+
+    if (nBytesRemaining < len || !memcpy(&byteVec[0], ptr, len))
+      return false;
+
+    ptr += len;
+    nBytesRemaining -= len;
+  }
 
   len = sizeof(double) * dblVec.size();
 
@@ -691,7 +817,7 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   int i = 0;
   hd.nRows          = intVec[i++];
   hd.nCols          = intVec[i++];
-  hd.nDim           = (hd.version >= 4) ? intVec[i++] : 1;
+  hd.nDepth         = (hd.version >= 4) ? intVec[i++] : 1;
   hd.numValidPixel  = intVec[i++];
   hd.microBlockSize = intVec[i++];
   hd.blobSize       = intVec[i++];
@@ -699,12 +825,22 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   if (dt < DT_Char || dt > DT_Double)
     return false;
   hd.dt             = static_cast<DataType>(dt);
+  hd.nBlobsMore     = (hd.version >= 6) ? intVec[i++] : 0;
 
-  hd.maxZError      = dblVec[0];
-  hd.zMin           = dblVec[1];
-  hd.zMax           = dblVec[2];
+  i = 0;
+  hd.bPassNoDataValues = (hd.version >= 6) ? byteVec[i++] : 0;
+  hd.bIsInt     = (hd.version >= 6) ? byteVec[i++] : 0;
+  hd.bReserved3 = (hd.version >= 6) ? byteVec[i++] : 0;
+  hd.bReserved4 = (hd.version >= 6) ? byteVec[i++] : 0;
 
-  if (hd.nRows <= 0 || hd.nCols <= 0 || hd.nDim <= 0 || hd.numValidPixel < 0 || hd.microBlockSize <= 0 || hd.blobSize <= 0
+  i = 0;
+  hd.maxZError      = dblVec[i++];
+  hd.zMin           = dblVec[i++];
+  hd.zMax           = dblVec[i++];
+  hd.noDataVal      = (hd.version >= 6) ? dblVec[i++] : 0;
+  hd.noDataValOrig  = (hd.version >= 6) ? dblVec[i++] : 0;
+
+  if (hd.nRows <= 0 || hd.nCols <= 0 || hd.nDepth <= 0 || hd.numValidPixel < 0 || hd.microBlockSize <= 0 || hd.blobSize <= 0
     || hd.numValidPixel > hd.nRows * hd.nCols)
     return false;
 
@@ -775,11 +911,8 @@ bool Lerc2::ReadMask(const Byte** ppByte, size_t& nBytesRemainingInOut)
   ptr += sizeof(int);
   nBytesRemaining -= sizeof(int);
 
-  if (numValid == 0 || numValid == w * h)    // there should be no mask
-  {
-    if (numBytesMask != 0)
-      return false;
-  }
+  if ((numValid == 0 || numValid == w * h) && (numBytesMask != 0))
+    return false;
 
   if (!m_bitMask.SetSize(w, h))
     return false;
@@ -864,7 +997,6 @@ unsigned int Lerc2::ComputeChecksumFletcher32(const Byte* pByte, int len)
   return sum2 << 16 | sum1;
 }
 
-
 // -------------------------------------------------------------------------- ;
 
 // for the theory and math, see
@@ -879,17 +1011,17 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
     return false;
 
   const HeaderInfo& hd = m_headerInfo;
-  const int nDim = hd.nDim;
+  const int nDepth = hd.nDepth;
   const int maxShift = 8 * GetDataTypeSize(hd.dt);
   const int minCnt = 5000;
 
   if (hd.numValidPixel < minCnt)    // not enough data for good stats
     return false;
 
-  std::vector<int> cntDiffVec(nDim * maxShift, 0);
+  std::vector<int> cntDiffVec(nDepth * maxShift, 0);
   int cnt = 0;
 
-  if (nDim == 1 && hd.numValidPixel == hd.nCols * hd.nRows)    // special but common case
+  if (nDepth == 1 && hd.numValidPixel == hd.nCols * hd.nRows)    // special but common case
   {
     if (hd.dt == DT_Byte || hd.dt == DT_UShort || hd.dt == DT_UInt)    // unsigned int
     {
@@ -921,28 +1053,28 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
       return false;    // unsupported data type
   }
 
-  else    // general case:  nDim > 1 or not all pixel valid
+  else    // general case:  nDepth > 1 or not all pixel valid
   {
     if (hd.dt == DT_Byte || hd.dt == DT_UShort || hd.dt == DT_UInt)    // unsigned int
     {
       for (int k = 0, m0 = 0, i = 0; i < hd.nRows; i++)
-        for (int j = 0; j < hd.nCols; j++, k++, m0 += nDim)
+        for (int j = 0; j < hd.nCols; j++, k++, m0 += nDepth)
           if (m_bitMask.IsValid(k))
           {
             if (j < hd.nCols - 1 && m_bitMask.IsValid(k + 1))    // hori
             {
-              for (int s0 = 0, iDim = 0; iDim < nDim; iDim++, s0 += maxShift)
+              for (int s0 = 0, m = 0; m < nDepth; m++, s0 += maxShift)
               {
-                unsigned int c = ((unsigned int)data[m0 + iDim]) ^ ((unsigned int)data[m0 + iDim + nDim]);
+                unsigned int c = ((unsigned int)data[m0 + m]) ^ ((unsigned int)data[m0 + m + nDepth]);
                 AddUIntToCounts(&cntDiffVec[s0], c, maxShift);
               }
               cnt++;
             }
             if (i < hd.nRows - 1 && m_bitMask.IsValid(k + hd.nCols))    // vert
             {
-              for (int s0 = 0, iDim = 0; iDim < nDim; iDim++, s0 += maxShift)
+              for (int s0 = 0, m = 0; m < nDepth; m++, s0 += maxShift)
               {
-                unsigned int c = ((unsigned int)data[m0 + iDim]) ^ ((unsigned int)data[m0 + iDim + nDim * hd.nCols]);
+                unsigned int c = ((unsigned int)data[m0 + m]) ^ ((unsigned int)data[m0 + m + nDepth * hd.nCols]);
                 AddUIntToCounts(&cntDiffVec[s0], c, maxShift);
               }
               cnt++;
@@ -952,23 +1084,23 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
     else if (hd.dt == DT_Char || hd.dt == DT_Short || hd.dt == DT_Int)    // signed int
     {
       for (int k = 0, m0 = 0, i = 0; i < hd.nRows; i++)
-        for (int j = 0; j < hd.nCols; j++, k++, m0 += nDim)
+        for (int j = 0; j < hd.nCols; j++, k++, m0 += nDepth)
           if (m_bitMask.IsValid(k))
           {
             if (j < hd.nCols - 1 && m_bitMask.IsValid(k + 1))    // hori
             {
-              for (int s0 = 0, iDim = 0; iDim < nDim; iDim++, s0 += maxShift)
+              for (int s0 = 0, m = 0; m < nDepth; m++, s0 += maxShift)
               {
-                int c = ((int)data[m0 + iDim]) ^ ((int)data[m0 + iDim + nDim]);
+                int c = ((int)data[m0 + m]) ^ ((int)data[m0 + m + nDepth]);
                 AddIntToCounts(&cntDiffVec[s0], c, maxShift);
               }
               cnt++;
             }
             if (i < hd.nRows - 1 && m_bitMask.IsValid(k + hd.nCols))    // vert
             {
-              for (int s0 = 0, iDim = 0; iDim < nDim; iDim++, s0 += maxShift)
+              for (int s0 = 0, m = 0; m < nDepth; m++, s0 += maxShift)
               {
-                int c = ((int)data[m0 + iDim]) ^ ((int)data[m0 + iDim + nDim * hd.nCols]);
+                int c = ((int)data[m0 + m]) ^ ((int)data[m0 + m + nDepth * hd.nCols]);
                 AddIntToCounts(&cntDiffVec[s0], c, maxShift);
               }
               cnt++;
@@ -990,9 +1122,9 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
     //if (printAll) printf("bit plane %2d: ", s);
     bool bCrit = true;
 
-    for (int iDim = 0; iDim < nDim; iDim++)
+    for (int iDepth = 0; iDepth < nDepth; iDepth++)
     {
-      double x = cntDiffVec[iDim * maxShift + s];
+      double x = cntDiffVec[iDepth * maxShift + s];
       double n = cnt;
       double m = x / n;
       //double stdDev = sqrt(x * x / n - m * m) / n;
@@ -1039,7 +1171,7 @@ bool Lerc2::TryRaiseMaxZError(const T* data, double& maxZError) const
     return false;
 
   const HeaderInfo& hd = m_headerInfo;
-  const int nDim = hd.nDim;
+  const int nDepth = hd.nDepth;
 
   std::vector<double> roundErr, zErr, zErrCand = { 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001 };
   std::vector<int> zFac, zFacCand = { 1, 2, 10, 20, 100, 200, 1000, 2000, 10000 };
@@ -1055,7 +1187,7 @@ bool Lerc2::TryRaiseMaxZError(const T* data, double& maxZError) const
   if (zErr.empty())
     return false;
 
-  if (nDim == 1 && hd.numValidPixel == hd.nCols * hd.nRows)    // special but common case
+  if (nDepth == 1 && hd.numValidPixel == hd.nCols * hd.nRows)    // special but common case
   {
     for (int i = 0; i < hd.nRows; i++)
     {
@@ -1081,17 +1213,17 @@ bool Lerc2::TryRaiseMaxZError(const T* data, double& maxZError) const
     }
   }
 
-  else    // general case:  nDim > 1 or not all pixel valid
+  else    // general case:  nDepth > 1 or not all pixel valid
   {
     for (int k = 0, m0 = 0, i = 0; i < hd.nRows; i++)
     {
       size_t nCand = zErr.size();
 
-      for (int j = 0; j < hd.nCols; j++, k++, m0 += nDim)
+      for (int j = 0; j < hd.nCols; j++, k++, m0 += nDepth)
         if (m_bitMask.IsValid(k))
-          for (int iDim = 0; iDim < nDim; iDim++)
+          for (int m = 0; m < nDepth; m++)
           {
-            double x = data[m0 + iDim];
+            double x = data[m0 + m];
 
             for (size_t n = 0; n < nCand; n++)
             {
@@ -1110,7 +1242,7 @@ bool Lerc2::TryRaiseMaxZError(const T* data, double& maxZError) const
   }
 
   for (size_t n = 0; n < zErr.size(); n++)
-    if (roundErr[n] / zFac[n] <= maxZError)
+    if (roundErr[n] / zFac[n] <= maxZError / 2)
     {
       maxZError = zErr[n];
       return true;
@@ -1130,7 +1262,7 @@ bool Lerc2::PruneCandidates(std::vector<double>& roundErr, std::vector<double>& 
     return false;
 
   for (int n = (int)(nCand - 1); n >= 0; n--)
-    if (roundErr[n] / zFac[n] > maxZError)
+    if (roundErr[n] / zFac[n] > maxZError / 2)
     {
       roundErr.erase(roundErr.begin() + n);
       zErr.erase(zErr.begin() + n);
@@ -1150,11 +1282,11 @@ bool Lerc2::WriteDataOneSweep(const T* data, Byte** ppByte) const
 
   Byte* ptr = (*ppByte);
   const HeaderInfo& hd = m_headerInfo;
-  int nDim = hd.nDim;
-  int len = nDim * sizeof(T);
+  int nDepth = hd.nDepth;
+  int len = nDepth * sizeof(T);
 
   for (int k = 0, m0 = 0, i = 0; i < hd.nRows; i++)
-    for (int j = 0; j < hd.nCols; j++, k++, m0 += nDim)
+    for (int j = 0; j < hd.nCols; j++, k++, m0 += nDepth)
       if (m_bitMask.IsValid(k))
       {
         memcpy(ptr, &data[m0], len);
@@ -1175,8 +1307,8 @@ bool Lerc2::ReadDataOneSweep(const Byte** ppByte, size_t& nBytesRemaining, T* da
 
   const Byte* ptr = (*ppByte);
   const HeaderInfo& hd = m_headerInfo;
-  int nDim = hd.nDim;
-  int len = nDim * sizeof(T);
+  int nDepth = hd.nDepth;
+  int len = nDepth * sizeof(T);
 
   size_t nValidPix = (size_t)m_bitMask.CountValidBits();
 
@@ -1184,7 +1316,7 @@ bool Lerc2::ReadDataOneSweep(const Byte** ppByte, size_t& nBytesRemaining, T* da
     return false;
 
   for (int k = 0, m0 = 0, i = 0; i < hd.nRows; i++)
-    for (int j = 0; j < hd.nCols; j++, k++, m0 += nDim)
+    for (int j = 0; j < hd.nCols; j++, k++, m0 += nDepth)
       if (m_bitMask.IsValid(k))
       {
         memcpy(&data[m0], ptr, len);
@@ -1206,62 +1338,62 @@ bool Lerc2::ComputeMinMaxRanges(const T* data, std::vector<double>& zMinVecA, st
     return false;
 
   const HeaderInfo& hd = m_headerInfo;
-  const int nDim = hd.nDim;
+  const int nDepth = hd.nDepth;
   bool bInit = false;
 
-  zMinVecA.resize(nDim);
-  zMaxVecA.resize(nDim);
+  zMinVecA.resize(nDepth);
+  zMaxVecA.resize(nDepth);
 
-  std::vector<T> zMinVec(nDim, 0), zMaxVec(nDim, 0);
+  std::vector<T> zMinVec(nDepth, 0), zMaxVec(nDepth, 0);
 
   if (hd.numValidPixel == hd.nRows * hd.nCols)    // all valid, no mask
   {
     bInit = true;
-    for (int iDim = 0; iDim < nDim; iDim++)
-      zMinVec[iDim] = zMaxVec[iDim] = data[iDim];
+    for (int m = 0; m < nDepth; m++)
+      zMinVec[m] = zMaxVec[m] = data[m];
 
     for (int m0 = 0, i = 0; i < hd.nRows; i++)
-      for (int j = 0; j < hd.nCols; j++, m0 += nDim)
-        for (int iDim = 0; iDim < nDim; iDim++)
+      for (int j = 0; j < hd.nCols; j++, m0 += nDepth)
+        for (int m = 0; m < nDepth; m++)
         {
-          T val = data[m0 + iDim];
+          T val = data[m0 + m];
 
-          if (val < zMinVec[iDim])
-            zMinVec[iDim] = val;
-          else if (val > zMaxVec[iDim])
-            zMaxVec[iDim] = val;
+          if (val < zMinVec[m])
+            zMinVec[m] = val;
+          else if (val > zMaxVec[m])
+            zMaxVec[m] = val;
         }
   }
   else
   {
     for (int k = 0, m0 = 0, i = 0; i < hd.nRows; i++)
-      for (int j = 0; j < hd.nCols; j++, k++, m0 += nDim)
+      for (int j = 0; j < hd.nCols; j++, k++, m0 += nDepth)
         if (m_bitMask.IsValid(k))
         {
           if (bInit)
-            for (int iDim = 0; iDim < nDim; iDim++)
+            for (int m = 0; m < nDepth; m++)
             {
-              T val = data[m0 + iDim];
+              T val = data[m0 + m];
 
-              if (val < zMinVec[iDim])
-                zMinVec[iDim] = val;
-              else if (val > zMaxVec[iDim])
-                zMaxVec[iDim] = val;
+              if (val < zMinVec[m])
+                zMinVec[m] = val;
+              else if (val > zMaxVec[m])
+                zMaxVec[m] = val;
             }
           else
           {
             bInit = true;
-            for (int iDim = 0; iDim < nDim; iDim++)
-              zMinVec[iDim] = zMaxVec[iDim] = data[m0 + iDim];
+            for (int m = 0; m < nDepth; m++)
+              zMinVec[m] = zMaxVec[m] = data[m0 + m];
           }
         }
   }
 
   if (bInit)
-    for (int iDim = 0; iDim < nDim; iDim++)
+    for (int m = 0; m < nDepth; m++)
     {
-      zMinVecA[iDim] = zMinVec[iDim];
-      zMaxVecA[iDim] = zMaxVec[iDim];
+      zMinVecA[m] = zMinVec[m];
+      zMaxVecA[m] = zMaxVec[m];
     }
 
   return bInit;
@@ -1283,14 +1415,14 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes) const
 
   const HeaderInfo& hd = m_headerInfo;
   int mbSize = hd.microBlockSize;
-  int nDim = hd.nDim;
+  int nDepth = hd.nDepth;
 
   std::vector<T> dataVec(mbSize * mbSize, 0);
   T* dataBuf = &dataVec[0];
 
   const bool bDtInt = (hd.dt < DT_Float);
   const bool bIntLossless = bDtInt && (hd.maxZError == 0.5);
-  const bool bTryDiffEnc = (hd.version >= 5) && (nDim > 1);
+  const bool bTryDiffEnc = (hd.version >= 5) && (nDepth > 1) && (hd.maxZError > 0);  // turn off for flt lossless
 
   const bool bCheckForIntOverflow = NeedToCheckForIntOverflow(hd);
   const bool bCheckForFltRndErr = NeedToCheckForFltRndErr(hd);
@@ -1316,27 +1448,27 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes) const
       if (jTile == numTilesHori - 1)
         tileW = hd.nCols - j0;
 
-      for (int iDim = 0; iDim < nDim; iDim++)
+      for (int iDepth = 0; iDepth < nDepth; iDepth++)
       {
         T zMin = 0, zMax = 0;
         int numValidPixel = 0;
         bool bQuantizeDone = false;
         bool tryLut = false;
 
-        if (!GetValidDataAndStats(data, i0, i0 + tileH, j0, j0 + tileW, iDim, dataBuf, zMin, zMax, numValidPixel, tryLut))
+        if (!GetValidDataAndStats(data, i0, i0 + tileH, j0, j0 + tileW, iDepth, dataBuf, zMin, zMax, numValidPixel, tryLut))
           return false;
 
         if (numValidPixel == 0 && !(*ppByte))
         {
-          numBytesLerc += nDim;    // 1 byte per empty block
-          break;    // iDim loop
+          numBytesLerc += nDepth;    // 1 byte per empty block
+          break;    // iDepth loop
         }
 
         //tryLut = false;    // always OFF
         //tryLut = NeedToQuantize(numValidPixel, zMin, zMax);    // always ON
 
         // if needed, quantize the data here once
-        if (((*ppByte && iDim == 0) || tryLut) && NeedToQuantize(numValidPixel, zMin, zMax))
+        if (((*ppByte && iDepth == 0) || tryLut) && NeedToQuantize(numValidPixel, zMin, zMax))
         {
           Quantize(dataBuf, numValidPixel, zMin, quantVec);
           bQuantizeDone = true;
@@ -1353,7 +1485,7 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes) const
         double zMinDiff(0), zMaxDiff(0);
         bool bQuantizeDoneDiff = false, tryLutDiff = false;
 
-        if (bTryDiffEnc && iDim > 0 && numValidPixel > 0)
+        if (bTryDiffEnc && iDepth > 0 && numValidPixel > 0)
         {
           bool rv = bDtInt ? ComputeDiffSliceInt(&dataVec[0], &prevDataVec[0], numValidPixel, bCheckForIntOverflow, hd.maxZError, diffDataVecInt, zMinDiffInt, zMaxDiffInt, tryLutDiff)
             : ComputeDiffSliceFlt(&dataVec[0], &prevDataVec[0], numValidPixel, bCheckForFltRndErr, hd.maxZError, diffDataVecFlt, zMinDiffFlt, zMaxDiffFlt, tryLutDiff);
@@ -1382,17 +1514,17 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes) const
 
         numBytesLerc += std::min(numBytesNeeded, numBytesNeededDiff);
 
-        if (bTryDiffEnc && iDim < (nDim - 1) && numValidPixel > 0)
+        if (bTryDiffEnc && iDepth < (nDepth - 1) && numValidPixel > 0)
         {
-          if (iDim == 0)
+          if (iDepth == 0)
             prevDataVec.resize(numValidPixel);
 
           if (!bIntLossless)    // if not int lossless: do lossy quantize back and forth, then copy to buffer
           {
-            double zMaxClamp = m_zMaxVec[iDim];
+            double zMaxClamp = m_zMaxVec[iDepth];
             bool bClampScaleBack = (zMax + 2 * hd.maxZError > zMaxClamp);
 
-            if (iDim == 0 || numBytesNeeded <= numBytesNeededDiff)    // for regular or abs encode
+            if (iDepth == 0 || numBytesNeeded <= numBytesNeededDiff)    // for regular or abs encode
             {
               if (bQuantizeDone || NeedToQuantize(numValidPixel, zMin, zMax))
               {
@@ -1435,7 +1567,7 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes) const
           int numBytesWritten = 0;
           bool rv = false;
 
-          if (iDim == 0 || numBytesNeeded <= numBytesNeededDiff)
+          if (iDepth == 0 || numBytesNeeded <= numBytesNeededDiff)
           {
             if (!bQuantizeDone && NeedToQuantize(numValidPixel, zMin, zMax))
               Quantize(dataBuf, numValidPixel, zMin, quantVec);
@@ -1477,7 +1609,7 @@ bool Lerc2::ReadTiles(const Byte** ppByte, size_t& nBytesRemaining, T* data) con
 
   const HeaderInfo& hd = m_headerInfo;
   int mbSize = hd.microBlockSize;
-  int nDim = hd.nDim;
+  int nDepth = hd.nDepth;
 
   if (mbSize > 32)  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
     return false;
@@ -1499,9 +1631,9 @@ bool Lerc2::ReadTiles(const Byte** ppByte, size_t& nBytesRemaining, T* data) con
       if (jTile == numTilesHori - 1)
         tileW = hd.nCols - j0;
 
-      for (int iDim = 0; iDim < nDim; iDim++)
+      for (int iDepth = 0; iDepth < nDepth; iDepth++)
       {
-        if (!ReadTile(ppByte, nBytesRemaining, data, i0, i0 + tileH, j0, j0 + tileW, iDim, bufferVec))
+        if (!ReadTile(ppByte, nBytesRemaining, data, i0, i0 + tileH, j0, j0 + tileW, iDepth, bufferVec))
           return false;
       }
     }
@@ -1513,12 +1645,12 @@ bool Lerc2::ReadTiles(const Byte** ppByte, size_t& nBytesRemaining, T* data) con
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, int iDim,
+bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, int iDepth,
   T* dataBuf, T& zMin, T& zMax, int& numValidPixel, bool& tryLut) const
 {
   const HeaderInfo& hd = m_headerInfo;
 
-  if (!data || i0 < 0 || j0 < 0 || i1 > hd.nRows || j1 > hd.nCols || i0 >= i1 || j0 >= j1 || iDim < 0 || iDim > hd.nDim || !dataBuf)
+  if (!data || i0 < 0 || j0 < 0 || i1 > hd.nRows || j1 > hd.nCols || i0 >= i1 || j0 >= j1 || iDepth < 0 || iDepth > hd.nDepth || !dataBuf)
     return false;
 
   zMin = zMax = 0;
@@ -1526,20 +1658,20 @@ bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, 
 
   T prevVal = 0;
   int cnt = 0, cntSameVal = 0;
-  int nDim = hd.nDim;
+  int nDepth = hd.nDepth;
 
   if (hd.numValidPixel == hd.nCols * hd.nRows)    // all valid, no mask
   {
     int k0 = i0 * hd.nCols + j0;
-    int m0 = k0 * nDim + iDim;
+    int m0 = k0 * nDepth + iDepth;
     zMin = zMax = data[m0];    // init
 
     for (int i = i0; i < i1; i++)
     {
       int k = i * hd.nCols + j0;
-      int m = k * nDim + iDim;
+      int m = k * nDepth + iDepth;
 
-      for (int j = j0; j < j1; j++, m += nDim)
+      for (int j = j0; j < j1; j++, m += nDepth)
       {
         T val = data[m];
         dataBuf[cnt] = val;
@@ -1562,9 +1694,9 @@ bool Lerc2::GetValidDataAndStats(const T* data, int i0, int i1, int j0, int j1, 
     for (int i = i0; i < i1; i++)
     {
       int k = i * hd.nCols + j0;
-      int m = k * nDim + iDim;
+      int m = k * nDepth + iDepth;
 
-      for (int j = j0; j < j1; j++, k++, m += nDim)
+      for (int j = j0; j < j1; j++, k++, m += nDepth)
         if (m_bitMask.IsValid(k))
         {
           T val = data[m];
@@ -1821,7 +1953,7 @@ bool Lerc2::WriteTile(const T* dataBuf, int num, Byte** ppByte, int& numBytesWri
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data, int i0, int i1, int j0, int j1, int iDim,
+bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data, int i0, int i1, int j0, int j1, int iDepth,
   std::vector<unsigned int>& bufferVec) const
 {
   const Byte* ptr = *ppByte;
@@ -1832,7 +1964,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
 
   const HeaderInfo& hd = m_headerInfo;
   int nCols = hd.nCols;
-  int nDim = hd.nDim;
+  int nDepth = hd.nDepth;
 
   Byte comprFlag = *ptr++;
   nBytesRemaining--;
@@ -1843,7 +1975,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
   if (((comprFlag >> 2) & pattern) != ((j0 >> 3) & pattern))    // use bits 2345 for integrity check
     return false;
 
-  if (bDiffEnc && iDim == 0)
+  if (bDiffEnc && iDepth == 0)
     return false;
 
   int bits67 = comprFlag >> 6;
@@ -1854,9 +1986,9 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
     for (int i = i0; i < i1; i++)
     {
       int k = i * nCols + j0;
-      int m = k * nDim + iDim;
+      int m = k * nDepth + iDepth;
 
-      for (int j = j0; j < j1; j++, k++, m += nDim)
+      for (int j = j0; j < j1; j++, k++, m += nDepth)
         if (m_bitMask.IsValid(k))
           data[m] = bDiffEnc ? data[m - 1] : 0;
     }
@@ -1877,9 +2009,9 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
     for (int i = i0; i < i1; i++)
     {
       int k = i * nCols + j0;
-      int m = k * nDim + iDim;
+      int m = k * nDepth + iDepth;
 
-      for (int j = j0; j < j1; j++, k++, m += nDim)
+      for (int j = j0; j < j1; j++, k++, m += nDepth)
         if (m_bitMask.IsValid(k))
         {
           if (nBytesRemaining < sizeof(T))
@@ -1907,25 +2039,25 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
     double offset = ReadVariableDataType(&ptr, dtUsed);
     nBytesRemaining -= n;
 
-    double zMax = (hd.version >= 4 && nDim > 1) ? m_zMaxVec[iDim] : hd.zMax;
+    double zMax = (hd.version >= 4 && nDepth > 1) ? m_zMaxVec[iDepth] : hd.zMax;
 
     if (comprFlag == 3)    // entire tile is constant zMin (all the valid pixels)
     {
       for (int i = i0; i < i1; i++)
       {
         int k = i * nCols + j0;
-        int m = k * nDim + iDim;
+        int m = k * nDepth + iDepth;
 
         if (!bDiffEnc)
         {
           T val = (T)offset;
-          for (int j = j0; j < j1; j++, k++, m += nDim)
+          for (int j = j0; j < j1; j++, k++, m += nDepth)
             if (m_bitMask.IsValid(k))
               data[m] = val;
         }
         else
         {
-          for (int j = j0; j < j1; j++, k++, m += nDim)
+          for (int j = j0; j < j1; j++, k++, m += nDepth)
             if (m_bitMask.IsValid(k))
             {
               double z = offset + data[m - 1];
@@ -1948,11 +2080,11 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
         for (int i = i0; i < i1; i++)
         {
           int k = i * nCols + j0;
-          int m = k * nDim + iDim;
+          int m = k * nDepth + iDepth;
 
           if (!bDiffEnc)
           {
-            for (int j = j0; j < j1; j++, k++, m += nDim)
+            for (int j = j0; j < j1; j++, k++, m += nDepth)
             {
               double z = offset + *srcPtr++ * invScale;
               data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
@@ -1960,7 +2092,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
           }
           else
           {
-            for (int j = j0; j < j1; j++, k++, m += nDim)
+            for (int j = j0; j < j1; j++, k++, m += nDepth)
             {
               double z = offset + *srcPtr++ * invScale + data[m - 1];
               data[m] = (T)std::min(z, zMax);
@@ -1975,11 +2107,11 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
           for (int i = i0; i < i1; i++)
           {
             int k = i * nCols + j0;
-            int m = k * nDim + iDim;
+            int m = k * nDepth + iDepth;
 
             if (!bDiffEnc)
             {
-              for (int j = j0; j < j1; j++, k++, m += nDim)
+              for (int j = j0; j < j1; j++, k++, m += nDepth)
                 if (m_bitMask.IsValid(k))
                 {
                   double z = offset + *srcPtr++ * invScale;
@@ -1988,7 +2120,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
             }
             else
             {
-              for (int j = j0; j < j1; j++, k++, m += nDim)
+              for (int j = j0; j < j1; j++, k++, m += nDepth)
                 if (m_bitMask.IsValid(k))
                 {
                   double z = offset + *srcPtr++ * invScale + data[m - 1];
@@ -2004,9 +2136,9 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
           for (int i = i0; i < i1; i++)
           {
             int k = i * nCols + j0;
-            int m = k * nDim + iDim;
+            int m = k * nDepth + iDepth;
 
-            for (int j = j0; j < j1; j++, k++, m += nDim)
+            for (int j = j0; j < j1; j++, k++, m += nDepth)
               if (m_bitMask.IsValid(k))
               {
                 if (bufferVecIdx == bufferVec.size())  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
@@ -2118,15 +2250,15 @@ void Lerc2::ComputeHistoForHuffman(const T* data, std::vector<int>& histo, std::
   int offset = (m_headerInfo.dt == DT_Char) ? 128 : 0;
   int height = m_headerInfo.nRows;
   int width = m_headerInfo.nCols;
-  int nDim = m_headerInfo.nDim;
+  int nDepth = m_headerInfo.nDepth;
 
   if (m_headerInfo.numValidPixel == width * height)    // all valid
   {
-    for (int iDim = 0; iDim < nDim; iDim++)
+    for (int iDepth = 0; iDepth < nDepth; iDepth++)
     {
       T prevVal = 0;
-      for (int m = iDim, i = 0; i < height; i++)
-        for (int j = 0; j < width; j++, m += nDim)
+      for (int m = iDepth, i = 0; i < height; i++)
+        for (int j = 0; j < width; j++, m += nDepth)
         {
           T val = data[m];
           T delta = val;
@@ -2134,7 +2266,7 @@ void Lerc2::ComputeHistoForHuffman(const T* data, std::vector<int>& histo, std::
           if (j > 0)
             delta -= prevVal;    // use overflow
           else if (i > 0)
-            delta -= data[m - width * nDim];
+            delta -= data[m - width * nDepth];
           else
             delta -= prevVal;
 
@@ -2147,11 +2279,11 @@ void Lerc2::ComputeHistoForHuffman(const T* data, std::vector<int>& histo, std::
   }
   else    // not all valid
   {
-    for (int iDim = 0; iDim < nDim; iDim++)
+    for (int iDepth = 0; iDepth < nDepth; iDepth++)
     {
       T prevVal = 0;
-      for (int k = 0, m = iDim, i = 0; i < height; i++)
-        for (int j = 0; j < width; j++, k++, m += nDim)
+      for (int k = 0, m = iDepth, i = 0; i < height; i++)
+        for (int j = 0; j < width; j++, k++, m += nDepth)
           if (m_bitMask.IsValid(k))
           {
             T val = data[m];
@@ -2163,7 +2295,7 @@ void Lerc2::ComputeHistoForHuffman(const T* data, std::vector<int>& histo, std::
             }
             else if (i > 0 && m_bitMask.IsValid(k - width))
             {
-              delta -= data[m - width * nDim];
+              delta -= data[m - width * nDepth];
             }
             else
               delta -= prevVal;
@@ -2192,7 +2324,7 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
   int offset = (m_headerInfo.dt == DT_Char) ? 128 : 0;
   int height = m_headerInfo.nRows;
   int width = m_headerInfo.nCols;
-  int nDim = m_headerInfo.nDim;
+  int nDepth = m_headerInfo.nDepth;
 
   unsigned int* arr = (unsigned int*)(*ppByte);
   unsigned int* dstPtr = arr;
@@ -2200,11 +2332,11 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
 
   if (m_imageEncodeMode == IEM_DeltaHuffman)
   {
-    for (int iDim = 0; iDim < nDim; iDim++)
+    for (int iDepth = 0; iDepth < nDepth; iDepth++)
     {
       T prevVal = 0;
-      for (int k = 0, m = iDim, i = 0; i < height; i++)
-        for (int j = 0; j < width; j++, k++, m += nDim)
+      for (int k = 0, m = iDepth, i = 0; i < height; i++)
+        for (int j = 0; j < width; j++, k++, m += nDepth)
           if (m_bitMask.IsValid(k))
           {
             T val = data[m];
@@ -2216,7 +2348,7 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
             }
             else if (i > 0 && m_bitMask.IsValid(k - width))
             {
-              delta -= data[m - width * nDim];
+              delta -= data[m - width * nDepth];
             }
             else
               delta -= prevVal;
@@ -2257,9 +2389,9 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
   else if (m_imageEncodeMode == IEM_Huffman)
   {
     for (int k = 0, m0 = 0, i = 0; i < height; i++)
-      for (int j = 0; j < width; j++, k++, m0 += nDim)
+      for (int j = 0; j < width; j++, k++, m0 += nDepth)
         if (m_bitMask.IsValid(k))
-          for (int m = 0; m < nDim; m++)
+          for (int m = 0; m < nDepth; m++)
           {
             T val = data[m0 + m];
 
@@ -2320,7 +2452,7 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
   int offset = (m_headerInfo.dt == DT_Char) ? 128 : 0;
   int height = m_headerInfo.nRows;
   int width = m_headerInfo.nCols;
-  int nDim = m_headerInfo.nDim;
+  int nDepth = m_headerInfo.nDepth;
 
   const unsigned int* arr = (const unsigned int*)(*ppByte);
   const unsigned int* srcPtr = arr;
@@ -2331,11 +2463,11 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
   {
     if (m_imageEncodeMode == IEM_DeltaHuffman)
     {
-      for (int iDim = 0; iDim < nDim; iDim++)
+      for (int iDepth = 0; iDepth < nDepth; iDepth++)
       {
         T prevVal = 0;
-        for (int m = iDim, i = 0; i < height; i++)
-          for (int j = 0; j < width; j++, m += nDim)
+        for (int m = iDepth, i = 0; i < height; i++)
+          for (int j = 0; j < width; j++, m += nDepth)
           {
             int val = 0;
             if (nBytesRemaining >= 4 * sizeof(unsigned int))
@@ -2354,7 +2486,7 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
             if (j > 0)
               delta += prevVal;    // use overflow
             else if (i > 0)
-              delta += data[m - width * nDim];
+              delta += data[m - width * nDepth];
             else
               delta += prevVal;
 
@@ -2367,8 +2499,8 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
     else if (m_imageEncodeMode == IEM_Huffman)
     {
       for (int k = 0, m0 = 0, i = 0; i < height; i++)
-        for (int j = 0; j < width; j++, k++, m0 += nDim)
-          for (int m = 0; m < nDim; m++)
+        for (int j = 0; j < width; j++, k++, m0 += nDepth)
+          for (int m = 0; m < nDepth; m++)
           {
             int val = 0;
             if (nBytesRemaining >= 4 * sizeof(unsigned int))
@@ -2394,11 +2526,11 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
   {
     if (m_imageEncodeMode == IEM_DeltaHuffman)
     {
-      for (int iDim = 0; iDim < nDim; iDim++)
+      for (int iDepth = 0; iDepth < nDepth; iDepth++)
       {
         T prevVal = 0;
-        for (int k = 0, m = iDim, i = 0; i < height; i++)
-          for (int j = 0; j < width; j++, k++, m += nDim)
+        for (int k = 0, m = iDepth, i = 0; i < height; i++)
+          for (int j = 0; j < width; j++, k++, m += nDepth)
             if (m_bitMask.IsValid(k))
             {
               int val = 0;
@@ -2421,7 +2553,7 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
               }
               else if (i > 0 && m_bitMask.IsValid(k - width))
               {
-                delta += data[m - width * nDim];
+                delta += data[m - width * nDepth];
               }
               else
                 delta += prevVal;
@@ -2435,9 +2567,9 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
     else if (m_imageEncodeMode == IEM_Huffman)
     {
       for (int k = 0, m0 = 0, i = 0; i < height; i++)
-        for (int j = 0; j < width; j++, k++, m0 += nDim)
+        for (int j = 0; j < width; j++, k++, m0 += nDepth)
           if (m_bitMask.IsValid(k))
-            for (int m = 0; m < nDim; m++)
+            for (int m = 0; m < nDepth; m++)
             {
               int val = 0;
               if (nBytesRemaining >= 4 * sizeof(unsigned int))
@@ -2480,20 +2612,20 @@ bool Lerc2::WriteMinMaxRanges(const T* /*data*/, Byte** ppByte) const
 
   //printf("write min / max = %f  %f\n", m_zMinVec[0], m_zMaxVec[0]);
 
-  int nDim = m_headerInfo.nDim;
-  if (/* nDim < 2 || */ (int)m_zMinVec.size() != nDim || (int)m_zMaxVec.size() != nDim)
+  int nDepth = m_headerInfo.nDepth;
+  if (/* nDepth < 2 || */ (int)m_zMinVec.size() != nDepth || (int)m_zMaxVec.size() != nDepth)
     return false;
 
-  std::vector<T> zVec(nDim);
-  size_t len = nDim * sizeof(T);
+  std::vector<T> zVec(nDepth);
+  size_t len = nDepth * sizeof(T);
 
-  for (int i = 0; i < nDim; i++)
+  for (int i = 0; i < nDepth; i++)
     zVec[i] = (T)m_zMinVec[i];
 
   memcpy(*ppByte, &zVec[0], len);
   (*ppByte) += len;
 
-  for (int i = 0; i < nDim; i++)
+  for (int i = 0; i < nDepth; i++)
     zVec[i] = (T)m_zMaxVec[i];
 
   memcpy(*ppByte, &zVec[0], len);
@@ -2510,13 +2642,13 @@ bool Lerc2::ReadMinMaxRanges(const Byte** ppByte, size_t& nBytesRemaining, const
   if (!ppByte || !(*ppByte))
     return false;
 
-  int nDim = m_headerInfo.nDim;
+  int nDepth = m_headerInfo.nDepth;
 
-  m_zMinVec.resize(nDim);
-  m_zMaxVec.resize(nDim);
+  m_zMinVec.resize(nDepth);
+  m_zMaxVec.resize(nDepth);
 
-  std::vector<T> zVec(nDim);
-  size_t len = nDim * sizeof(T);
+  std::vector<T> zVec(nDepth);
+  size_t len = nDepth * sizeof(T);
 
   if (nBytesRemaining < len || !memcpy(&zVec[0], *ppByte, len))
     return false;
@@ -2524,7 +2656,7 @@ bool Lerc2::ReadMinMaxRanges(const Byte** ppByte, size_t& nBytesRemaining, const
   (*ppByte) += len;
   nBytesRemaining -= len;
 
-  for (int i = 0; i < nDim; i++)
+  for (int i = 0; i < nDepth; i++)
     m_zMinVec[i] = zVec[i];
 
   if (nBytesRemaining < len || !memcpy(&zVec[0], *ppByte, len))
@@ -2533,7 +2665,7 @@ bool Lerc2::ReadMinMaxRanges(const Byte** ppByte, size_t& nBytesRemaining, const
   (*ppByte) += len;
   nBytesRemaining -= len;
 
-  for (int i = 0; i < nDim; i++)
+  for (int i = 0; i < nDepth; i++)
     m_zMaxVec[i] = zVec[i];
 
   //printf("read min / max = %f  %f\n", m_zMinVec[0], m_zMaxVec[0]);
@@ -2552,10 +2684,10 @@ bool Lerc2::FillConstImage(T* data) const
   const HeaderInfo& hd = m_headerInfo;
   int nCols = hd.nCols;
   int nRows = hd.nRows;
-  int nDim = hd.nDim;
+  int nDepth = hd.nDepth;
   T z0 = (T)hd.zMin;
 
-  if (nDim == 1)
+  if (nDepth == 1)
   {
     for (int k = 0, i = 0; i < nRows; i++)
       for (int j = 0; j < nCols; j++, k++)
@@ -2564,20 +2696,20 @@ bool Lerc2::FillConstImage(T* data) const
   }
   else
   {
-    std::vector<T> zBufVec(nDim, z0);
+    std::vector<T> zBufVec(nDepth, z0);
 
     if (hd.zMin != hd.zMax)
     {
-      if ((int)m_zMinVec.size() != nDim)
+      if ((int)m_zMinVec.size() != nDepth)
         return false;
 
-      for (int m = 0; m < nDim; m++)
+      for (int m = 0; m < nDepth; m++)
         zBufVec[m] = (T)m_zMinVec[m];
     }
 
-    int len = nDim * sizeof(T);
+    int len = nDepth * sizeof(T);
     for (int k = 0, m = 0, i = 0; i < nRows; i++)
-      for (int j = 0; j < nCols; j++, k++, m += nDim)
+      for (int j = 0; j < nCols; j++, k++, m += nDepth)
         if (m_bitMask.IsValid(k))
           memcpy(&data[m], &zBufVec[0], len);
   }

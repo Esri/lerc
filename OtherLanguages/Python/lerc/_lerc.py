@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-#   Copyright 2016 - 2021 Esri
+#   Copyright 2016 - 2022 Esri
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -108,13 +108,45 @@ def getLercShape(npArr, nValuesPerPixel):
 
 #-------------------------------------------------------------------------------
 
+# Lerc version 3.0
+# use only if all pixel values are valid.
+
 def findMaxZError(npArr1, npArr2):
     npDiff = npArr2 - npArr1
     yMin = np.amin(npDiff)
     yMax = np.amax(npDiff)
     return max(abs(yMin), abs(yMax))
 
+# Lerc version 3.1
+# honors byte masks and works with noData value: if decoded output
+# has a noData value, the orig input must have the same.
+
+def findMaxZError_4D(npDataOrig, npDataDec, npValidMaskDec, nBands):
+    
+    npDiff = npDataDec - npDataOrig
+    
+    if (npValidMaskDec is None):
+        zMin = np.amin(npDiff)
+        zMax = np.amax(npDiff)
+    else:
+        if not npValidMaskDec.any():    # if all pixel values are void
+            return 0
+        
+        if nBands == 1 or npValidMaskDec.ndim == 3:  # one mask per band
+            zMin = np.amin(npDiff[npValidMaskDec])
+            zMax = np.amax(npDiff[npValidMaskDec])
+        elif nBands > 1:  # same mask for all bands
+            zMin = float("inf")
+            zMax = -zMin
+            for m in range(nBands):
+                zMin = min(np.amin(npDiff[m][npValidMaskDec]), zMin)
+                zMax = max(np.amax(npDiff[m][npValidMaskDec]), zMax)
+
+    return max(abs(zMin), abs(zMax))
+
 #-------------------------------------------------------------------------------
+
+# Lerc version 3.0
 
 def findDataRange(npArr, bHasMask, npValidMask, nBands, printInfo = False):
     start = timer()
@@ -123,6 +155,9 @@ def findDataRange(npArr, bHasMask, npValidMask, nBands, printInfo = False):
         zMin = np.amin(npArr)
         zMax = np.amax(npArr)
     else:
+        if not npValidMask.any():    # if all pixel values are void
+            return (-1, -1)
+        
         if nBands == 1 or npValidMask.ndim == 3:  # one mask per band
             zMin = np.amin(npArr[npValidMask])
             zMax = np.amax(npArr[npValidMask])
@@ -138,6 +173,65 @@ def findDataRange(npArr, bHasMask, npValidMask, nBands, printInfo = False):
         print('time findDataRange() = ', (end - start))
     return (zMin, zMax)
 
+# Lerc version 3.1
+
+def findDataRange_4D(npArr, npValidMask, nBands, npHasNoDataArr = None, npNoDataArr = None):
+
+    fctErr = 'Error in findDataRange_4D(): '
+    
+    if ((npHasNoDataArr is not None) or (npNoDataArr is not None)):
+        if ((len(npNoDataArr) != nBands) or (len(npNoDataArr) != nBands)):
+            print(fctErr, 'noData arrays must be of size nBands or None.')
+            return (-1, -1)
+
+        # honor noData value
+        if nBands == 1:
+            if npHasNoDataArr[0]:
+                npArrMasked = np.ma.masked_array(npArr, npArr == npNoDataArr[0])
+            else:
+                npArrMasked = npArr
+            
+            return findDataRange_4D(npArrMasked, npValidMask, 1)
+        
+        else:
+            zMin = float("inf")
+            zMax = -zMin
+            for m in range(nBands):
+                if npValidMask is not None and npValidMask.ndim == 3:    # one mask per band
+                    mask = npValidMask[m]
+                else:
+                    mask = npValidMask
+
+                oneHasNoDataArr = np.full((1), npHasNoDataArr[m])
+                oneNoDataArr = np.full((1), npNoDataArr[m])
+                
+                (a, b) = findDataRange_4D(npArr[m], mask, 1, oneHasNoDataArr, oneNoDataArr)
+                
+                zMin = min(zMin, a)
+                zMax = max(zMax, b)
+
+            return (zMin, zMax)
+        
+    else:    # no noData value, byte masks only, if any
+        if npValidMask is None:
+            zMin = np.amin(npArr)
+            zMax = np.amax(npArr)
+        else:
+            if not npValidMask.any():    # if all pixel values are void
+                return (-1, -1)
+            
+            if nBands == 1 or npValidMask.ndim == 3:  # one mask per band
+                zMin = np.amin(npArr[npValidMask])
+                zMax = np.amax(npArr[npValidMask])
+            elif nBands > 1:  # same mask for all bands
+                zMin = float("inf")
+                zMax = -zMin
+                for m in range(nBands):
+                    zMin = min(np.amin(npArr[m][npValidMask]), zMin)
+                    zMax = max(np.amax(npArr[m][npValidMask]), zMax)
+
+        return (zMin, zMax)
+
 #-------------------------------------------------------------------------------
 
 # see include/Lerc_c_api.h
@@ -151,11 +245,25 @@ lercDll.lerc_encode.argtypes = (ct.c_void_p, ct.c_uint, ct.c_int, ct.c_int, ct.c
 lercDll.lerc_getBlobInfo.restype = ct.c_uint
 lercDll.lerc_getBlobInfo.argtypes = (ct.c_char_p, ct.c_uint, ct.POINTER(ct.c_uint), ct.POINTER(ct.c_double), ct.c_int, ct.c_int)
 
-lercDll.lerc_getBlobInfo.restype = ct.c_uint
+lercDll.lerc_getDataRanges.restype = ct.c_uint
 lercDll.lerc_getDataRanges.argtypes = (ct.c_char_p, ct.c_uint, ct.c_int, ct.c_int, ct.POINTER(ct.c_double), ct.POINTER(ct.c_double))
 
 lercDll.lerc_decode.restype = ct.c_uint
 lercDll.lerc_decode.argtypes = (ct.c_char_p, ct.c_uint, ct.c_int, ct.c_char_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_uint, ct.c_void_p)
+
+# the new _4D functions
+
+lercDll.lerc_computeCompressedSize_4D.restype = ct.c_uint
+lercDll.lerc_computeCompressedSize_4D.argtypes = (ct.c_void_p, ct.c_uint, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_char_p, ct.c_double,
+                                                  ct.POINTER(ct.c_uint), ct.c_char_p, ct.POINTER(ct.c_double))
+
+lercDll.lerc_encode_4D.restype = ct.c_uint
+lercDll.lerc_encode_4D.argtypes = (ct.c_void_p, ct.c_uint, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_char_p, ct.c_double, ct.c_char_p, ct.c_uint,
+                                   ct.POINTER(ct.c_uint), ct.c_char_p, ct.POINTER(ct.c_double))
+
+lercDll.lerc_decode_4D.restype = ct.c_uint
+lercDll.lerc_decode_4D.argtypes = (ct.c_char_p, ct.c_uint, ct.c_int, ct.c_char_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_uint,
+                                   ct.c_void_p, ct.c_char_p, ct.POINTER(ct.c_double))
 
 #-------------------------------------------------------------------------------
 
@@ -164,35 +272,64 @@ lercDll.lerc_decode.argtypes = (ct.c_char_p, ct.c_uint, ct.c_int, ct.c_char_p, c
 # npValidMask can be None (bHasMask == False), 2D byte array, or 3D byte array (bHasMask == True).
 # if 2D or [nRows, nCols], it is one mask for all bands. 1 means pixel is valid, 0 means invalid.
 # if 3D or [nBands, nRows, nCols], it is one mask PER band.
-# note that an array of values per pixel is either all valid or all invalid.
-# the case that such inner array values are partially valid or invalid is not represented by a mask
-# yet but a noData value would have to be used.
 #
 # nBytesHint can be
 #  0 - compute num bytes needed for output buffer, but do not encode it (faster than encode)
 #  1 - do both, compute exact buffer size needed and encode (slower than encode alone)
-#  > 1 - create buffer of that given size and encode, if buffer too small encode will fail. 
+#  > 1 - create buffer of that given size and encode, if buffer too small encode will fail.
+#
+# Lerc version 3.1 can also support the mixed case of valid and invalid values at the same pixel.
+# As this case is rather special, instead of changing the valid / invalid byte mask representation,
+# the concept of a noData value is used.
+# For this, pass a byte array and a double array, both of size nBands. For each band that uses a noData value,
+# set the byte array value to 1, and the double array value to the noData value used.
+# Note that Lerc will push the noData value to the valid / invalid byte mask wherever possible.
+# On Decode, Lerc only returns the noData values used for those bands where the byte mask cannot represent
+# the void values.
 
 def encode(npArr, nValuesPerPixel, bHasMask, npValidMask, maxZErr, nBytesHint, printInfo = False):
+    return _encode_Ext(npArr, nValuesPerPixel, npValidMask, maxZErr, nBytesHint, None, None, printInfo)
+
+def encode_4D(npArr, nValuesPerPixel, npValidMask, maxZErr, nBytesHint, bHasNoDataPerBand = None, noDataPerBand = None, printInfo = False):
+    return _encode_Ext(npArr, nValuesPerPixel, npValidMask, maxZErr, nBytesHint, bHasNoDataPerBand, noDataPerBand, printInfo)
+    
+def _encode_Ext(npArr, nValuesPerPixel, npValidMask, maxZErr, nBytesHint, bHasNoDataPerBand, noDataPerBand, printInfo):
     global lercDll
+
+    fctErr = 'Error in _encode_Ext(): '
     
     dataType = getLercDatatype(npArr.dtype)
     if dataType == -1:
-        print('Error in encode(): unsupported numpy data type.')
+        print(fctErr, 'unsupported numpy data type.')
         return (-1, 0)
 
     (nBands, nRows, nCols) = getLercShape(npArr, nValuesPerPixel)
     if nBands == 0:
-        print('Error in encode(): unsupported numpy array shape.')
+        print(fctErr, 'unsupported numpy array shape.')
         return (-1, 0)
 
     nMasks = 0
-    if bHasMask:
+    if npValidMask is not None:
         (nMasks, nRows2, nCols2) = getLercShape(npValidMask, 1)
         if not(nMasks == 0 or nMasks == 1 or nMasks == nBands) or not(nRows2 == nRows and nCols2 == nCols):
-            print('Error in encode(): unsupported mask array shape.')
+            print(fctErr, 'unsupported mask array shape.')
             return (-1, 0)
 
+    if ((bHasNoDataPerBand is not None) or (noDataPerBand is not None)):
+        if ((len(bHasNoDataPerBand) != nBands) or (len(noDataPerBand) != nBands)):
+            print(fctErr, 'noData arrays must be of size nBands or None.')
+            return (-1, 0)
+        
+        npHasNoData = bHasNoDataPerBand.astype('B')
+        hasNoData = npHasNoData.tobytes('C')
+        cpHasNoData = ct.cast(hasNoData, ct.c_char_p)
+
+        tempArr = noDataPerBand.tobytes('C')
+        cpNoData = ct.cast(tempArr, ct.POINTER(ct.c_double))
+    else:
+        cpHasNoData = None
+        cpNoData = None
+        
     if printInfo:
         print('dataType = ', dataType)
         print('nBands = ', nBands)
@@ -200,11 +337,13 @@ def encode(npArr, nValuesPerPixel, bHasMask, npValidMask, maxZErr, nBytesHint, p
         print('nCols = ', nCols)
         print('nValuesPerPixel = ', nValuesPerPixel)
         print('nMasks = ', nMasks)
+        if cpHasNoData:
+            print('has noData value')
     
     byteArr = npArr.tobytes('C')  # C order
     cpData = ct.cast(byteArr, ct.c_void_p)
 
-    if bHasMask:
+    if npValidMask is not None:
         npValidBytes = npValidMask.astype('B')
         validArr = npValidBytes.tobytes('C')
         cpValidArr = ct.cast(validArr, ct.c_char_p)
@@ -215,16 +354,17 @@ def encode(npArr, nValuesPerPixel, bHasMask, npValidMask, maxZErr, nBytesHint, p
     
     if nBytesHint == 0 or nBytesHint == 1:
         start = timer()
-        result = lercDll.lerc_computeCompressedSize(cpData, dataType, nValuesPerPixel, nCols, nRows, nBands, nMasks, cpValidArr, maxZErr, ptr)
+        result = lercDll.lerc_computeCompressedSize_4D(cpData, dataType, nValuesPerPixel, nCols, nRows, nBands,
+                                                       nMasks, cpValidArr, maxZErr, ptr, cpHasNoData, cpNoData)
         nBytesNeeded = ptr[0]
         end = timer()
 
         if result > 0:
-            print('Error in encode(): lercDll.lerc_computeCompressedSize() failed with error code = ', result)
+            print(fctErr, 'lercDll.lerc_computeCompressedSize_4D() failed with error code = ', result)
             return (result, 0)
 
         if printInfo:
-            print('time lerc_computeCompressedSize() = ', (end - start))
+            print('time lerc_computeCompressedSize_4D() = ', (end - start))
     else:
         nBytesNeeded = nBytesHint
 
@@ -232,16 +372,17 @@ def encode(npArr, nValuesPerPixel, bHasMask, npValidMask, maxZErr, nBytesHint, p
         outBytes = ct.create_string_buffer(nBytesNeeded)
         cpOutBuffer = ct.cast(outBytes, ct.c_char_p)
         start = timer()
-        result = lercDll.lerc_encode(cpData, dataType, nValuesPerPixel, nCols, nRows, nBands, nMasks, cpValidArr, maxZErr, cpOutBuffer, nBytesNeeded, ptr)
+        result = lercDll.lerc_encode_4D(cpData, dataType, nValuesPerPixel, nCols, nRows, nBands, nMasks, cpValidArr,
+                                        maxZErr, cpOutBuffer, nBytesNeeded, ptr, cpHasNoData, cpNoData)
         nBytesWritten = ptr[0]
         end = timer()
 
         if result > 0:
-            print('Error in encode(): lercDll.lerc_encode() failed with error code = ', result)
+            print(fctErr, 'lercDll.lerc_encode_4D() failed with error code = ', result)
             return (result, 0)
 
         if printInfo:
-            print('time lerc_encode() = ', (end - start))
+            print('time lerc_encode_4D() = ', (end - start))
 
     if nBytesHint == 0:
         return (result, nBytesNeeded)
@@ -251,9 +392,19 @@ def encode(npArr, nValuesPerPixel, bHasMask, npValidMask, maxZErr, nBytesHint, p
 #-------------------------------------------------------------------------------
 
 def getLercBlobInfo(lercBlob, printInfo = False):
+    return _getLercBlobInfo_Ext(lercBlob, 0, printInfo)
+
+def getLercBlobInfo_4D(lercBlob, printInfo = False):
+    return _getLercBlobInfo_Ext(lercBlob, 1, printInfo)
+
+def _getLercBlobInfo_Ext(lercBlob, nSupportNoData, printInfo):
     global lercDll
+
+    fctErr = 'Error in _getLercBlobInfo_Ext(): '
     
-    info = ['version', 'data type', 'nValuesPerPixel', 'nCols', 'nRows', 'nBands', 'nValidPixels', 'blob size', 'nMasks']
+    info = ['codec version', 'data type', 'nValuesPerPixel', 'nCols', 'nRows', 'nBands', 'nValidPixels',
+            'blob size', 'nMasks', 'nDepth', 'nUsesNoDataValue']
+    
     dataRange = ['zMin', 'zMax', 'maxZErrorUsed']
 
     nBytes = len(lercBlob)
@@ -265,24 +416,45 @@ def getLercBlobInfo(lercBlob, printInfo = False):
     
     result = lercDll.lerc_getBlobInfo(cpBytes, nBytes, p0, p1, len0, len1)
     if result > 0:
-        print('Error in getLercBlobInfo(): lercDLL.lerc_getBlobInfo() failed with error code = ', result)
-        return (result, 0,0,0,0,0,0,0,0,0,0,0,0)
-
+        print(fctErr, 'lercDLL.lerc_getBlobInfo() failed with error code = ', result)
+        if nSupportNoData:
+            return (result, 0,0,0,0,0,0,0,0,0,0,0,0,0)
+        else:
+            return (result, 0,0,0,0,0,0,0,0,0,0,0,0)
+            
     if printInfo:
         for i in range(len0):
             print(info[i], p0[i])
         for i in range(len1):
             print(dataRange[i], p1[i])
-    
-    return (result, p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7], p0[8], p1[0], p1[1], p1[2])
+
+    nUsesNoDataValue = p0[10]    # new key 'nUsesNoDataValue'
+
+    if nUsesNoDataValue and not nSupportNoData:
+        print(fctErr, 'This Lerc blob uses noData value. Please upgrade to Lerc version 3.1 functions or newer that support this.')
+        return (5, 0,0,0,0,0,0,0,0,0,0,0,0)    # 5 == LercNS::ErrCode::HasNoData
+        
+    if not nSupportNoData:    # old version, up to Lerc version 3.0
+        return (result,
+            p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7], p0[8],
+            p1[0], p1[1], p1[2])
+    else:    # newer version, >= Lerc version 3.1
+        return (result,
+            p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7], p0[8],
+            p1[0], p1[1], p1[2],
+            nUsesNoDataValue)    # append to the end
 
 #-------------------------------------------------------------------------------
 
-def getLercDataRanges(lercBlob, nDim, nBands, printInfo = False):
+# This still works same as before for Lerc blobs encoded using data and valid / invalid byte masks,
+# but it will fail if the Lerc blob contains noData value (for mixed case of valid and invalid values at the same pixel).
+# To be fixed in a future release (needs a codec upgrade). 
+
+def getLercDataRanges(lercBlob, nDepth, nBands, printInfo = False):
     global lercDll
 
     nBytes = len(lercBlob)
-    len0 = nDim * nBands;
+    len0 = nDepth * nBands;
 
     cpBytes = ct.cast(lercBlob, ct.c_char_p)
 
@@ -292,7 +464,7 @@ def getLercDataRanges(lercBlob, nDim, nBands, printInfo = False):
     cpMaxs = ct.cast(maxs, ct.POINTER(ct.c_double))
 
     start = timer()
-    result = lercDll.lerc_getDataRanges(cpBytes, nBytes, nDim, nBands, cpMins, cpMaxs)
+    result = lercDll.lerc_getDataRanges(cpBytes, nBytes, nDepth, nBands, cpMins, cpMaxs)
     end = timer()
 
     if result > 0:
@@ -303,25 +475,37 @@ def getLercDataRanges(lercBlob, nDim, nBands, printInfo = False):
         print('time lerc_getDataRanges() = ', (end - start))
         print('data ranges per band and depth:')
         for i in range(nBands):
-            for j in range(nDim):
-                print('band', i, 'depth', j, ': [', cpMins[i * nDim + j], ',', cpMaxs[i * nDim + j], ']')
+            for j in range(nDepth):
+                print('band', i, 'depth', j, ': [', cpMins[i * nDepth + j], ',', cpMaxs[i * nDepth + j], ']')
 
     npMins = np.frombuffer(mins, 'd')
     npMaxs = np.frombuffer(maxs, 'd')
-    npMins.shape = (nBands, nDim)
-    npMaxs.shape = (nBands, nDim)
+    npMins.shape = (nBands, nDepth)
+    npMaxs.shape = (nBands, nDepth)
 
     return (result, npMins, npMaxs)
 
 #-------------------------------------------------------------------------------
 
 def decode(lercBlob, printInfo = False):
+    return _decode_Ext(lercBlob, 0, printInfo)
+
+def decode_4D(lercBlob, printInfo = False):
+    return _decode_Ext(lercBlob, 1, printInfo)
+
+def _decode_Ext(lercBlob, nSupportNoData, printInfo):
     global lercDll
 
-    (result, version, dataType, nValuesPerPixel, nCols, nRows, nBands, nValidPixels, blobSize, nMasks, zMin, zMax, maxZErrUsed) = getLercBlobInfo(lercBlob, printInfo)
+    fctErr = 'Error in _decode_Ext(): '
+
+    (result, version, dataType, nValuesPerPixel, nCols, nRows, nBands, nValidPixels, blobSize, nMasks, zMin, zMax, maxZErrUsed, nUsesNoData) = getLercBlobInfo_4D(lercBlob, printInfo)
     if result > 0:
-        print('Error in decode(): getLercBlobInfo() failed with error code = ', result)
+        print(fctErr, 'getLercBlobInfo() failed with error code = ', result)
         return result
+
+    if nUsesNoData and not nSupportNoData:
+        print(fctErr, 'This Lerc blob uses noData value. Please upgrade to Lerc version 3.1 functions or newer that support this.')
+        return (5, None, None)    # 5 == LercNS::ErrCode::HasNoData
 
     # convert Lerc dataType to np data type
     npDtArr = ['b', 'B', 'h', 'H', 'i', 'I', 'f', 'd']
@@ -352,13 +536,22 @@ def decode(lercBlob, printInfo = False):
         validBuf = ct.create_string_buffer(nMasks * nRows * nCols)
         cpValidArr = ct.cast(validBuf, ct.c_char_p)
 
+    # create empty buffer for noData arrays, if needed
+    cpHasNoDataArr = None
+    cpNoDataArr = None
+    if (nUsesNoData):
+        hasNoDataBuf = ct.create_string_buffer(nBands)
+        noDataBuf = ct.create_string_buffer(nBands * 8)
+        cpHasNoDataArr = ct.cast(hasNoDataBuf, ct.c_char_p)
+        cpNoDataArr = ct.cast(noDataBuf, ct.POINTER(ct.c_double))
+    
     # call decode
     start = timer()
-    result = lercDll.lerc_decode(cpBytes, len(lercBlob), nMasks, cpValidArr, nValuesPerPixel, nCols, nRows, nBands, dataType, cpData)
+    result = lercDll.lerc_decode_4D(cpBytes, len(lercBlob), nMasks, cpValidArr, nValuesPerPixel, nCols, nRows, nBands, dataType, cpData, cpHasNoDataArr, cpNoDataArr)
     end = timer()
 
     if result > 0:
-        print('Error in decode(): lercDll.lerc_decode() failed with error code = ', result)
+        print(fctErr, 'lercDll.lerc_decode() failed with error code = ', result)
         return result
     
     if printInfo:
@@ -368,18 +561,29 @@ def decode(lercBlob, printInfo = False):
     npArr = np.frombuffer(dataBuf, npDtype)
     npArr.shape = shape
 
+    npValidMask = None
     if nMasks > 0:
         npValidBytes = np.frombuffer(validBuf, dtype='B')
         if nMasks == 1:
             npValidBytes.shape = (nRows, nCols)
         else:
             npValidBytes.shape = (nMasks, nRows, nCols)
-
         npValidMask = (npValidBytes != 0)
+
+    npHasNoDataMask = None
+    npNoData = None
+    if (nUsesNoData):
+        npHasNoData = np.frombuffer(hasNoDataBuf, dtype='B')
+        npHasNoData.shape = (nBands)
+        npHasNoDataMask = (npHasNoData != 0)
+        npNoData = np.frombuffer(noDataBuf, 'd')
+        npNoData.shape = (nBands)
+
+    if not nSupportNoData:    # old version, up to Lerc version 3.0
         return (result, npArr, npValidMask)
-    else:
-        return (result, npArr, None)
-    
+    else:    # newer version, >= Lerc version 3.1
+        return (result, npArr, npValidMask, npHasNoDataMask, npNoData)
+
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
@@ -427,12 +631,13 @@ def test():
         print('Error in test(): decode() failed with error code = ', result)
         return result
 
-    # evaluate the difference to orig (assuming no mask all valid)
-    maxZErrFound = findMaxZError(npArr, npArrDec)
+    # evaluate the difference to orig
+    maxZErrFound = findMaxZError_4D(npArr, npArrDec, npValidMaskDec, nBands)
     print('maxZErr found = ', maxZErrFound)
 
     # find the range [zMin, zMax] in the numpy array
-    (zMin, zMax) = findDataRange(npArrDec, False, None, nBands, True)
+    #(zMin, zMax) = findDataRange(npArrDec, False, None, nBands, True)
+    (zMin, zMax) = findDataRange_4D(npArrDec, None, nBands)
     print('data range found = ', zMin, zMax)
 
     print(' -------- encode test 2 -------- ')
@@ -466,48 +671,114 @@ def test():
         print('Error in test(): decode() failed with error code = ', result)
         return result
 
-    # evaluate the difference to orig (assuming no mask all valid)
-    maxZErrFound = findMaxZError(npArr, npArrDec)
+    # evaluate the difference to orig
+    maxZErrFound = findMaxZError_4D(npArr, npArrDec, npValidMaskDec, nBands)
     print('maxZErr found = ', maxZErrFound)
+
+    # find the range [zMin, zMax]
+    (zMin, zMax) = findDataRange_4D(npArrDec, npValidMaskDec, nBands)
+    print('data range found = ', zMin, zMax)
     
     # save compressed Lerc blob to disk
     #open('C:/temp/test_1_256_256_3_double.lrc', 'wb').write(outBuffer)
 
+    print(' -------- encode test 3 -------- ')
+
+    # example for the new _4D() functions in Lerc version 3.1
+    
+    nBands = 3
+    nRows = 128
+    nCols = 128
+    nValuesPerPixel = 2  # values or array per pixel
+
+    npArr = np.zeros((nBands, nRows, nCols, nValuesPerPixel), 'f', 'C')  # data type float, C order
+    npValidMask = None  # same as all pixels valid, but we are going to add a noData value
+    maxZErr = 0.01
+    noDataVal = -9999.0
+
+    # fill it with something
+    for m in range(nBands):
+        for i in range(nRows):
+            for j in range(nCols):
+                for k in range(nValuesPerPixel):
+                    z = 0.001 * i * j + 5 * m + k
+                    if j == i:    # for all values at the same pixel, will get pushed into the byte mask
+                        z = noDataVal
+                    if (m == 0 and i == 5 and j == 7 and k == 0):    # mixed case, decoded output will use noData for this one pixel in band 0
+                        z = noDataVal
+                    npArr[m][i][j][k] = z
+
+    # prepare noData arrays
+    npHasNoDataArr = np.full((nBands), True)    # input has noData values in all 3 bands
+    npNoDataArr = np.zeros((nBands), 'd')    # noData value is always type double
+    npNoDataArr.fill(noDataVal)    # noData value can vary between bands
+    
+    # encode
+    nBytesBigEnough = npArr.nbytes * 2
+    (result, numBytesWritten, outBuffer) = encode_4D(npArr, nValuesPerPixel, npValidMask, maxZErr, nBytesBigEnough, npHasNoDataArr, npNoDataArr, True)
+    if result > 0:
+        print('Error in encode_4D(): error code = ', result)
+        return result
+    print('num bytes written to buffer = ', numBytesWritten)
+
+    # decode again
+    (result, npArrDec, npValidMaskDec, npHasNoDataArrDec, npNoDataArrDec) = decode_4D(outBuffer, True)
+    if result > 0:
+        print('Error in test(): decode_4D() failed with error code = ', result)
+        return result
+
+    # evaluate the difference to orig
+    maxZErrFound = findMaxZError_4D(npArr, npArrDec, npValidMaskDec, nBands)
+    print('maxZErr found = ', maxZErrFound)
+
+    # find the range [zMin, zMax]
+    (zMin, zMax) = findDataRange_4D(npArrDec, npValidMaskDec, nBands, npHasNoDataArrDec, npNoDataArrDec)
+    print('data range found = ', zMin, zMax)
+
+    
     if False:
-        print(' -------- decode tests -------- ')
+        print(' -------- decode test on ~100 different Lerc blobs -------- ')
 
-        folder = 'D:/GitHub/LercOpenSource_v2.5/testDataPrev/'
-        files = ['california_400_400_1_float.lerc2',
-                 'bluemarble_256_256_3_byte.lerc2',
-                 'landsat_512_512_6_byte.lerc2',
-                 'world.lerc1',
-                 'Different_Masks/lerc_level_0.lerc2']
+        folder = 'D:/GitHub/LercOpenSource_v2.5/testData/'
+        listFile = folder + '_list.txt'
+        with open(listFile, 'r') as f:
+            lines = f.readlines()
+            f.close()
+                
+        skipFirstLine = True
+        for line in lines:
+            if skipFirstLine:
+                skipFirstLine = False
+                continue
 
-        for n in range(len(files)):
-            fn = folder + files[n]
+            fn = folder + line.rstrip()
             bytesRead = open(fn, 'rb').read()
 
             # read the blob header, optional
-            (result, version, dataType, nValuesPerPixel, nCols, nRows, nBands, nValidPixels, blobSize, nMasks, zMin, zMax, maxZErrUsed) = getLercBlobInfo(bytesRead, False)
+            (result, codecVersion, dataType, nValuesPerPixel, nCols, nRows, nBands, nValidPixels,
+             blobSize, nMasks, zMin, zMax, maxZErrUsed, nUsesNoData) = getLercBlobInfo_4D(bytesRead, False)
             if result > 0:
                 print('Error in test(): getLercBlobInfo() failed with error code = ', result)
                 return result
 
             # read the data ranges, optional
-            (result, npMins, npMaxs) = getLercDataRanges(bytesRead, nValuesPerPixel, nBands, True)
-            if result > 0:
-                print('Error in test(): getLercDataRanges() failed with error code = ', result)
-                return result
+            if nUsesNoData == 0:
+                (result, npMins, npMaxs) = getLercDataRanges(bytesRead, nValuesPerPixel, nBands, False)
+                if result > 0:
+                    print('Error in test(): getLercDataRanges() failed with error code = ', result)
+                    return result
 
             # decode
-            (result, npArr, npValidMask) = decode(bytesRead, True)
+            (result, npArr, npValidMask, hasNoDataArr, noDataArr) = decode_4D(bytesRead, False)
             if result > 0:
-                print('Error in test(): decode() failed with error code = ', result)
+                print('Error in test(): decode_4D() failed with error code = ', result)
                 return result
 
-            # find the range [zMin, zMax] in the numpy array and compare to the above
-            (zMin, zMax) = findDataRange(npArr, nMasks > 0, npValidMask, nBands, True)
-            print('data range found = ', zMin, zMax)
-            print('------')
-    
+            # find the range [zMin, zMax]
+            (zMin, zMax) = findDataRange_4D(npArr, npValidMask, nBands, hasNoDataArr, noDataArr)
+            
+            print(f'codec {codecVersion:1}, dt {dataType:1}, nDepth {nValuesPerPixel:3}, nCols {nCols:5},',
+                  f'nRows {nRows:5}, nBands {nBands:3}, nMasks {nMasks:3}, maxZErr {maxZErrUsed:.6f},',
+                  f'nUsesNoData {nUsesNoData:3}, zMin {zMin:9.3f}, zMax {zMax:14.3f},  ', line.rstrip())
+
     return result

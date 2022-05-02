@@ -30,6 +30,7 @@
 					<Add option="-O3" />
 					<Add option="-s" />
 					<Add library="../Lerc/bin/Release/libLerc.so.3" />
+					<Add directory="../Lerc/bin/Release" />
 				</Linker>
 			</Target>
 		</Build>

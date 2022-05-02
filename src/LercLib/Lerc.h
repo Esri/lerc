@@ -52,7 +52,7 @@ NAMESPACE_LERC_START
     // Encode
 
     // if more than 1 band, the outgoing Lerc blob has the single band Lerc blobs concatenated; 
-    // or, if you have multiple values per pixel and stored as [RGB, RGB, ... ], then set nDim accordingly (e.g., 3)
+    // or, if you have multiple values per pixel and stored as [RGB, RGB, ... ], then set nDepth accordingly (e.g., 3)
 
     // computes the number of bytes needed to allocate the buffer, accurate to the byte;
     // does not encode the image data, but uses statistics and formulas to compute the buffer size needed;
@@ -62,24 +62,26 @@ NAMESPACE_LERC_START
 
     static ErrCode ComputeCompressedSize(
       const void* pData,               // raw image data, row by row, band by band
-      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4
+      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4, 5 = v2.5
       DataType dt,                     // data type, char to double
-      int nDim,                        // number of values per pixel
+      int nDepth,                      // number of values per pixel
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
       int nMasks,                      // number of masks (0, 1, or nBands)
       const Byte* pValidBytes,         // masks (size = nMasks * nRows * nCols)
       double maxZErr,                  // max coding error per pixel, defines the precision
-      unsigned int& numBytesNeeded);   // size of outgoing Lerc blob
+      unsigned int& numBytesNeeded,    // size of outgoing Lerc blob
+      const unsigned char* pUsesNoData,// if there are invalid values not marked by the mask, pass an array of size nBands, 1 - uses noData, 0 - not
+      const double* noDataValues);     // same, pass an array of size nBands with noData value per band, or pass nullptr
 
     // encodes or compresses the image data into the buffer
 
     static ErrCode Encode(
       const void* pData,               // raw image data, row by row, band by band
-      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4
+      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4, 5 = v2.5
       DataType dt,                     // data type, char to double
-      int nDim,                        // number of values per pixel
+      int nDepth,                      // number of values per pixel
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
@@ -88,21 +90,23 @@ NAMESPACE_LERC_START
       double maxZErr,                  // max coding error per pixel, defines the precision
       Byte* pBuffer,                   // buffer to write to, function fails if buffer too small
       unsigned int numBytesBuffer,     // buffer size
-      unsigned int& numBytesWritten);  // num bytes written to buffer
-
+      unsigned int& numBytesWritten,   // num bytes written to buffer
+      const unsigned char* pUsesNoData,// if there are invalid values not marked by the mask, pass an array of size nBands, 1 - uses noData, 0 - not
+      const double* noDataValues);     // same, pass an array of size nBands with noData value per band, or pass nullptr
 
     // Decode
 
     struct LercInfo
     {
-      int version,        // Lerc version number (0 for old Lerc1, 1 to 4 for Lerc 2.1 to 2.4)
-        nDim,             // number of values per pixel
+      int version,        // Lerc version number (0 for old Lerc1, 1 to 5 for Lerc 2.1 to 2.5)
+        nDepth,           // number of values per pixel
         nCols,            // number of columns
         nRows,            // number of rows
         numValidPixel,    // number of valid pixels
         nBands,           // number of bands
         blobSize,         // total blob size in bytes
-        nMasks;           // number of masks (0, 1, or nBands)
+        nMasks,           // number of masks (0, 1, or nBands)
+        nUsesNoDataValue; // 0 - no noData value used, nBands - noData value used in 1 or more bands (only possible for nDepth > 1)
       DataType dt;        // data type (float only for old Lerc1)
       double zMin,        // min pixel value, over all data values
         zMax,             // max pixel value, over all data values
@@ -128,9 +132,9 @@ NAMESPACE_LERC_START
     static ErrCode GetLercInfo(const Byte* pLercBlob,       // Lerc blob to decode
       unsigned int numBytesBlob,   // size of Lerc blob in bytes
       struct LercInfo& lercInfo,
-      double* pMins = nullptr,     // pass array of size (nDim * nBands) to get the min values per dimension and band
+      double* pMins = nullptr,     // pass array of size (nDepth * nBands) to get the min values per dimension and band
       double* pMaxs = nullptr,     // same as pMins, to get the max values
-      size_t nElem = 0);           // (nDim * nBands), if passed
+      size_t nElem = 0);           // (nDepth * nBands), if passed
 
     // setup outgoing arrays accordingly, then call Decode()
 
@@ -139,18 +143,19 @@ NAMESPACE_LERC_START
       unsigned int numBytesBlob,       // size of Lerc blob in bytes
       int nMasks,                      // number of masks (0, 1, or nBands)
       Byte* pValidBytes,               // masks (fails if not big enough to take the masks decoded, fills with 1 if all valid)
-      int nDim,                        // number of values per pixel
+      int nDepth,                      // number of values per pixel
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
       DataType dt,                     // data type of outgoing array
-      void* pData);                    // outgoing data bands
-
+      void* pData,                     // outgoing data bands
+      unsigned char* pUsesNoData,      // pass an array of size nBands, 1 - band uses noData, 0 - not
+      double* noDataValues);           // same, pass an array of size nBands to get the noData value per band, if any
 
     static ErrCode ConvertToDouble(
       const void* pDataIn,             // pixel data of image tile of data type dt (< double)
       DataType dt,                     // data type of input data
-      size_t nDataValues,              // total number of data values (nDim * nCols * nRows * nBands)
+      size_t nDataValues,              // total number of data values (nDepth * nCols * nRows * nBands)
       double* pDataOut);               // pixel data converted to double
 
 
@@ -158,20 +163,22 @@ NAMESPACE_LERC_START
 
     template<class T> static ErrCode ComputeCompressedSizeTempl(
       const T* pData,                  // raw image data, row by row, band by 
-      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4
-      int nDim,                        // number of values per pixel
+      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4, 5 = v2.5
+      int nDepth,                      // number of values per pixel
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
       int nMasks,                      // number of masks (0, 1, or nBands)
       const Byte* pValidBytes,         // masks (size = nMasks * nRows * nCols)
       double maxZErr,                  // max coding error per pixel, defines the precision
-      unsigned int& numBytes);         // size of outgoing Lerc blob
+      unsigned int& numBytes,          // size of outgoing Lerc blob
+      const unsigned char* pUsesNoData,// if there are invalid values not marked by the mask, pass an array of size nBands, 1 - uses noData, 0 - not
+      const double* noDataValues);     // same, pass an array of size nBands with noData value per band, or pass nullptr
 
     template<class T> static ErrCode EncodeTempl(
       const T* pData,                  // raw image data, row by row, band by band
-      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4
-      int nDim,                        // number of values per pixel
+      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4 5 = v2.5
+      int nDepth,                      // number of values per pixel
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
@@ -180,25 +187,29 @@ NAMESPACE_LERC_START
       double maxZErr,                  // max coding error per pixel, defines the precision
       Byte* pBuffer,                   // buffer to write to, function will fail if buffer too small
       unsigned int numBytesBuffer,     // buffer size
-      unsigned int& numBytesWritten);  // num bytes written to buffer
+      unsigned int& numBytesWritten,   // num bytes written to buffer
+      const unsigned char* pUsesNoData,// if there are invalid values not marked by the mask, pass an array of size nBands, 1 - uses noData, 0 - not
+      const double* noDataValues);     // same, pass an array of size nBands with noData value per band, or pass nullptr
 
     template<class T> static ErrCode DecodeTempl(
       T* pData,                        // outgoing data bands
       const Byte* pLercBlob,           // Lerc blob to decode
       unsigned int numBytesBlob,       // size of Lerc blob in bytes
-      int nDim,                        // number of values per pixel
+      int nDepth,                      // number of values per pixel
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
       int nMasks,                      // number of masks (0, 1, or nBands)
-      Byte* pValidBytes);              // masks (fails if not big enough to take the masks decoded, fills with 1 if all valid)
+      Byte* pValidBytes,               // masks (fails if not big enough to take the masks decoded, fills with 1 if all valid)
+      unsigned char* pUsesNoData,      // pass an array of size nBands, 1 - band uses noData, 0 - not
+      double* noDataValues);           // same, pass an array of size nBands to get the noData value per band, if any
 
   private:
 
-    template<class T> static ErrCode EncodeInternal(
+    template<class T> static ErrCode EncodeInternal_v5(
       const T* pData,                  // raw image data, row by row, band by band
-      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4
-      int nDim,                        // number of values per pixel
+      int version,                     // 2 = v2.2, 3 = v2.3, 4 = v2.4, 5 = v2.5
+      int nDepth,                      // number of values per pixel
       int nCols,                       // number of cols
       int nRows,                       // number of rows
       int nBands,                      // number of bands
@@ -210,14 +221,31 @@ NAMESPACE_LERC_START
       unsigned int numBytesBuffer,     // buffer size
       unsigned int& numBytesWritten);  // num bytes written to buffer
 
+    template<class T> static ErrCode EncodeInternal(
+      const T* pData,                  // raw image data, row by row, band by band
+      int version,                     // 6 = v2.6 (or -1 for current)
+      int nDepth,                      // number of values per pixel
+      int nCols,                       // number of cols
+      int nRows,                       // number of rows
+      int nBands,                      // number of bands
+      int nMasks,                      // number of masks (0, 1, or nBands)
+      const Byte* pValidBytes,         // masks (size = nMasks * nRows * nCols)
+      double maxZErr,                  // max coding error per pixel, defines the precision
+      unsigned int& numBytes,          // size of outgoing Lerc blob
+      Byte* pBuffer,                   // buffer to write to, function will fail if buffer too small
+      unsigned int numBytesBuffer,     // buffer size
+      unsigned int& numBytesWritten,   // num bytes written to buffer
+      const unsigned char* pUsesNoData,// if there are invalid values not marked by the mask, pass an array of size nBands, 1 - uses noData, 0 - not
+      const double* noDataValues);     // same, pass an array of size nBands with noData value per band, or pass nullptr
+
 #ifdef HAVE_LERC1_DECODE
     template<class T> static bool Convert(const CntZImage& zImg, T* arr, Byte* pByteMask, bool bMustFillMask);
 #endif
     template<class T> static ErrCode ConvertToDoubleTempl(const T* pDataIn, size_t nDataValues, double* pDataOut);
 
-    template<class T> static ErrCode CheckForNaN(const T* arr, int nDim, int nCols, int nRows, const Byte* pByteMask);
+    template<class T> static ErrCode CheckForNaN(const T* arr, int nDepth, int nCols, int nRows, const Byte* pByteMask);
 
-    template<class T> static bool ReplaceNaNValues(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDim, int nCols, int nRows);
+    template<class T> static bool ReplaceNaNValues(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDepth, int nCols, int nRows);
 
     template<class T> static bool Resize(std::vector<T>& buffer, size_t nElem);
 
@@ -227,5 +255,30 @@ NAMESPACE_LERC_START
 
     static ErrCode GetRanges(const Byte* pLercBlob, unsigned int numBytesBlob, int iBand,
       const struct Lerc2::HeaderInfo& lerc2Info, double* pMins, double* pMaxs, size_t nElem);
+
+    template<class T>
+    static bool RemapNoData(T* data, const BitMask& bitMask, const struct Lerc2::HeaderInfo& lerc2Info);
+
+    template<class T>
+    static bool DecodeAndCompareToInput(const Byte* pLercBlob, size_t blobSize, double maxZErr, Lerc2& lerc2Verify,
+      const T* pData, const Byte* pByteMask, const T* pDataOrig, const Byte* pByteMaskOrig,
+      bool bInputHasNoData, double origNoDataA, bool bModifiedMask);
+
+    template<class T>
+    static bool GetTypeRange(const T, std::pair<double, double>& range);
+
+    template<class T>
+    inline static bool IsInt(T z) { return(z == (T)floor((double)z + 0.5)); };
+
+    template<class T>
+    static ErrCode FilterNoData(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDepth, int nCols, int nRows,
+      double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData);
+
+    template<class T>
+    static ErrCode FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDepth, int nCols, int nRows,
+      double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData, bool& bIsFltDblAllInt);
+
+    template<class T>
+    static bool FindNewNoDataBelowValidMin(double minVal, double maxZErr, bool bAllInt, double lowIntLimit, T& newNoDataVal);
   };
 NAMESPACE_LERC_END

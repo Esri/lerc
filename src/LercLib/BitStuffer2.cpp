@@ -360,7 +360,7 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
   size_t numUInts = (size_t)numUIntsLL;
   size_t numBytes = (size_t)numBytesLL;    // could theoretically overflow on 32 bit system
 
-  unsigned int ntbnn = NumTailBytesNotNeeded(numElements, numBits);
+  const unsigned int ntbnn = NumTailBytesNotNeeded(numElements, numBits);
 
   if (numBytes != numBytesLL || nBytesRemaining + ntbnn < numBytes)
     return false;
@@ -381,11 +381,8 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
   memcpy(&m_tmpBitStuffVec[0], *ppByte, nBytesToCopy);
 
   unsigned int* pLastULong = &m_tmpBitStuffVec[numUInts - 1];
-  while (ntbnn)
-  {
-    -- ntbnn;
+  for (unsigned int k = ntbnn; k > 0; k--)
     *pLastULong <<= 8;
-  }
 
   unsigned int* srcPtr = &m_tmpBitStuffVec[0];
   unsigned int* dstPtr = &dataVec[0];
