@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Milestones reached
 - Upgraded Lerc version to 3.1, Lerc codec version to v2.6. 
-- This LERC API and all language decoders (C++, C, C#, Python, JavaScript) and encoders (C++, C, Python) are now in sync with these ESRI ArcGIS versions: ESRI ArcGIS Pro 3.0, ESRI ArcMap 10.9.1.
+- This LERC API and all language decoders (C++, C, C#, Python, JavaScript) and encoders (C++, C, Python) are now in sync with these ESRI ArcGIS versions: ESRI ArcGIS Pro 3.0, ESRI ArcMap 10.8.2.
 
 ### Added
 
