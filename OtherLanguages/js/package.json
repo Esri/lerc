@@ -5,7 +5,7 @@
     "url": "https://github.com/esri/lerc/issues"
   },
   "description": "Rapid decoding of Lerc compressed raster data for any standard pixel type.",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "author": "Esri <dev_tools@esri.com> (http://developers.arcgis.com)",
   "contributors": [
     "Johannes Schmid",
@@ -18,9 +18,17 @@
     "eslint": "^7.32.0",
     "eslint-plugin-prettier": "^4.0.0",
     "gh-release": "^2.2.1",
+    "grunt": "~1.5.3",
+    "grunt-contrib-clean": "^2.0.1",
+    "grunt-contrib-concat": "^2.1.0",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-eslint": "^24.0.0",
+    "grunt-rollup": "^12.0.0",
+    "grunt-terser": "^2.0.0",
     "jsdoc-to-markdown": "^2.0.1",
     "prettier": "^2.4.1",
     "rollup": "^2.58.3",
+    "terser": "~5.13.1",
     "typescript": "^4.4.4"
   },
   "files": [
@@ -36,19 +44,12 @@
     "url": "https://github.com/Esri/lerc.git"
   },
   "scripts": {
-    "build": "npm run dev && npm run terser",
-    "build:wasm": "npm run rollup:wasm && npm run terser:wasm",
-    "dev": "npm run ts && npm run ts && npm run rollup",
+    "build": "npm run ts && grunt clean && grunt dist --format=umd && grunt dist --format=es",
+    "dev": "npm run ts && grunt clean && grunt --format=umd",
     "docs": "jsdoc2md --template README.hbs --files LercDecode.js",
-    "lint": "eslint . --ext .ts",
+    "lint": "grunt eslint",
     "release": "./release.sh",
     "rollup": "rollup wasm/Lerc.js --file dist/LercDecode.js --format umd --name Lerc --sourcemap true",
-    "rollup:wasm": "rollup wasm/lerc-wasm.js --file dist/lerc-wasm.js --format umd --name lerc-wasm",
-    "terser": "terser --compress --mangle --output dist/LercDecode.min.js -- dist/LercDecode.js",
-    "terser:wasm": "terser --compress --mangle --output dist/lerc-wasm.min.js -- dist/lerc-wasm.js",
     "ts": "tsc"
-  },
-  "dependencies": {
-    "terser": "^5.9.0"
   }
 }

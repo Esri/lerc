@@ -1,6 +1,9 @@
 node_modules
 
 # built library
-LercDecode.min.js
-
+**/*.min.js
+.DS_Store
+wasm/*.js
+!wasm/lerc-wasm.js
+**/*.js.map
 npm-debug.log

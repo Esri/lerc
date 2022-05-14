@@ -4,7 +4,7 @@
   "bracketSpacing": true,
   "endOfLine": "auto",
   "jsxSingleQuote": false,
-  "printWidth": 80,
+  "printWidth": 120,
   "quoteProps": "consistent",
   "semi": true,
   "singleQuote": false,
