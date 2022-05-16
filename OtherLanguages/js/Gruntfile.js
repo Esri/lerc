@@ -1,5 +1,4 @@
-const copyright = `
-/*! Lerc 4.0
+const copyright = `/*! Lerc 4.0
 Copyright 2015 - 2022 Esri
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,8 +37,12 @@ module.exports = function (grunt) {
       dist: {
         files: [
           {
-            src: "wasm/lerc-wasm.d.ts",
-            dest: `${distFolder}/lerc-wasm.d.ts`
+            src: "wasm/LercDecode.d.ts",
+            dest: `${distFolder}/LercDecode.d.ts`
+          },
+          {
+            src: "wasm/LercDecode-es.d.ts",
+            dest: `${distFolder}/LercDecode-es.d.ts`
           }
         ]
       }
@@ -48,8 +51,8 @@ module.exports = function (grunt) {
       options: {
         banner: copyright,
         name: "Lerc",
-        format: bundeFormat
-        // sourcemap true
+        format: bundeFormat,
+        sourcemap: false
         // useStrict: false
       },
       dist: {

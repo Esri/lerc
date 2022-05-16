@@ -5,7 +5,11 @@
 
 # Lerc JS
 
-> Rapid decoding of Lerc compressed raster data for any standard pixel type, not just rgb or byte
+> Rapid decoding of Lerc compressed raster data for any standard pixel type, not just rgb or byte.
+
+# Breaking changes
+- [Web Assembly](https://caniuse.com/wasm) support is now required.
+- <code>Lerc.load()</code> must be invoked and the returned promise must be resolved prior to <code>Lerc.decode</code>. This only needs to be done once per worker (or the main thread). There's no extra cost when invoked multiple times as the internal wasm loading promise is cached.
 
 ## Browser
 
@@ -13,27 +17,33 @@
 <script type="text/javascript" src="https://unpkg.com/lerc"></script>
 ```
 ```js
-Lerc.decode(xhrResponse, {
+await Lerc.load();
+
+const pixelBlock = Lerc.decode(arrayBuffer);
+
+// use options
+const pixelBlock = Lerc.decode(arrayBuffer, {
   inputOffset: 10, // start from the 10th byte (default is 0)
   pixelType: "U8", // only needed for lerc1 (default is F32)
-  returnPixelInterleavedDims: false // only applicable to n-dim lerc2 blobs (default is false)
+  returnPixelInterleavedDims: true // only applicable to n-dim lerc2 blobs (default is false)
 });
 ```
 
 ## Node
 
 ```js
-npm install lerc && npm install node-fetch
+npm install lerc && npm install node-fetch-commonjs
 ```
 ```js
-const fetch = require('node-fetch');
+const fetch = require('node-fetch-commonjs');
 const Lerc = require('lerc');
 
 fetch('http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0')
   .then(response => response.arrayBuffer())
-  .then(body => {
-    const image = Lerc.decode(body);
-    image.width // 257
+  .then(async (body) => {
+    // on demand load here (internally it's only loading once)
+    const image = await Lerc.load().then(() => Lerc.decode(body));
+    console.log(image.width); // 257
   });
 ```
 
@@ -42,12 +52,25 @@ fetch('http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terra
 <a name="module_Lerc"></a>
 
 ## Lerc
-a module for decoding LERC blobs
+A module for decoding LERC blobs.
+
+<a name="exp_module_Lerc--load"></a>
+
+### load([options]) ⇒ <code>Promise<void></code> ⏏
+Load the depencies (web assembly). Check whether dependencies has been loaded using <code>Lerc.isLoaded</code>. The loading promise is cached so it can be invoked multiple times if needed.
+
+
+**Kind**: Exported function
+
+| Param | Type | Description |
+| --- | --- | --- |
+| [options.locateFile] | <code>(wasmFileName?: string, scriptDir?: string) => string</code> | The function to locate lerc-wasm.wasm. Used when the web assembly file is moved to a different location. |
+
 
 <a name="exp_module_Lerc--decode"></a>
 
 ### decode(input, [options]) ⇒ <code>Object</code> ⏏
-A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling multiband pixel blocks for various pixel types.
+A function for decoding both LERC1 and LERC2 byte streams capable of handling multiband pixel blocks for various pixel types.
 
 **Kind**: Exported function
 
@@ -65,16 +88,18 @@ A wrapper for decoding both LERC1 and LERC2 byte streams capable of handling mul
 | --- | --- | --- |
 | width | <code>number</code> | Width of decoded image. |
 | height | <code>number</code> | Height of decoded image. |
-| pixels | <code>array</code> | [band1, band2, …] Each band is a typed array of width*height. |
+| pixels | <code>array</code> | [band1, band2, …] Each band is a typed array of width * height * dimCount. |
 | pixelType | <code>string</code> | The type of pixels represented in the output. |
 | mask | <code>mask</code> | Typed array with a size of width*height, or null if all pixels are valid. |
 | statistics | <code>array</code> | [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values |
+| dimCount | <code>number</code> | Number of dimensions
+| bandMask | <code>array</code> | [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * dimCount.  |
 
 * * *
 
 ## Licensing
 
-Copyright &copy; 2017-2021 Esri
+Copyright &copy; 2017-2022 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

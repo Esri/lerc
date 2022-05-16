@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Now uses web assembly, as a result:
 * The existing Javascript decoder ```js/LercDecode.js``` is deprecated. It will be removed in next major release.
-* IE11 is no longer supported.
+* [Web Assembly](https://caniuse.com/wasm) support is now required. IE11 is therefore no longer supported.
+* ```Lerc.load()``` must be invoked and the returned promise must be resolved prior to ```Lerc.decode```. This only needs to be done once per worker (or the main thread). There's no extra cost when invoked multiple times as the internal wasm loading promise is cached.
 * Updated build script ```npm run build```. A dev build result (unminified UMD bundle) is included in the ```js/dist``` folder for convenience.
-* Extra requriement to use the ```decode``` API: ```load``` then ```decode```. ```load``` only needs to be invoked once per thread (main or worker). However there's no extra cost when invoked multiple times as the internal wasm load promise is cached.
+* Both UMD and ES modules are included in dist, along with a typing file.
 
 ## [3.0.0] - 2021-07-30
 

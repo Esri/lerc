@@ -1,5 +1,4 @@
-
-/*! Lerc
+/*! Lerc 4.0
 Copyright 2015 - 2022 Esri
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -391,12 +390,11 @@ Contributors:  Thomas Maurer, Wenxue Ju
       return {
           width,
           height,
-          bandCount,
           pixelType,
-          dimCount,
           statistics,
           pixels,
           mask,
+          dimCount,
           bandMasks
       };
   }

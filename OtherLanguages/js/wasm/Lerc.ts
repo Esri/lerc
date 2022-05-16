@@ -61,12 +61,11 @@ interface DecodeOptions {
 interface LercData {
   width: number;
   height: number;
-  bandCount: number;
   pixelType: LercPixelType;
-  dimCount: number;
   statistics: BandStats[];
   pixels: PixelTypedArray[];
   mask: Uint8Array;
+  dimCount: number;
   bandMasks?: Uint8Array[];
 }
 
@@ -498,12 +497,11 @@ export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercDat
   return {
     width,
     height,
-    bandCount,
     pixelType,
-    dimCount,
     statistics,
     pixels,
     mask,
+    dimCount,
     bandMasks
   };
 }
