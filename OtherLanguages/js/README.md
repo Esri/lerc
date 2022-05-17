@@ -93,7 +93,7 @@ A function for decoding both LERC1 and LERC2 byte streams capable of handling mu
 | mask | <code>mask</code> | Typed array with a size of width*height, or null if all pixels are valid. |
 | statistics | <code>array</code> | [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values |
 | dimCount | <code>number</code> | Number of dimensions
-| bandMask | <code>array</code> | [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * dimCount.  |
+| [bandMasks] | <code>array</code> | [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * dimCount.  |
 
 * * *
 

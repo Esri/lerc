@@ -19,7 +19,7 @@ Contributors:  Thomas Maurer, Wenxue Ju
 // eslint-disable-next-line no-undef
 module.exports = function (grunt) {
   const bundeFormat = grunt.option("format") || "umd";
-  const outputSurfix = bundeFormat === "umd" ? "" : "-" + bundeFormat;
+  const outputSurfix = bundeFormat === "umd" ? "" : "." + bundeFormat;
   const distFolder = "dist";
   const lercBundle = `${distFolder}/LercDecode${outputSurfix}.js`;
   grunt.initConfig({
@@ -28,7 +28,7 @@ module.exports = function (grunt) {
         quiet: true,
         fix: grunt.option("fix")
       },
-      target: ["**/*.ts"]
+      target: ["wasm/**/*.ts"]
     },
     clean: {
       dist: [`${distFolder}/*.js`, `${distFolder}/*.ts`]
@@ -41,8 +41,8 @@ module.exports = function (grunt) {
             dest: `${distFolder}/LercDecode.d.ts`
           },
           {
-            src: "wasm/LercDecode-es.d.ts",
-            dest: `${distFolder}/LercDecode-es.d.ts`
+            src: "wasm/LercDecode.es.d.ts",
+            dest: `${distFolder}/LercDecode.es.d.ts`
           }
         ]
       }

@@ -427,10 +427,12 @@ function swapDimensionOrder(
  * @returns {{width, height, pixels, pixelType, mask, statistics}}
  * @property {number} width Width of decoded image.
  * @property {number} height Height of decoded image.
- * @property {array} pixels [band1, band2, …] Each band is a typed array of width*height.
+ * @property {number} dimCount Number of dimensions.
+ * @property {array} pixels [band1, band2, …] Each band is a typed array of width*height*dimCount.
  * @property {string} pixelType The type of pixels represented in the output: U8/S8/S16/U16/S32/U32/F32.
  * @property {mask} mask Typed array with a size of width*height, or null if all pixels are valid.
  * @property {array} statistics [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values
+ * @property {array} [bandMasks] [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * dimCount.
  **/
 export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercData {
   // get blob info
@@ -517,7 +519,7 @@ export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercDat
  * @property {number} version Compression algorithm version.
  * @property {number} width Width of decoded image.
  * @property {number} height Height of decoded image.
- * @property {number} bandCount Number of bands.
+ * @property {number} bandCount Height of decoded image.
  * @property {number} dimCount Number of dimensions.
  * @property {number} validPixelCount Number of valid pixels.
  * @property {number} blobSize Lerc blob size in bytes.
