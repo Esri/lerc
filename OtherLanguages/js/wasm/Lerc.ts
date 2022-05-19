@@ -519,7 +519,7 @@ export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercDat
  * @property {number} version Compression algorithm version.
  * @property {number} width Width of decoded image.
  * @property {number} height Height of decoded image.
- * @property {number} bandCount Height of decoded image.
+ * @property {number} bandCount Number of bands.
  * @property {number} dimCount Number of dimensions.
  * @property {number} validPixelCount Number of valid pixels.
  * @property {number} blobSize Lerc blob size in bytes.
