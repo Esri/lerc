@@ -18,7 +18,7 @@ export interface LercFactory {
     ptr_minArr: number,
     ptr_maxArr: number
   ) => number;
-  _lerc_decode: (
+  _lerc_decode_4D: (
     ptr: number,
     blobSize: number,
     maskCount: number,
@@ -28,7 +28,9 @@ export interface LercFactory {
     height: number,
     bandCount: number,
     dataType: number,
-    ptr_data: number
+    ptr_data: number,
+    ptr_useNoData: number,
+    ptr_noData: number
   ) => number;
   asm: Record<string, any>;
   ready: Promise<void>;

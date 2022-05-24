@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "ES6",
-    "lib": [],
+    "lib": ["ES2020", "ES2020.Promise", "DOM", "scripthost"],
     "noImplicitAny": true,
     "esModuleInterop": true,
     "sourceMap": true,

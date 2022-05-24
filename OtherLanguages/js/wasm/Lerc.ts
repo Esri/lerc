@@ -22,6 +22,8 @@ type PixelTypedArrayCtor =
   | Float32ArrayConstructor
   | Float64ArrayConstructor;
 
+type LercPixelType = "S8" | "U8" | "S16" | "U16" | "S32" | "U32" | "F32" | "F64";
+
 interface BandStats {
   minValue: number;
   maxValue: number;
@@ -46,27 +48,24 @@ interface LercHeaderInfo {
   maxValue: number;
   maxZerror: number;
   statistics: BandStats[];
+  bandCountWithNoData: number;
 }
 
-type LercPixelType =
-  | "S8"
-  | "U8"
-  | "S16"
-  | "U16"
-  | "S32"
-  | "U32"
-  | "F32"
-  | "F64";
+interface DecodeOptions {
+  inputOffset?: number;
+  returnPixelInterleavedDims?: boolean;
+  noDataValue?: number;
+  pixelType?: LercPixelType;
+}
 
 interface LercData {
   width: number;
   height: number;
-  bandCount: number;
   pixelType: LercPixelType;
-  dimCount: number;
   statistics: BandStats[];
   pixels: PixelTypedArray[];
   mask: Uint8Array;
+  dimCount: number;
   bandMasks?: Uint8Array[];
 }
 
@@ -138,10 +137,7 @@ export function load(
   if (loadPromise) {
     return loadPromise;
   }
-  const locateFile =
-    options.locateFile ||
-    ((wasmFileName: string, scriptDir: string) =>
-      `${scriptDir}${wasmFileName}`);
+  const locateFile = options.locateFile || ((wasmFileName: string, scriptDir: string) => `${scriptDir}${wasmFileName}`);
   loadPromise = lercWasm({ locateFile }).then((lercFactory) =>
     lercFactory.ready.then(() => {
       initLercLib(lercFactory);
@@ -156,11 +152,15 @@ export function isLoaded(): boolean {
 }
 
 const lercLib: {
-  getBlobInfo: (_blob: Uint8Array) => LercHeaderInfo;
+  getBlobInfo: (blob: Uint8Array) => LercHeaderInfo;
   decode: (
-    _blob: Uint8Array,
-    _blobInfo: LercHeaderInfo
-  ) => { data: Uint8Array; maskData: Uint8Array };
+    blob: Uint8Array,
+    blobInfo: LercHeaderInfo
+  ) => {
+    data: Uint8Array;
+    maskData: Uint8Array;
+    noDataValues: (number | null)[] | null;
+  };
 } = {
   getBlobInfo: null,
   decode: null
@@ -171,23 +171,18 @@ function normalizeByteLength(n: number): number {
   return ((n >> 3) << 3) + 16;
 }
 
+function copyBytesFromWasm(wasmHeapU8: Uint8Array, ptr_data: number, data: Uint8Array): void {
+  data.set(wasmHeapU8.slice(ptr_data, ptr_data + data.length));
+}
+
 function initLercLib(lercFactory: LercFactory): void {
-  const {
-    _malloc,
-    _free,
-    _lerc_getBlobInfo,
-    _lerc_getDataRanges,
-    _lerc_decode,
-    asm
-  } = lercFactory;
+  const { _malloc, _free, _lerc_getBlobInfo, _lerc_getDataRanges, _lerc_decode_4D, asm } = lercFactory;
   // do not use HeapU8 as memory dynamically grows from the initial 16MB
   // test case: landsat_6band_8bit.24
   let heapU8: Uint8Array;
-  const memory = Object.values(asm).find(
-    (val) => val && "buffer" in val && val.buffer === lercFactory.HEAPU8.buffer
-  );
+  const memory = Object.values(asm).find((val) => val && "buffer" in val && val.buffer === lercFactory.HEAPU8.buffer);
+  // avoid pointer for detached memory, malloc once:
   const mallocMultiple = (byteLengths: number[]) => {
-    // malloc once to avoid pointer for detached memory when it grows to allocate next chunk
     const lens = byteLengths.map((len) => normalizeByteLength(len));
     const byteLength = lens.reduce((a, b) => a + b);
     const ret = _malloc(byteLength);
@@ -203,29 +198,28 @@ function initLercLib(lercFactory: LercFactory): void {
     return lens;
   };
   lercLib.getBlobInfo = (blob: Uint8Array) => {
-    // copy data to wasm. info: 10 * Uint32, range: 3 * F64
-    const infoArr = new Uint8Array(10 * 4);
-    const rangeArr = new Uint8Array(3 * 8);
-    const [ptr, ptr_info, ptr_range] = mallocMultiple([
-      blob.length,
-      infoArr.length,
-      rangeArr.length
-    ]);
+    // copy data to wasm. info: Uint32, range: F64
+    const infoArrSize = 12;
+    const rangeArrSize = 3;
+    const infoArr = new Uint8Array(infoArrSize * 4);
+    const rangeArr = new Uint8Array(rangeArrSize * 8);
+    const [ptr, ptr_info, ptr_range] = mallocMultiple([blob.length, infoArr.length, rangeArr.length]);
     heapU8.set(blob, ptr);
     heapU8.set(infoArr, ptr_info);
     heapU8.set(rangeArr, ptr_range);
 
     // decode
-    let hr = _lerc_getBlobInfo(ptr, blob.length, ptr_info, ptr_range, 10, 3);
+    let hr = _lerc_getBlobInfo(ptr, blob.length, ptr_info, ptr_range, infoArrSize, rangeArrSize);
     if (hr) {
       _free(ptr);
       throw `lerc-getBlobInfo: error code is ${hr}`;
     }
     heapU8 = new Uint8Array(memory.buffer);
-    infoArr.set(heapU8.slice(ptr_info, ptr_info + 10 * 4));
-    rangeArr.set(heapU8.slice(ptr_range, ptr_range + 3 * 8));
+    copyBytesFromWasm(heapU8, ptr_info, infoArr);
+    copyBytesFromWasm(heapU8, ptr_range, rangeArr);
     const lercInfoArr = new Uint32Array(infoArr.buffer);
     const statsArr = new Float64Array(rangeArr.buffer);
+    // skip ndepth
     const [
       version,
       dataType,
@@ -235,7 +229,9 @@ function initLercLib(lercFactory: LercFactory): void {
       bandCount,
       validPixelCount,
       blobSize,
-      maskCount
+      maskCount,
+      ,
+      bandCountWithNoData
     ] = lercInfoArr;
     const headerInfo: LercHeaderInfo = {
       version,
@@ -250,8 +246,12 @@ function initLercLib(lercFactory: LercFactory): void {
       minValue: statsArr[0],
       maxValue: statsArr[1],
       maxZerror: statsArr[2],
-      statistics: []
+      statistics: [],
+      bandCountWithNoData
     };
+    if (bandCountWithNoData) {
+      return headerInfo;
+    }
     if (dimCount === 1 && bandCount === 1) {
       _free(ptr);
       headerInfo.statistics.push({
@@ -268,30 +268,19 @@ function initLercLib(lercFactory: LercFactory): void {
     const bandStatsMaxArr = new Uint8Array(numStatsBytes);
     let ptr_blob = ptr,
       ptr_min = 0,
-      ptr_max,
+      ptr_max = 0,
       blob_freed = false;
     if (heapU8.byteLength < ptr + numStatsBytes * 2) {
       _free(ptr);
       blob_freed = true;
-      [ptr_blob, ptr_min, ptr_max] = mallocMultiple([
-        blob.length,
-        numStatsBytes,
-        numStatsBytes
-      ]);
+      [ptr_blob, ptr_min, ptr_max] = mallocMultiple([blob.length, numStatsBytes, numStatsBytes]);
       heapU8.set(blob, ptr_blob);
     } else {
       [ptr_min, ptr_max] = mallocMultiple([numStatsBytes, numStatsBytes]);
     }
     heapU8.set(bandStatsMinArr, ptr_min);
     heapU8.set(bandStatsMaxArr, ptr_max);
-    hr = _lerc_getDataRanges(
-      ptr_blob,
-      blob.length,
-      dimCount,
-      bandCount,
-      ptr_min,
-      ptr_max
-    );
+    hr = _lerc_getDataRanges(ptr_blob, blob.length, dimCount, bandCount, ptr_min, ptr_max);
     if (hr) {
       _free(ptr_blob);
       if (!blob_freed) {
@@ -301,8 +290,8 @@ function initLercLib(lercFactory: LercFactory): void {
       throw `lerc-getDataRanges: error code is ${hr}`;
     }
     heapU8 = new Uint8Array(memory.buffer);
-    bandStatsMinArr.set(heapU8.slice(ptr_min, ptr_min + numStatsBytes));
-    bandStatsMaxArr.set(heapU8.slice(ptr_max, ptr_max + numStatsBytes));
+    copyBytesFromWasm(heapU8, ptr_min, bandStatsMinArr);
+    copyBytesFromWasm(heapU8, ptr_max, bandStatsMaxArr);
     const allMinValues = new Float64Array(bandStatsMinArr.buffer);
     const allMaxValues = new Float64Array(bandStatsMaxArr.buffer);
     const statistics = headerInfo.statistics;
@@ -332,28 +321,32 @@ function initLercLib(lercFactory: LercFactory): void {
     return headerInfo;
   };
   lercLib.decode = (blob: Uint8Array, blobInfo: LercHeaderInfo) => {
-    const { maskCount, dimCount, bandCount, width, height, dataType } =
-      blobInfo;
+    const { maskCount, dimCount, bandCount, width, height, dataType, bandCountWithNoData } = blobInfo;
 
     // if the heap is increased dynamically between raw data, mask, and data, the malloc pointer is invalid as it will raise error when accessing mask:
     // Cannot perform %TypedArray%.prototype.slice on a detached ArrayBuffer
     const pixelTypeInfo = pixelTypeInfoMap[dataType];
     const numPixels = width * height;
     const maskData = new Uint8Array(numPixels * bandCount);
-
     const numDataBytes = numPixels * dimCount * bandCount * pixelTypeInfo.size;
     const data = new Uint8Array(numDataBytes);
+    const useNoDataArr = new Uint8Array(bandCount);
+    const noDataArr = new Uint8Array(bandCount * 8);
 
-    const [ptr, ptr_mask, ptr_data] = mallocMultiple([
+    const [ptr, ptr_mask, ptr_data, ptr_useNoData, ptr_noData] = mallocMultiple([
       blob.length,
       maskData.length,
-      data.length
+      data.length,
+      useNoDataArr.length,
+      noDataArr.length
     ]);
     heapU8.set(blob, ptr);
     heapU8.set(maskData, ptr_mask);
     heapU8.set(data, ptr_data);
+    heapU8.set(useNoDataArr, ptr_useNoData);
+    heapU8.set(noDataArr, ptr_noData);
 
-    const hr = _lerc_decode(
+    const hr = _lerc_decode_4D(
       ptr,
       blob.length,
       maskCount,
@@ -363,19 +356,33 @@ function initLercLib(lercFactory: LercFactory): void {
       height,
       bandCount,
       dataType,
-      ptr_data
+      ptr_data,
+      ptr_useNoData,
+      ptr_noData
     );
     if (hr) {
       _free(ptr);
       throw `lerc-decode: error code is ${hr}`;
     }
     heapU8 = new Uint8Array(memory.buffer);
-    data.set(heapU8.slice(ptr_data, ptr_data + numDataBytes));
-    maskData.set(heapU8.slice(ptr_mask, ptr_mask + numPixels));
+    copyBytesFromWasm(heapU8, ptr_data, data);
+    copyBytesFromWasm(heapU8, ptr_mask, maskData);
+    let noDataValues: (number | null)[] = null;
+    if (bandCountWithNoData) {
+      copyBytesFromWasm(heapU8, ptr_useNoData, useNoDataArr);
+      copyBytesFromWasm(heapU8, ptr_noData, noDataArr);
+      noDataValues = [];
+      const noDataArr64 = new Float64Array(noDataArr.buffer);
+      for (let i = 0; i < useNoDataArr.length; i++) {
+        noDataValues.push(useNoDataArr[i] ? noDataArr64[i] : null);
+      }
+    }
+
     _free(ptr);
     return {
       data,
-      maskData
+      maskData,
+      noDataValues
     };
   };
 }
@@ -407,13 +414,6 @@ function swapDimensionOrder(
   return swap;
 }
 
-interface DecodeOptions {
-  inputOffset?: number;
-  returnPixelInterleavedDims?: boolean;
-  noDataValue?: number;
-  pixelType?: LercPixelType;
-}
-
 /**
  * Decoding a LERC1/LERC2 byte stream and return an object containing the pixel data.
  *
@@ -427,36 +427,22 @@ interface DecodeOptions {
  * @returns {{width, height, pixels, pixelType, mask, statistics}}
  * @property {number} width Width of decoded image.
  * @property {number} height Height of decoded image.
- * @property {array} pixels [band1, band2, …] Each band is a typed array of width*height.
+ * @property {number} dimCount Number of dimensions.
+ * @property {array} pixels [band1, band2, …] Each band is a typed array of width*height*dimCount.
  * @property {string} pixelType The type of pixels represented in the output: U8/S8/S16/U16/S32/U32/F32.
  * @property {mask} mask Typed array with a size of width*height, or null if all pixels are valid.
  * @property {array} statistics [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values
+ * @property {array} [bandMasks] [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * dimCount.
  **/
-export function decode(
-  input: ArrayBuffer,
-  options: DecodeOptions = {}
-): LercData {
+export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercData {
   // get blob info
   const inputOffset = options.inputOffset ?? 0;
-  const blob =
-    input instanceof Uint8Array
-      ? input.subarray(inputOffset)
-      : new Uint8Array(input, inputOffset);
-
+  const blob = input instanceof Uint8Array ? input.subarray(inputOffset) : new Uint8Array(input, inputOffset);
   const blobInfo = lercLib.getBlobInfo(blob);
 
   // decode
   const { data, maskData } = lercLib.decode(blob, blobInfo);
-
-  const {
-    width,
-    height,
-    bandCount,
-    dimCount,
-    dataType,
-    maskCount,
-    statistics
-  } = blobInfo;
+  const { width, height, bandCount, dimCount, dataType, maskCount, statistics } = blobInfo;
 
   // get pixels, per-band masks, and statistics
   const pixelTypeInfo = pixelTypeInfoMap[dataType];
@@ -466,35 +452,18 @@ export function decode(
   const numPixels = width * height;
   const numElementsPerBand = numPixels * dimCount;
   for (let i = 0; i < bandCount; i++) {
-    const band = data1.subarray(
-      i * numElementsPerBand,
-      (i + 1) * numElementsPerBand
-    );
+    const band = data1.subarray(i * numElementsPerBand, (i + 1) * numElementsPerBand);
     if (options.returnPixelInterleavedDims) {
       pixels.push(band);
     } else {
-      const bsq = swapDimensionOrder(
-        band,
-        numPixels,
-        dimCount,
-        pixelTypeInfo.ctor,
-        true
-      );
+      const bsq = swapDimensionOrder(band, numPixels, dimCount, pixelTypeInfo.ctor, true);
       pixels.push(bsq);
     }
-    masks.push(
-      maskData.subarray(i * numElementsPerBand, (i + 1) * numElementsPerBand)
-    );
+    masks.push(maskData.subarray(i * numElementsPerBand, (i + 1) * numElementsPerBand));
   }
 
   // get unified mask
-  const mask =
-    maskCount === 0
-      ? null
-      : maskCount === 1
-      ? masks[0]
-      : new Uint8Array(numPixels);
-
+  const mask = maskCount === 0 ? null : maskCount === 1 ? masks[0] : new Uint8Array(numPixels);
   if (maskCount > 1) {
     mask.set(masks[0]);
     for (let i = 1; i < masks.length; i++) {
@@ -508,9 +477,7 @@ export function decode(
   // apply no data value
   const { noDataValue } = options;
   const applyNoDataValue =
-    noDataValue != null &&
-    pixelTypeInfo.range[0] <= noDataValue &&
-    pixelTypeInfo.range[1] >= noDataValue;
+    noDataValue != null && pixelTypeInfo.range[0] <= noDataValue && pixelTypeInfo.range[1] >= noDataValue;
   if (maskCount > 0 && applyNoDataValue) {
     for (let i = 0; i < bandCount; i++) {
       const band = pixels[i];
@@ -526,24 +493,21 @@ export function decode(
   // only keep band masks when there's per-band unique mask
   const bandMasks = maskCount === bandCount && bandCount > 1 ? masks : null;
 
-  // lerc2.0 was never released
-  const pixelType =
-    options.pixelType && blobInfo.version === 0
-      ? options.pixelType
-      : pixelTypeInfo.pixelType;
+  // lerc2.0 (the internal version) was never released
+  const pixelType = options.pixelType && blobInfo.version === 0 ? options.pixelType : pixelTypeInfo.pixelType;
 
   return {
     width,
     height,
-    bandCount,
     pixelType,
-    dimCount,
     statistics,
     pixels,
     mask,
+    dimCount,
     bandMasks
   };
 }
+
 /**
  * Get the header information of a LERC1/LERC2 byte stream.
  *
@@ -565,18 +529,12 @@ export function decode(
  * @property {number} maxZerror Maximum Z error.
  * @property {array} statistics [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values
  **/
-export function getBlobInfo(
-  input: ArrayBuffer,
-  options: { inputOffset?: number } = {}
-): LercHeaderInfo {
+export function getBlobInfo(input: ArrayBuffer, options: { inputOffset?: number } = {}): LercHeaderInfo {
   const blob = new Uint8Array(input, options.inputOffset ?? 0);
   return lercLib.getBlobInfo(blob);
 }
 
-export function getBandCount(
-  input: ArrayBuffer | Uint8Array,
-  options: { inputOffset?: number } = {}
-): number {
+export function getBandCount(input: ArrayBuffer | Uint8Array, options: { inputOffset?: number } = {}): number {
   // this was available in the old JS version but not documented. Keep as is for backward compatiblity
   const info = getBlobInfo(input, options);
   return info.bandCount;
