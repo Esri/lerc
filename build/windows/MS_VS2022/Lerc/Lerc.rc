@@ -69,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "ESRI"
             VALUE "FileDescription", "LERC Limited Error Raster Compression"
-            VALUE "FileVersion", "3.1.0.0"
+            VALUE "FileVersion", "4.0.0.0"
             VALUE "InternalName", "Lerc.dll"
             VALUE "LegalCopyright", "Copyright (C) 2015-2021"
             VALUE "OriginalFilename", "Lerc.dll"
             VALUE "ProductName", "LERC"
-            VALUE "ProductVersion", "3.1.0.0"
+            VALUE "ProductVersion", "4.0.0.0"
         END
     END
     BLOCK "VarFileInfo"

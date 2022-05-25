@@ -36,8 +36,8 @@ extern "C" {
 
 /* LERC version numbers and related macros added in 3.0.0 */
 
-#define LERC_VERSION_MAJOR 3
-#define LERC_VERSION_MINOR 1
+#define LERC_VERSION_MAJOR 4
+#define LERC_VERSION_MINOR 0
 #define LERC_VERSION_PATCH 0
 
 /* Macro to compute a LERC version number from its components */
@@ -68,7 +68,7 @@ extern "C" {
   //! C-API for LERC library
 
 
-  //! Added in version 3.1: 
+  //! Added in version 4.0: 
   //!
   //! - 1) better support 3D and 4D data, allow for lossy encoding even if a noData value is used
   //! - 2) better lossless compression for float and double (pass maxZError = 0)
@@ -79,7 +79,7 @@ extern "C" {
   //! For more than 1 band, different masks per band can be used. No change to that. 
   //! For nDepth > 1, or an array of values per pixel, there is the special case of a mix of valid and invalid values 
   //! at the same pixel. The 2D mask cannot cover this case. 
-  //! We have added 4 new functions to version 3.1 to cover this case, see below. If you don't encounter this
+  //! We have added 4 new functions to version 4.0 to cover this case, see below. If you don't encounter this
   //! "mixed case", you can continue using the same API functions as in version 3.0. 
   //! If you should encounter a Lerc blob that has this mix, both the regular lerc_decode() and 
   //! lerc_getDataRanges() functions will fail with "ErrCode::HasNoData". 
@@ -251,7 +251,7 @@ extern "C" {
       double* pData);                    // outgoing data array
 
 
-  //! Added in version 3.1:
+  //! Added in version 4.0:
   //!
   //! The 4 functions below are new. The main purpose (and difference to the functions above) is to support, for 3D and 4D data, 
   //! the special case of a mix of valid and invalid values at the same pixel. 

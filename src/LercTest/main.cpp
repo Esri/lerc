@@ -399,7 +399,7 @@ int main(int argc, char* arcv[])
   // produce special mixed case of valid and invalid values at the same pixel;
   // so here we need to use a noData value as the 2D byte masks cannot cover this case. 
 
-  // this example shows how to call the new Lerc API 3.1 functions which enable working with such mixed valid / invalid cases,
+  // this example shows how to call the new Lerc API 4.0 functions which enable working with such mixed valid / invalid cases,
   // and allow to pass a noData value for that, one per band;
   {
     int h = 128;

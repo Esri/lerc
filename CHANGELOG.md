@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased][unreleased]
 
 ### Milestones reached
-- Upgraded Lerc version to 3.1, Lerc codec version to v2.6. 
+- Incremented Lerc version to 4.0 as the new, wasm based JavaScript decoder may not work on older browsers such as IE. 
+- Incremented Lerc version to 3.1. All existing 3.0 functions work same as before. 
+- Incremented Lerc codec version to v2.6. 
 - This LERC API and all language decoders (C++, C, C#, Python, JavaScript) and encoders (C++, C, Python) are now in sync with ESRI ArcGIS Pro 3.0. 
 
 ### Added

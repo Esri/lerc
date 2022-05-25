@@ -29,7 +29,7 @@ for platform in PLATFORMS:
 
 setuptools.setup(
     name="lerc",
-    version="3.1",
+    version="4.0",
     author="esri",
     author_email="python@esri.com",
     description="Limited Error Raster Compression",
