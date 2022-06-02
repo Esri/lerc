@@ -29,7 +29,7 @@ using namespace LercNS;
 
 // -------------------------------------------------------------------------- ;
 
-bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
+bool BitStuffer::read(const Byte** ppByte, vector<unsigned int>& dataVec) const
 {
   if (!ppByte)
     return false;
@@ -117,9 +117,9 @@ bool BitStuffer::read(Byte** ppByte, vector<unsigned int>& dataVec) const
 // -------------------------------------------------------------------------- ;
 // -------------------------------------------------------------------------- ;
 
-bool BitStuffer::readUInt(Byte** ppByte, unsigned int& k, int numBytes)
+bool BitStuffer::readUInt(const Byte** ppByte, unsigned int& k, int numBytes)
 {
-  Byte* ptr = *ppByte;
+  const Byte* ptr = *ppByte;
 
   if (numBytes == 1)
   {

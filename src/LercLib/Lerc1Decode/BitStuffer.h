@@ -39,12 +39,12 @@ public:
   BitStuffer()  {}
   virtual ~BitStuffer()  {}
 
-  bool read(Byte** ppByte, std::vector<unsigned int>& dataVec) const;
+  bool read(const Byte** ppByte, std::vector<unsigned int>& dataVec) const;
 
 protected:
   mutable std::vector<unsigned int>  m_tmpBitStuffVec;
 
-  static bool readUInt(Byte** ppByte, unsigned int& k, int numBytes);    // numBytes = 1, 2, or 4
+  static bool readUInt(const Byte** ppByte, unsigned int& k, int numBytes);    // numBytes = 1, 2, or 4
   static unsigned int numTailBytesNotNeeded(unsigned int numElem, int numBits);
 };
 

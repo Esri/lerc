@@ -47,7 +47,7 @@ public:
   static unsigned int computeNumBytesNeededToReadHeader(bool onlyZPart);
 
   /// read succeeds only if maxZError on file <= maxZError requested
-  bool read(Byte** ppByte, double maxZError, bool onlyHeader = false, bool onlyZPart = false);
+  bool read(const Byte** ppByte, double maxZError, bool onlyHeader = false, bool onlyZPart = false);
 
 protected:
 
@@ -65,13 +65,13 @@ protected:
     float maxZInImg;
   };
 
-  bool readTiles(bool zPart, double maxZErrorInFile, int numTilesVert, int numTilesHori, float maxValInImg, Byte* bArr);
+  bool readTiles(bool zPart, double maxZErrorInFile, int numTilesVert, int numTilesHori, float maxValInImg, const Byte* bArr);
 
-  bool readCntTile(Byte** ppByte, int i0, int i1, int j0, int j1);
-  bool readZTile(Byte** ppByte, int i0, int i1, int j0, int j1, double maxZErrorInFile, float maxZInImg);
+  bool readCntTile(const Byte** ppByte, int i0, int i1, int j0, int j1);
+  bool readZTile(const Byte** ppByte, int i0, int i1, int j0, int j1, double maxZErrorInFile, float maxZInImg);
 
   static int numBytesFlt(float z);    // returns 1, 2, or 4
-  static bool readFlt(Byte** ppByte, float& z, int numBytes);
+  static bool readFlt(const Byte** ppByte, float& z, int numBytes);
 
 protected:
 
