@@ -28,7 +28,7 @@ Contributors:  Thomas Maurer
 #include <limits>
 
 #ifdef HAVE_LERC1_DECODE
-#include "Lerc1Decode/CntZImage.h"
+  #include "Lerc1Decode/CntZImage.h"
 #endif
 
 using namespace std;
@@ -876,7 +876,10 @@ template<class T> bool Lerc::ReplaceNaNValues(std::vector<T>& dataBuffer, std::v
 
   T noDataValue = 0;
   {
-    //#pragma warning(disable: 4756)    // causes build warning in linux
+    #if defined _WIN32
+      #pragma warning(disable: 4756)    // would trigger build warning in linux
+    #endif
+
     noDataValue = (T)((typeid(T) == typeid(float)) ? -FLT_MAX : -DBL_MAX);
   }
 
