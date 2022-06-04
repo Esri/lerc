@@ -180,7 +180,7 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
   // only if not Lerc2, try legacy Lerc1
   unsigned int numBytesHeaderBand0 = CntZImage::computeNumBytesNeededToReadHeader(false);
   unsigned int numBytesHeaderBand1 = CntZImage::computeNumBytesNeededToReadHeader(true);
-  Byte* pByte = const_cast<Byte*>(pLercBlob);
+  const Byte* pByte = pLercBlob;
 
   lercInfo.zMin =  FLT_MAX;
   lercInfo.zMax = -FLT_MAX;
@@ -194,7 +194,7 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
     if (nBytesRead < nBytesNeeded)
       return ErrCode::Failed;
 
-    Byte* ptr = const_cast<Byte*>(pLercBlob);
+    const Byte* ptr = pLercBlob;
     ptr += 10 + 2 * sizeof(int);
 
     int height(0), width(0);
@@ -212,7 +212,7 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
     lercInfo.dt = Lerc::DT_Float;
     lercInfo.maxZError = maxZErrorInFile;
 
-    Byte* pByte = const_cast<Byte*>(pLercBlob);
+    pByte = pLercBlob;
     bool onlyZPart = false;
 
     while (lercInfo.blobSize + numBytesHeaderBand1 < numBytesBlob)    // means there could be another band
@@ -469,7 +469,7 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
 #ifdef HAVE_LERC1_DECODE
     unsigned int numBytesHeaderBand0 = CntZImage::computeNumBytesNeededToReadHeader(false);
     unsigned int numBytesHeaderBand1 = CntZImage::computeNumBytesNeededToReadHeader(true);
-    Byte* pByte1 = const_cast<Byte*>(pLercBlob);
+    const Byte* pByte1 = pLercBlob;
     CntZImage zImg;
 
     for (int iBand = 0; iBand < nBands; iBand++)
