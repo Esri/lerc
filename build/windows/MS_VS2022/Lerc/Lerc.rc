@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,1,0,0
- PRODUCTVERSION 3,1,0,0
+ FILEVERSION 4,0,0,0
+ PRODUCTVERSION 4,0,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,7 +71,7 @@ BEGIN
             VALUE "FileDescription", "LERC Limited Error Raster Compression"
             VALUE "FileVersion", "4.0.0.0"
             VALUE "InternalName", "Lerc.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2015-2021"
+            VALUE "LegalCopyright", "Copyright (C) 2015-2022"
             VALUE "OriginalFilename", "Lerc.dll"
             VALUE "ProductName", "LERC"
             VALUE "ProductVersion", "4.0.0.0"

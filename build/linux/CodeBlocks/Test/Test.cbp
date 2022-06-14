@@ -29,7 +29,7 @@
 				<Linker>
 					<Add option="-O3" />
 					<Add option="-s" />
-					<Add library="../Lerc/bin/Release/libLerc.so.3" />
+					<Add library="../Lerc/bin/Release/libLerc.so.4" />
 					<Add directory="../Lerc/bin/Release" />
 				</Linker>
 			</Target>
