@@ -34,7 +34,7 @@
 				<Linker>
 					<Add option="-O3" />
 					<Add option="-s" />
-					<Add option="-Wl,-soname,libLerc.so.3 -o bin/Release/libLerc.so.3" />
+					<Add option="-Wl,-soname,libLerc.so.4 -o bin/Release/libLerc.so.4" />
 				</Linker>
 			</Target>
 		</Build>
