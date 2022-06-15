@@ -87,12 +87,13 @@ A function for decoding both LERC1 and LERC2 byte streams capable of handling mu
 | --- | --- | --- |
 | width | <code>number</code> | Width of decoded image. |
 | height | <code>number</code> | Height of decoded image. |
-| pixels | <code>array</code> | [band1, band2, …] Each band is a typed array of width * height * dimCount. |
+| pixels | <code>array</code> | [band1, band2, …] Each band is a typed array of width * height * depthCount. |
 | pixelType | <code>string</code> | The type of pixels represented in the output. |
 | mask | <code>mask</code> | Typed array with a size of width*height, or null if all pixels are valid. |
 | statistics | <code>array</code> | [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values |
-| dimCount | <code>number</code> | Number of dimensions
-| [bandMasks] | <code>array</code> | [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * dimCount.  |
+| dimCount | <code>number</code> | Number of dimensions (Deprecated, use <code>depthCount</code> instead).
+| depthCount | <code>number</code> | Depth count
+| [bandMasks] | <code>array</code> | [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * depthCount.  |
 
 * * *
 
