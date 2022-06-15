@@ -24,7 +24,6 @@ const pixelBlock = Lerc.decode(arrayBuffer);
 // use options
 const pixelBlock = Lerc.decode(arrayBuffer, {
   inputOffset: 10, // start from the 10th byte (default is 0)
-  pixelType: "U8", // only needed for lerc1 (default is F32)
   returnPixelInterleavedDims: true // only applicable to n-dim lerc2 blobs (default is false)
 });
 ```

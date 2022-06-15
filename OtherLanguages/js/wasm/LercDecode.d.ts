@@ -41,7 +41,6 @@ interface DecodeOptions {
   inputOffset?: number;
   returnPixelInterleavedDims?: boolean;
   noDataValue?: number;
-  pixelType?: LercPixelType;
 }
 
 interface LercData {

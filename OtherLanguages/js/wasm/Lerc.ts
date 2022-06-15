@@ -55,7 +55,6 @@ interface DecodeOptions {
   inputOffset?: number;
   returnPixelInterleavedDims?: boolean;
   noDataValue?: number;
-  pixelType?: LercPixelType;
 }
 
 interface LercData {
@@ -421,8 +420,7 @@ function swapDimensionOrder(
  * @param {ArrayBuffer} input The LERC input byte stream
  * @param {object} [options] The decoding options below are optional.
  * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
- * @param {string} [options.pixelType] (LERC1 only) Default value is F32. Valid pixel types for input are U8/S8/S16/U16/S32/U32/F32.
- * @param {number} [options.noDataValue] (LERC1 only). It is recommended to use the returned mask instead of setting this value.
+ * @param {number} [options.noDataValue] It is recommended to use the returned mask instead of setting this value.
  * @param {boolean} [options.returnPixelInterleavedDims] (nDim LERC2 only) If true, returned dimensions are pixel-interleaved, a.k.a [p1_dim0, p1_dim1, p1_dimn, p2_dim0...], default is [p1_dim0, p2_dim0, ..., p1_dim1, p2_dim1...]
  * @returns {{width, height, pixels, pixelType, mask, statistics}}
  * @property {number} width Width of decoded image.
@@ -493,8 +491,7 @@ export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercDat
   // only keep band masks when there's per-band unique mask
   const bandMasks = maskCount === bandCount && bandCount > 1 ? masks : null;
 
-  // lerc2.0 (the internal version) was never released
-  const pixelType = options.pixelType && blobInfo.version === 0 ? options.pixelType : pixelTypeInfo.pixelType;
+  const { pixelType } = pixelTypeInfo;
 
   return {
     width,
