@@ -27,7 +27,14 @@ type LercPixelType = "S8" | "U8" | "S16" | "U16" | "S32" | "U32" | "F32" | "F64"
 interface BandStats {
   minValue: number;
   maxValue: number;
+  /**
+   * deprecated, will be removed in next release. use depthStats instead
+   */
   dimStats?: {
+    minValues: Float64Array;
+    maxValues: Float64Array;
+  };
+  depthStats?: {
     // Note the type change compared to the JS version which used typed array that fits the data's pixel type
     minValues: Float64Array;
     maxValues: Float64Array;
@@ -54,6 +61,10 @@ interface LercHeaderInfo {
 
 interface DecodeOptions {
   inputOffset?: number;
+  returnPixelInterleavedDepthValues?: boolean;
+  /**
+   * deprecated, will be removed in next release. use returnPixelInterleavedDepthValues instead
+   */
   returnPixelInterleavedDims?: boolean;
   noDataValue?: number;
 }
@@ -306,7 +317,8 @@ function initLercLib(lercFactory: LercFactory): void {
         statistics.push({
           minValue,
           maxValue,
-          dimStats: { minValues, maxValues }
+          dimStats: { minValues, maxValues },
+          depthStats: { minValues, maxValues }
         });
       } else {
         statistics.push({
@@ -389,26 +401,26 @@ function initLercLib(lercFactory: LercFactory): void {
   };
 }
 
-function swapDimensionOrder(
+function swapDepthValuesOrder(
   pixels: PixelTypedArray,
   numPixels: number,
-  numDims: number,
+  depthCount: number,
   OutPixelTypeArray: PixelTypedArrayCtor,
   inputIsBIP: boolean
 ): PixelTypedArray {
-  if (numDims < 2) {
+  if (depthCount < 2) {
     return pixels;
   }
-  const swap = new OutPixelTypeArray(numPixels * numDims);
+  const swap = new OutPixelTypeArray(numPixels * depthCount);
   if (inputIsBIP) {
     for (let i = 0, j = 0; i < numPixels; i++) {
-      for (let iDim = 0, temp = i; iDim < numDims; iDim++, temp += numPixels) {
+      for (let iDim = 0, temp = i; iDim < depthCount; iDim++, temp += numPixels) {
         swap[temp] = pixels[j++];
       }
     }
   } else {
     for (let i = 0, j = 0; i < numPixels; i++) {
-      for (let iDim = 0, temp = i; iDim < numDims; iDim++, temp += numPixels) {
+      for (let iDim = 0, temp = i; iDim < depthCount; iDim++, temp += numPixels) {
         swap[j++] = pixels[temp];
       }
     }
@@ -424,11 +436,10 @@ function swapDimensionOrder(
  * @param {object} [options] The decoding options below are optional.
  * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
  * @param {number} [options.noDataValue] It is recommended to use the returned mask instead of setting this value.
- * @param {boolean} [options.returnPixelInterleavedDims] (nDim LERC2 only) If true, returned dimensions are pixel-interleaved, a.k.a [p1_dim0, p1_dim1, p1_dimn, p2_dim0...], default is [p1_dim0, p2_dim0, ..., p1_dim1, p2_dim1...]
+ * @param {boolean} [options.returnPixelInterleavedDepthValues] (ndepth LERC2 only) If true, returned depth values are pixel-interleaved, a.k.a [p1_dep0, p1_dep1, p1_depn, p2_dep0...], default is [p1_dep0, p2_dep0, ..., p1_dep1, p2_dep1...]
  * @returns {{width, height, pixels, pixelType, mask, statistics}}
  * @property {number} width Width of decoded image.
  * @property {number} height Height of decoded image.
- * @property {number} dimCount Number of dimensions (Deprecated, use depthCount instead).
  * @property {number} depthCount Depth count.
  * @property {array} pixels [band1, band2, …] Each band is a typed array of width*height*depthCount.
  * @property {string} pixelType The type of pixels represented in the output: U8/S8/S16/U16/S32/U32/F32.
@@ -453,12 +464,14 @@ export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercDat
   const masks = [];
   const numPixels = width * height;
   const numElementsPerBand = numPixels * depthCount;
+  // options.returnPixelInterleavedDims will be removed in next release
+  const swap = options.returnPixelInterleavedDepthValues ?? options.returnPixelInterleavedDims;
   for (let i = 0; i < bandCount; i++) {
     const band = data1.subarray(i * numElementsPerBand, (i + 1) * numElementsPerBand);
-    if (options.returnPixelInterleavedDims) {
+    if (swap) {
       pixels.push(band);
     } else {
-      const bsq = swapDimensionOrder(band, numPixels, depthCount, pixelTypeInfo.ctor, true);
+      const bsq = swapDepthValuesOrder(band, numPixels, depthCount, pixelTypeInfo.ctor, true);
       pixels.push(bsq);
     }
     masks.push(maskData.subarray(i * numElementsPerBand, (i + 1) * numElementsPerBand));
@@ -522,7 +535,6 @@ export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercDat
  * @property {number} width Width of decoded image.
  * @property {number} height Height of decoded image.
  * @property {number} bandCount Number of bands.
- * @property {number} dimCount Number of dimensions (Deprecated, use depthCount instead).
  * @property {number} depthCount Depth count.
  * @property {number} validPixelCount Number of valid pixels.
  * @property {number} blobSize Lerc blob size in bytes.

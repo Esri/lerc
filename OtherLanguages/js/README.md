@@ -24,7 +24,7 @@ const pixelBlock = Lerc.decode(arrayBuffer);
 // use options
 const pixelBlock = Lerc.decode(arrayBuffer, {
   inputOffset: 10, // start from the 10th byte (default is 0)
-  returnPixelInterleavedDims: true // only applicable to n-dim lerc2 blobs (default is false)
+  returnPixelInterleavedDepthValues: true // only applicable to n-depth lerc2 blobs (default is false)
 });
 ```
 
@@ -78,8 +78,9 @@ A function for decoding both LERC1 and LERC2 byte streams capable of handling mu
 | input | <code>ArrayBuffer</code> | The LERC input byte stream |
 | [options] | <code>object</code> | The decoding options below are optional. |
 | [options.inputOffset] | <code>number</code> | The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position. |
-| [options.pixelType] | <code>string</code> | (LERC1 only) Default value is F32. Valid pixel types for input are U8/S8/S16/U16/S32/U32/F32. |
-| [options.noDataValue] | <code>number</code> | (LERC1 only). It is recommended to use the returned mask instead of setting this value. |
+| [options.noDataValue] | <code>number</code> | It is recommended to use the returned mask instead of setting this value. |
+| (Deprecated) [options.returnPixelInterleavedDims] | <code>boolean</code> | will be removed in next release, use returnPixelInterleavedDepthValues instead. |
+| [options.returnPixelInterleavedDepthValues] | <code>boolean</code> | (ndepth LERC2 only) If true, returned depth values are pixel-interleaved. |
 
 **Result Object Properties**
 
@@ -91,7 +92,7 @@ A function for decoding both LERC1 and LERC2 byte streams capable of handling mu
 | pixelType | <code>string</code> | The type of pixels represented in the output. |
 | mask | <code>mask</code> | Typed array with a size of width*height, or null if all pixels are valid. |
 | statistics | <code>array</code> | [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values |
-| dimCount | <code>number</code> | Number of dimensions (Deprecated, use <code>depthCount</code> instead).
+| (Deprecated) dimCount | <code>number</code> | Will be removed in next release, use <code>depthCount</code> instead.
 | depthCount | <code>number</code> | Depth count
 | [bandMasks] | <code>array</code> | [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * depthCount.  |
 

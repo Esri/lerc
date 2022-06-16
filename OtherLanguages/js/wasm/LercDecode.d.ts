@@ -14,7 +14,7 @@ type LercPixelType = "S8" | "U8" | "S16" | "U16" | "S32" | "U32" | "F32" | "F64"
 interface BandStats {
   minValue: number;
   maxValue: number;
-  dimStats?: {
+  depthStats?: {
     minValues: Float64Array;
     maxValues: Float64Array;
   };
@@ -22,13 +22,13 @@ interface BandStats {
 
 interface LercHeaderInfo {
   version: number;
-  dimCount: number;
   width: number;
   height: number;
   validPixelCount: number;
   bandCount: number;
   blobSize: number;
   maskCount: number;
+  depthCount: number;
   dataType: number;
   minValue: number;
   maxValue: number;
@@ -39,7 +39,7 @@ interface LercHeaderInfo {
 
 interface DecodeOptions {
   inputOffset?: number;
-  returnPixelInterleavedDims?: boolean;
+  returnPixelInterleavedDepthValues?: boolean;
   noDataValue?: number;
 }
 
@@ -50,7 +50,7 @@ interface LercData {
   statistics: BandStats[];
   pixels: PixelTypedArray[];
   mask: Uint8Array;
-  dimCount: number;
+  depthCount: number;
   bandMasks?: Uint8Array[];
 }
 

@@ -9,14 +9,14 @@ function formatPixelBlock(pb) {
   const statistics = pb.statistics;
   if (statistics?.length) {
     statistics.forEach((bandStat) => {
-      const { dimStats } = bandStat;
-      if (dimStats) {
-        dimStats.minValues = dimStats.minValues.join(",");
-        dimStats.maxValues = dimStats.maxValues.join(",");
+      const { depthStats } = bandStat;
+      if (depthStats) {
+        depthStats.minValues = depthStats.minValues.join(",");
+        depthStats.maxValues = depthStats.maxValues.join(",");
       }
     });
   }
-  const validPixelCountFromMask = pb.mask ? pb.mask.reduce((a, b) => a + b) : null;
+  const validPixelCountFromMask = pb.mask ? pb.mask.reduce((a, b) => a + b) : pb.width * pb.height;
   const validPixelCountPerBand = pb.bandMasks
     ? pb.bandMasks.map((mask) => mask.reduce((a, b) => a + b)).join(",")
     : null;
@@ -28,13 +28,21 @@ function formatPixelBlock(pb) {
   return { ...pb, validPixelCountFromMask, validPixelCountPerBand, pixels, mask, bandMasks };
 }
 
+function log(pass, message) {
+  if (pass) {
+    console.log("\x1b[32m%s\x1b[0m", `$PASS ${message}`);
+  } else {
+    console.error("\x1b[41m%s\x1b[0m", `$FAIL ${message}`);
+  }
+}
+
 function runTest(lercFileName, compare = false) {
   const ndim = fs.readFileSync(datadir + "/" + lercFileName);
   let result;
   try {
     result = Lerc.decode(ndim);
   } catch {
-    console.error(`$FAIL ${lercFileName}`);
+    log(false, lercFileName);
     return false;
   }
   const actual = formatPixelBlock(result);
@@ -52,11 +60,7 @@ function runTest(lercFileName, compare = false) {
       }
     });
     const pass = diff === "";
-    if (pass) {
-      console.log(`$PASS ${lercFileName}`);
-    } else {
-      console.error(`$FAIL ${lercFileName}`);
-    }
+    log(pass, lercFileName);
     return pass;
   }
   return true;
@@ -65,7 +69,7 @@ function runTest(lercFileName, compare = false) {
 function level2() {
   const listFileName = datadir + "/" + "list.txt";
   if (!fs.existsSync(listFileName)) {
-    console.log("missing lerc file list.txt in datadir");
+    log(false, "missing lerc file list.txt in datadir");
     return;
   }
   Lerc.load().then(() => {
@@ -79,7 +83,11 @@ function level2() {
         passCount++;
       }
     });
-    console.log(`$SUMMARY ${passCount} / ${lercfileNameList.length} passed`);
+    log(true, `$SUMMARY ${passCount} / ${lercfileNameList.length} passed`);
+    const failCount = lercfileNameList.length - passCount;
+    if (failCount) {
+      log(false, `$SUMMARY ${failCount} / ${lercfileNameList.length} failed`);
+    }
   });
 }
 level2();
