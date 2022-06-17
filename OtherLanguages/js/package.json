@@ -1,15 +1,18 @@
 {
   "name": "lerc",
+  "version": "4.0.0",
   "browser": "LercDecode.js",
   "bugs": {
     "url": "https://github.com/esri/lerc/issues"
   },
   "description": "Rapid decoding of Lerc compressed raster data for any standard pixel type.",
-  "version": "4.0.0",
+  "keywords": [
+    "Esri",
+    "LERC"
+  ],
   "author": "Esri <dev_tools@esri.com> (http://developers.arcgis.com)",
   "contributors": [
-    "Johannes Schmid",
-    "Chayanika Khatua",
+    "Thomas Maurer",
     "Wenxue Ju"
   ],
   "devDependencies": {
@@ -31,10 +34,6 @@
     "terser": "~5.13.1",
     "typescript": "~4.4.4"
   },
-  "files": [
-    "LercDecode.js",
-    "LercDecode.min.js"
-  ],
   "homepage": "https://github.com/Esri/lerc",
   "license": "Apache-2.0",
   "main": "LercDecode.js",
@@ -48,8 +47,8 @@
     "dev": "npm run ts && grunt clean && grunt --format=umd && npm run tests:sanity",
     "docs": "jsdoc2md --template README.hbs --files LercDecode.js",
     "tests": "npm run tests:sanity && npm run tests:level2",
-    "tests:sanity": "node sanity.js",
-    "tests:level2": "node level2.js",
+    "tests:sanity": "node tests/sanity.js",
+    "tests:level2": "node tests/level2.js",
     "lint": "grunt eslint",
     "release": "./release.sh",
     "rollup": "rollup wasm/Lerc.js --file dist/LercDecode.js --format umd --name Lerc --sourcemap true",

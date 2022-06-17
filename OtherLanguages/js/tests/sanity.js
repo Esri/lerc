@@ -1,4 +1,4 @@
-const Lerc = require("./dist/LercDecode.js");
+const Lerc = require("../dist/LercDecode.js");
 
 /***************
  * es6.

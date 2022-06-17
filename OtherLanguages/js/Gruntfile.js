@@ -28,23 +28,37 @@ module.exports = function (grunt) {
         quiet: true,
         fix: grunt.option("fix")
       },
-      target: ["wasm/**/*.ts"]
+      target: ["src/**/*.ts"]
     },
     clean: {
-      dist: [`${distFolder}/*.js`, `${distFolder}/*.ts`]
+      dist: [`${distFolder}/**/*.*`, `!${distFolder}/*.wasm`]
     },
     copy: {
       dist: {
         files: [
           {
-            src: "wasm/LercDecode.d.ts",
+            src: "src/LercDecode.d.ts",
             dest: `${distFolder}/LercDecode.d.ts`
           },
           {
-            src: "wasm/LercDecode.es.d.ts",
+            src: "src/LercDecode.d.ts",
             dest: `${distFolder}/LercDecode.es.d.ts`
+          },
+          {
+            expand: true,
+            src: ["package.json", "README.*", "CHANGELOG.*"],
+            dest: `${distFolder}/`
           }
-        ]
+        ],
+        options: {
+          process: (content, srcpath) => {
+            if (!srcpath.includes("package.json")) {
+              return content;
+            }
+            const json = { ...JSON.parse(content), dependencies: {}, devDependencies: {}, scripts: {} };
+            return JSON.stringify(json, null, 2);
+          }
+        }
       }
     },
     rollup: {
@@ -59,7 +73,7 @@ module.exports = function (grunt) {
         files: [
           {
             dest: lercBundle,
-            src: "wasm/Lerc.js"
+            src: "src/Lerc.js"
           }
         ]
       }
