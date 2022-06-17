@@ -42,7 +42,7 @@ const sanity = () =>
     pass = pass && min0 === 0 && min1 === 30 && min2 === 60;
     if (pass) {
       // test interleaved flag
-      const bipResult = Lerc.decode(data4D, { returnPixelInterleavedDepthValues: true });
+      const bipResult = Lerc.decode(data4D, { returnInterleaved: true });
       pass = bipResult.pixels[0].slice(0, 6).join(",") === "13,57,68,14,59,80";
       // check deprecated returnPixelInterleavedDims
       const bipResult2 = Lerc.decode(data4D, { returnPixelInterleavedDims: true });

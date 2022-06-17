@@ -61,9 +61,9 @@ interface LercHeaderInfo {
 
 interface DecodeOptions {
   inputOffset?: number;
-  returnPixelInterleavedDepthValues?: boolean;
+  returnInterleaved?: boolean;
   /**
-   * deprecated, will be removed in next release. use returnPixelInterleavedDepthValues instead
+   * deprecated, will be removed in next release. use returnInterleaved instead
    */
   returnPixelInterleavedDims?: boolean;
   noDataValue?: number;
@@ -436,7 +436,7 @@ function swapDepthValuesOrder(
  * @param {object} [options] The decoding options below are optional.
  * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
  * @param {number} [options.noDataValue] It is recommended to use the returned mask instead of setting this value.
- * @param {boolean} [options.returnPixelInterleavedDepthValues] (ndepth LERC2 only) If true, returned depth values are pixel-interleaved, a.k.a [p1_dep0, p1_dep1, p1_depn, p2_dep0...], default is [p1_dep0, p2_dep0, ..., p1_dep1, p2_dep1...]
+ * @param {boolean} [options.returnInterleaved] (ndepth LERC2 only) If true, returned depth values are pixel-interleaved, a.k.a [p1_dep1, p1_dep2, ..., p1_depN, p2_dep1...], default is [p1_dep1, p2_dep1, ..., p1_dep2, p2_dep2...]
  * @returns {{width, height, pixels, pixelType, mask, statistics}}
  * @property {number} width Width of decoded image.
  * @property {number} height Height of decoded image.
@@ -465,7 +465,7 @@ export function decode(input: ArrayBuffer, options: DecodeOptions = {}): LercDat
   const numPixels = width * height;
   const numElementsPerBand = numPixels * depthCount;
   // options.returnPixelInterleavedDims will be removed in next release
-  const swap = options.returnPixelInterleavedDepthValues ?? options.returnPixelInterleavedDims;
+  const swap = options.returnInterleaved ?? options.returnPixelInterleavedDims;
   for (let i = 0; i < bandCount; i++) {
     const band = data1.subarray(i * numElementsPerBand, (i + 1) * numElementsPerBand);
     if (swap) {

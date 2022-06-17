@@ -13,7 +13,7 @@ Now uses web assembly, as a result:
 * ```Lerc.load()``` must be invoked and the returned promise must be resolved prior to ```Lerc.decode```. This only needs to be done once per worker (or the main thread). There's no extra cost when invoked multiple times as the internal wasm loading promise is cached.
 * Updated build script ```npm run build```. A dev build result (unminified UMD bundle) is included in the ```js/dist``` folder for convenience.
 * Both UMD and ES modules are included in dist, along with a typing file.
-* Deprecated ```decodeResult.dimCount, decodeOptions.returnPixelInterleavedDims```, prefer to use ```depthCount, returnPixelInterleavedDepthValues```
+* Deprecated ```decodeResult.dimCount, decodeOptions.returnPixelInterleavedDims```, prefer to use ```depthCount, returnInterleaved```
 which is in line with C API concept.
 
 ## [3.0.0] - 2021-07-30

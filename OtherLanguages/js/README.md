@@ -24,7 +24,7 @@ const pixelBlock = Lerc.decode(arrayBuffer);
 // use options
 const pixelBlock = Lerc.decode(arrayBuffer, {
   inputOffset: 10, // start from the 10th byte (default is 0)
-  returnPixelInterleavedDepthValues: true // only applicable to n-depth lerc2 blobs (default is false)
+  returnInterleaved: true // only applicable to n-depth lerc2 blobs (default is false)
 });
 ```
 
@@ -79,8 +79,8 @@ A function for decoding both LERC1 and LERC2 byte streams capable of handling mu
 | [options] | <code>object</code> | The decoding options below are optional. |
 | [options.inputOffset] | <code>number</code> | The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position. |
 | [options.noDataValue] | <code>number</code> | It is recommended to use the returned mask instead of setting this value. |
-| (Deprecated) [options.returnPixelInterleavedDims] | <code>boolean</code> | will be removed in next release, use returnPixelInterleavedDepthValues instead. |
-| [options.returnPixelInterleavedDepthValues] | <code>boolean</code> | (ndepth LERC2 only) If true, returned depth values are pixel-interleaved. |
+| (Deprecated) [options.returnPixelInterleavedDims] | <code>boolean</code> | will be removed in next release, use returnInterleaved instead. |
+| [options.returnInterleaved] | <code>boolean</code> | (ndepth LERC2 only) If true, returned depth values are pixel-interleaved. |
 
 **Result Object Properties**
 

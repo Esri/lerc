@@ -39,7 +39,7 @@ interface LercHeaderInfo {
 
 interface DecodeOptions {
   inputOffset?: number;
-  returnPixelInterleavedDepthValues?: boolean;
+  returnInterleaved?: boolean;
   noDataValue?: number;
 }
 
