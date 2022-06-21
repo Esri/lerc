@@ -13,7 +13,7 @@ export interface LercFactory {
   _lerc_getDataRanges: (
     ptr: number,
     blobLength: number,
-    dimCount: number,
+    depthCount: number,
     bandCount: number,
     ptr_minArr: number,
     ptr_maxArr: number
@@ -23,7 +23,7 @@ export interface LercFactory {
     blobSize: number,
     maskCount: number,
     ptr_mask: number,
-    dimCount: number,
+    depthCount: number,
     width: number,
     height: number,
     bandCount: number,

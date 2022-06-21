@@ -4,17 +4,20 @@ Update version numbers in src/LercLib/include/Lerc_c_api.h and CMakeLists.txt
 
 ### npm release
 
-- Config build environment. For 3.0 release: Node.js v14.17, npm 6.14.13
+- Config build environment. For 4.0 release: Node.js v16 LTS, npm 8.11
 - Update the following files in OtherLanguages/js
   - Update version numbers in package.json
   - Update CHANGELOG.md
-  - If applicable, update the copyright year and usage in README.md and README.hbs
+  - Update copyright year in Gruntfile.js, README.md and README.hbs
+  - If applicable, update usage in README.md and README.hbs
 - Build and publish to npm
 
 ```
 cd OtherLanguages/js
-npm install && npm run lint && npm run build
+npm install && npm run build
+cd dist
+npm pack --dry-run (check file list and version)
 npm login
-npm pack (only needed to review tar file locally)
+npm pack (stop here and review tar file locally)
 npm publish
 ```
