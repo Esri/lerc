@@ -8,12 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		E6C02C9723CA27010087173B /* Lerc2.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8023CA27000087173B /* Lerc2.h */; };
-		E6C02C9823CA27010087173B /* Lerc_types.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8123CA27000087173B /* Lerc_types.h */; };
 		E6C02C9923CA27010087173B /* BitMask.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8223CA27000087173B /* BitMask.h */; };
 		E6C02C9A23CA27010087173B /* Lerc.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8323CA27000087173B /* Lerc.h */; };
 		E6C02C9B23CA27010087173B /* RLE.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8423CA27000087173B /* RLE.h */; };
 		E6C02C9C23CA27010087173B /* BitStuffer2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8523CA27000087173B /* BitStuffer2.cpp */; };
-		E6C02C9D23CA27010087173B /* Lerc_c_api.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8623CA27000087173B /* Lerc_c_api.h */; };
 		E6C02C9E23CA27010087173B /* Huffman.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C8723CA27000087173B /* Huffman.h */; };
 		E6C02C9F23CA27010087173B /* Lerc2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8823CA27000087173B /* Lerc2.cpp */; };
 		E6C02CA023CA27010087173B /* BitMask.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6C02C8923CA27000087173B /* BitMask.cpp */; };
@@ -29,17 +27,20 @@
 		E6C02CAA23CA27010087173B /* CntZImage.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C9423CA27010087173B /* CntZImage.h */; };
 		E6C02CAB23CA27010087173B /* BitStuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C9523CA27010087173B /* BitStuffer.h */; };
 		E6C02CAC23CA27010087173B /* Image.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C02C9623CA27010087173B /* Image.h */; };
+		E80DE885285939CD00CA40EC /* fpl_Predictor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80DE87B285939CC00CA40EC /* fpl_Predictor.cpp */; };
+		E80DE886285939CD00CA40EC /* fpl_Lerc2Ext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80DE882285939CD00CA40EC /* fpl_Lerc2Ext.cpp */; };
+		E80DE887285939CD00CA40EC /* fpl_EsriHuffman.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80DE87E285939CC00CA40EC /* fpl_EsriHuffman.cpp */; };
+		E80DE888285939CD00CA40EC /* fpl_UnitTypes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80DE884285939CD00CA40EC /* fpl_UnitTypes.cpp */; };
+		E80DE889285939CD00CA40EC /* fpl_Compression.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80DE87D285939CC00CA40EC /* fpl_Compression.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		E6C02C7223CA26E80087173B /* libLerc64.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libLerc64.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6C02C8023CA27000087173B /* Lerc2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lerc2.h; path = ../../../src/LercLib/Lerc2.h; sourceTree = "<group>"; };
-		E6C02C8123CA27000087173B /* Lerc_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lerc_types.h; path = ../../../src/LercLib/Lerc_types.h; sourceTree = "<group>"; };
 		E6C02C8223CA27000087173B /* BitMask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BitMask.h; path = ../../../src/LercLib/BitMask.h; sourceTree = "<group>"; };
 		E6C02C8323CA27000087173B /* Lerc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lerc.h; path = ../../../src/LercLib/Lerc.h; sourceTree = "<group>"; };
 		E6C02C8423CA27000087173B /* RLE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RLE.h; path = ../../../src/LercLib/RLE.h; sourceTree = "<group>"; };
 		E6C02C8523CA27000087173B /* BitStuffer2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BitStuffer2.cpp; path = ../../../src/LercLib/BitStuffer2.cpp; sourceTree = "<group>"; };
-		E6C02C8623CA27000087173B /* Lerc_c_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lerc_c_api.h; path = ../../../src/LercLib/Lerc_c_api.h; sourceTree = "<group>"; };
 		E6C02C8723CA27000087173B /* Huffman.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Huffman.h; path = ../../../src/LercLib/Huffman.h; sourceTree = "<group>"; };
 		E6C02C8823CA27000087173B /* Lerc2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Lerc2.cpp; path = ../../../src/LercLib/Lerc2.cpp; sourceTree = "<group>"; };
 		E6C02C8923CA27000087173B /* BitMask.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BitMask.cpp; path = ../../../src/LercLib/BitMask.cpp; sourceTree = "<group>"; };
@@ -55,6 +56,17 @@
 		E6C02C9423CA27010087173B /* CntZImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CntZImage.h; sourceTree = "<group>"; };
 		E6C02C9523CA27010087173B /* BitStuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BitStuffer.h; sourceTree = "<group>"; };
 		E6C02C9623CA27010087173B /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Image.h; sourceTree = "<group>"; };
+		E80DE87A2859396B00CA40EC /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; name = include; path = ../../../src/LercLib/include; sourceTree = "<group>"; };
+		E80DE87B285939CC00CA40EC /* fpl_Predictor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fpl_Predictor.cpp; sourceTree = "<group>"; };
+		E80DE87C285939CC00CA40EC /* fpl_Lerc2Ext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fpl_Lerc2Ext.h; sourceTree = "<group>"; };
+		E80DE87D285939CC00CA40EC /* fpl_Compression.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fpl_Compression.cpp; sourceTree = "<group>"; };
+		E80DE87E285939CC00CA40EC /* fpl_EsriHuffman.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fpl_EsriHuffman.cpp; sourceTree = "<group>"; };
+		E80DE87F285939CC00CA40EC /* fpl_EsriHuffman.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fpl_EsriHuffman.h; sourceTree = "<group>"; };
+		E80DE880285939CD00CA40EC /* fpl_UnitTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fpl_UnitTypes.h; sourceTree = "<group>"; };
+		E80DE881285939CD00CA40EC /* fpl_Compression.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fpl_Compression.h; sourceTree = "<group>"; };
+		E80DE882285939CD00CA40EC /* fpl_Lerc2Ext.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fpl_Lerc2Ext.cpp; sourceTree = "<group>"; };
+		E80DE883285939CD00CA40EC /* fpl_Predictor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fpl_Predictor.h; sourceTree = "<group>"; };
+		E80DE884285939CD00CA40EC /* fpl_UnitTypes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fpl_UnitTypes.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,16 +83,25 @@
 		E6C02C6923CA26E80087173B = {
 			isa = PBXGroup;
 			children = (
+				E80DE87A2859396B00CA40EC /* include */,
 				E6C02C8923CA27000087173B /* BitMask.cpp */,
 				E6C02C8223CA27000087173B /* BitMask.h */,
+				E80DE87D285939CC00CA40EC /* fpl_Compression.cpp */,
+				E80DE881285939CD00CA40EC /* fpl_Compression.h */,
+				E80DE87E285939CC00CA40EC /* fpl_EsriHuffman.cpp */,
+				E80DE87F285939CC00CA40EC /* fpl_EsriHuffman.h */,
+				E80DE882285939CD00CA40EC /* fpl_Lerc2Ext.cpp */,
+				E80DE87C285939CC00CA40EC /* fpl_Lerc2Ext.h */,
+				E80DE87B285939CC00CA40EC /* fpl_Predictor.cpp */,
+				E80DE883285939CD00CA40EC /* fpl_Predictor.h */,
+				E80DE884285939CD00CA40EC /* fpl_UnitTypes.cpp */,
+				E80DE880285939CD00CA40EC /* fpl_UnitTypes.h */,
 				E6C02C8523CA27000087173B /* BitStuffer2.cpp */,
 				E6C02C8C23CA27000087173B /* BitStuffer2.h */,
 				E6C02C8F23CA27010087173B /* Defines.h */,
 				E6C02C8A23CA27000087173B /* Huffman.cpp */,
 				E6C02C8723CA27000087173B /* Huffman.h */,
 				E6C02C8D23CA27010087173B /* Lerc_c_api_impl.cpp */,
-				E6C02C8623CA27000087173B /* Lerc_c_api.h */,
-				E6C02C8123CA27000087173B /* Lerc_types.h */,
 				E6C02C8E23CA27010087173B /* Lerc.cpp */,
 				E6C02C8323CA27000087173B /* Lerc.h */,
 				E6C02C9023CA27010087173B /* Lerc1Decode */,
@@ -88,7 +109,6 @@
 				E6C02C8023CA27000087173B /* Lerc2.h */,
 				E6C02C8B23CA27000087173B /* RLE.cpp */,
 				E6C02C8423CA27000087173B /* RLE.h */,
-				E6C02C7423CA26E80087173B /* Lerc64 */,
 				E6C02C7323CA26E80087173B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,13 +119,6 @@
 				E6C02C7223CA26E80087173B /* libLerc64.dylib */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		E6C02C7423CA26E80087173B /* Lerc64 */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Lerc64;
 			sourceTree = "<group>";
 		};
 		E6C02C9023CA27010087173B /* Lerc1Decode */ = {
@@ -129,10 +142,8 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E6C02C9823CA27010087173B /* Lerc_types.h in Headers */,
 				E6C02C9723CA27010087173B /* Lerc2.h in Headers */,
 				E6C02C9923CA27010087173B /* BitMask.h in Headers */,
-				E6C02C9D23CA27010087173B /* Lerc_c_api.h in Headers */,
 				E6C02C9A23CA27010087173B /* Lerc.h in Headers */,
 				E6C02C9B23CA27010087173B /* RLE.h in Headers */,
 				E6C02CAB23CA27010087173B /* BitStuffer.h in Headers */,
@@ -202,14 +213,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				E6C02CA123CA27010087173B /* Huffman.cpp in Sources */,
+				E80DE885285939CD00CA40EC /* fpl_Predictor.cpp in Sources */,
+				E80DE886285939CD00CA40EC /* fpl_Lerc2Ext.cpp in Sources */,
 				E6C02CA823CA27010087173B /* BitStuffer.cpp in Sources */,
+				E80DE888285939CD00CA40EC /* fpl_UnitTypes.cpp in Sources */,
 				E6C02C9F23CA27010087173B /* Lerc2.cpp in Sources */,
+				E80DE887285939CD00CA40EC /* fpl_EsriHuffman.cpp in Sources */,
 				E6C02C9C23CA27010087173B /* BitStuffer2.cpp in Sources */,
 				E6C02CA223CA27010087173B /* RLE.cpp in Sources */,
 				E6C02CA423CA27010087173B /* Lerc_c_api_impl.cpp in Sources */,
 				E6C02CA023CA27010087173B /* BitMask.cpp in Sources */,
 				E6C02CA523CA27010087173B /* Lerc.cpp in Sources */,
 				E6C02CA723CA27010087173B /* CntZImage.cpp in Sources */,
+				E80DE889285939CD00CA40EC /* fpl_Compression.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -335,8 +351,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_COMPATIBILITY_VERSION = 4.0;
+				DYLIB_CURRENT_VERSION = 4.0;
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
@@ -352,8 +368,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_COMPATIBILITY_VERSION = 4.0;
+				DYLIB_CURRENT_VERSION = 4.0;
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
