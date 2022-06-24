@@ -27,7 +27,7 @@ masked array.
 - nBytesHint can be
   - 0 - compute num bytes needed for output buffer, but do not encode it (faster than encode)
   - 1 - do both, compute exact buffer size needed and encode (slower than encode alone)
-  - > 1 - create buffer of that given size and encode, if buffer too small encode will fail.
+  - N - create buffer of size N and encode, if buffer too small encode will fail.
 
 - npmaNoData is a 1D masked array of size nBands. It can hold one noData
   value per band. It can be used as an alternative to masks. It must be
