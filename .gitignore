@@ -25,10 +25,10 @@ build/conda/output/
 
 cmake
 
-OtherLanguages/Python/lerc/Lerc.dll
-OtherLanguages/Python/lerc/Lerc.lib
-OtherLanguages/Python/lerc/Lerc.dylib
-OtherLanguages/Python/lerc/Lerc.so
+OtherLanguages/Python/lerc/*.dll
+OtherLanguages/Python/lerc/*.lib
+OtherLanguages/Python/lerc/*.dylib
+OtherLanguages/Python/lerc/*.so*
 /OtherLanguages/Python/build/
 /OtherLanguages/Python/dist/
 /OtherLanguages/Python/*.egg*

@@ -124,9 +124,9 @@ def _get_lib():
     if platform.system() == "Windows":
         lib = os.path.join(dir_path, 'Lerc.dll')
     elif platform.system() == "Linux":
-        lib = os.path.join(dir_path, 'Lerc.so')
+        lib = os.path.join(dir_path, 'libLerc.so.4')
     elif platform.system() == "Darwin":
-        lib = os.path.join(dir_path, 'Lerc.dylib')
+        lib = os.path.join(dir_path, 'libLerc.dylib')
     else:
         lib = None
 
