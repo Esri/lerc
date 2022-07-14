@@ -57,7 +57,7 @@ Check out the Lerc decoders and encoders in `OtherLanguages/`. You may need to a
 
 ### Other download sites
 
-- [Lerc for Python / Conda](https://anaconda.org/conda-forge/lerc)
+- [Lerc for Python / Conda](https://anaconda.org/Esri/lerc)
 - [Lerc for JavaScript / npm](https://www.npmjs.com/package/lerc)
 
 ### How to compile LERC and the C++ test program
