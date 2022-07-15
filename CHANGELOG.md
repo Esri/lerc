@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+## [4.0.0](https://github.com/Esri/lerc/releases/tag/v4.0.0) - 2022-07-15
+
 ### Milestones reached
 - Incremented Lerc version to 4.0 as the new, wasm based JavaScript decoder may not work on older browsers such as IE. 
 - Incremented Lerc version to 3.1. All existing 3.0 functions work same as before. 
