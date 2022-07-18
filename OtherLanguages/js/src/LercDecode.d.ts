@@ -1,4 +1,4 @@
-type PixelTypedArray =
+export type PixelTypedArray =
   | Int8Array
   | Uint8Array
   | Uint8ClampedArray
@@ -9,9 +9,9 @@ type PixelTypedArray =
   | Float32Array
   | Float64Array;
 
-type LercPixelType = "S8" | "U8" | "S16" | "U16" | "S32" | "U32" | "F32" | "F64";
+export type LercPixelType = "S8" | "U8" | "S16" | "U16" | "S32" | "U32" | "F32" | "F64";
 
-interface BandStats {
+export interface BandStats {
   minValue: number;
   maxValue: number;
   depthStats?: {
@@ -20,7 +20,7 @@ interface BandStats {
   };
 }
 
-interface LercHeaderInfo {
+export interface LercHeaderInfo {
   version: number;
   width: number;
   height: number;
@@ -37,13 +37,13 @@ interface LercHeaderInfo {
   bandCountWithNoData: number;
 }
 
-interface DecodeOptions {
+export interface DecodeOptions {
   inputOffset?: number;
   returnInterleaved?: boolean;
   noDataValue?: number;
 }
 
-interface LercData {
+export interface LercData {
   width: number;
   height: number;
   pixelType: LercPixelType;
@@ -56,6 +56,6 @@ interface LercData {
 
 export function load(options?: { locateFile?: (wasmFileName?: string, scriptDir?: string) => string }): Promise<void>;
 export function isLoaded(): boolean;
-export function decode(input: ArrayBuffer, options?: DecodeOptions): LercData;
-export function getBlobInfo(input: ArrayBuffer, options?: { inputOffset?: number }): LercHeaderInfo;
+export function decode(input: ArrayBuffer | Uint8Array, options?: DecodeOptions): LercData;
+export function getBlobInfo(input: ArrayBuffer | Uint8Array, options?: { inputOffset?: number }): LercHeaderInfo;
 export function getBandCount(input: ArrayBuffer | Uint8Array, options?: { inputOffset?: number }): number;
