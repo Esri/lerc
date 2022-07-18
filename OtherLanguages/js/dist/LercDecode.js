@@ -319,7 +319,7 @@ Contributors:  Thomas Maurer, Wenxue Ju
    * Decoding a LERC1/LERC2 byte stream and return an object containing the pixel data.
    *
    * @alias module:Lerc
-   * @param {ArrayBuffer} input The LERC input byte stream
+   * @param {ArrayBuffer | Uint8Array} input The LERC input byte stream
    * @param {object} [options] The decoding options below are optional.
    * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
    * @param {number} [options.noDataValue] It is recommended to use the returned mask instead of setting this value.
@@ -407,7 +407,7 @@ Contributors:  Thomas Maurer, Wenxue Ju
    * Get the header information of a LERC1/LERC2 byte stream.
    *
    * @alias module:Lerc
-   * @param {ArrayBuffer} input The LERC input byte stream
+   * @param {ArrayBuffer | Uint8Array} input The LERC input byte stream
    * @param {object} [options] The decoding options below are optional.
    * @param {number} [options.inputOffset] The number of bytes to skip in the input byte stream. A valid Lerc file is expected at that position.
    * @returns {{version, width, height, bandCount, dimCount, validPixelCount, blobSize, dataType, mask, minValue, maxValue, maxZerror, statistics}}
@@ -426,7 +426,8 @@ Contributors:  Thomas Maurer, Wenxue Ju
    **/
   function getBlobInfo(input, options = {}) {
       var _a;
-      const blob = new Uint8Array(input, (_a = options.inputOffset) !== null && _a !== void 0 ? _a : 0);
+      const inputOffset = (_a = options.inputOffset) !== null && _a !== void 0 ? _a : 0;
+      const blob = input instanceof Uint8Array ? input.subarray(inputOffset) : new Uint8Array(input, inputOffset);
       return lercLib.getBlobInfo(blob);
   }
   function getBandCount(input, options = {}) {

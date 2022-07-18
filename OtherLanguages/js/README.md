@@ -14,7 +14,7 @@
 ## Browser
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/lerc"></script>
+<script type="text/javascript" src="https://unpkg.com/lerc@latest/LercDecode.min.js"></script>
 ```
 ```js
 await Lerc.load();
