@@ -37,6 +37,7 @@
   "homepage": "https://github.com/Esri/lerc",
   "license": "Apache-2.0",
   "main": "LercDecode.js",
+  "module": "LercDecode.es.js",
   "readmeFilename": "README.md",
   "repository": {
     "type": "git",

@@ -7,6 +7,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=10,11,edge" />
   <title></title>
   <!-- <script type="text/javascript" src="./dist/LercDecode.min.js"></script> -->
+  <!-- <script type="text/javascript" src="https://unpkg.com/lerc@latest/LercDecode.min.js"></script> -->
   <script type="text/javascript" src="./dist/LercDecode.js"></script>
 </head>
 
@@ -23,6 +24,8 @@
   <div>
     <canvas width="100" height="100" id="imageCanvas"></canvas>
   </div>
+  <!-- <script type="module">
+    import * as Lerc from "./dist/LercDecode.es.js"; -->
   <script type="text/javascript">
     let showTile;
     const defaultUrl =
@@ -217,9 +220,7 @@
         };
       }
     }
-    if (window.Lerc) {
-      main();
-    }
+    main();
   </script>
   <!--load es module and debug TS directly: 
     1. in Lerc.ts (or Lerc.js), change import modules to include .js extension, e.g. ... from "lerc-wasm" to from "lerc-wasm.js"

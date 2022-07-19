@@ -11,40 +11,47 @@
 - [Web Assembly](https://caniuse.com/wasm) support is now required.
 - <code>Lerc.load()</code> must be invoked and the returned promise must be resolved prior to <code>Lerc.decode</code>. This only needs to be done once per worker (or the main thread). There's no extra cost when invoked multiple times as the internal wasm loading promise is cached.
 
-## Browser
+## Get started
 
-```html
+```js
+npm install lerc
+
+// es module
+import * as Lerc from 'lerc';
+
+// commonJS
+const Lerc = require('lerc');
+```
+
+```js
+// use umd via a script tag
 <script type="text/javascript" src="https://unpkg.com/lerc@latest/LercDecode.min.js"></script>
 ```
+
+## Sample usage
+
 ```js
 await Lerc.load();
 
+const arrayBuffer = await fetch('http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0')
+  .then(response => response.arrayBuffer());
 const pixelBlock = Lerc.decode(arrayBuffer);
+const { height, width, pixels, mask } = pixelBlock;
+for (let i = 0; i < height; i++) {
+  for (let j = 0; j < width; j++) {
+    if (!mask || mask[i * width + j]) {
+      // do something with valid pixel (i,j)
+    }
+  }
+}
 
 // use options
 const pixelBlock = Lerc.decode(arrayBuffer, {
   inputOffset: 10, // start from the 10th byte (default is 0)
-  returnInterleaved: true // only applicable to n-depth lerc2 blobs (default is false)
+  returnInterleaved: true // only applicable to n-depth lerc blobs (default is false)
 });
 ```
 
-## Node
-
-```js
-npm install lerc && npm install node-fetch-commonjs
-```
-```js
-const fetch = require('node-fetch-commonjs');
-const Lerc = require('lerc');
-
-fetch('http://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/0/0/0')
-  .then(response => response.arrayBuffer())
-  .then(async (body) => {
-    // on demand load here (internally it's only loading once)
-    const image = await Lerc.load().then(() => Lerc.decode(body));
-    console.log(image.width); // 257
-  });
-```
 
 ## API Reference
 
@@ -56,7 +63,7 @@ A module for decoding LERC blobs.
 <a name="exp_module_Lerc--load"></a>
 
 ### load([options]) ⇒ <code>Promise<void></code> ⏏
-Load the depencies (web assembly). Check whether dependencies has been loaded using <code>Lerc.isLoaded</code>. The loading promise is cached so it can be invoked multiple times if needed.
+Load the dependencies (web assembly). Check whether dependencies has been loaded using <code>Lerc.isLoaded()</code>. The loading promise is cached so it can be invoked multiple times if needed.
 
 
 **Kind**: Exported function
