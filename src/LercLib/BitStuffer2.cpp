@@ -22,6 +22,7 @@ Contributors:  Thomas Maurer
 */
 
 #include <algorithm>
+#include <assert.h>
 #include "Defines.h"
 #include "BitStuffer2.h"
 
@@ -456,6 +457,8 @@ void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, i
     }
     else
     {
+      assert(bitPos < 32);
+      assert(bitPos > 0);
       *dstPtr++ |= (*srcPtr) << bitPos;
       *dstPtr |= (*srcPtr++) >> (32 - bitPos);
       bitPos += numBits - 32;
