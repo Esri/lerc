@@ -394,13 +394,7 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
         return HUFF_UNEXPECTED;
     }
 
-    //unsigned char * afterTablePtr = *ppByte;
-
     int bitPos = 0;
-
-    unsigned int* arr = (unsigned int*)(*ppByte);
-    unsigned int* dstPtr = arr;
-
     int offset = 0;
     const unsigned char *data = (const unsigned char *)input;
 
@@ -419,28 +413,14 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
 
         unsigned int code = m_huffmanCodes[kBin].second;
 
-        if (32 - bitPos >= len)
+        if (!Huffman::PushValue(ppByte, bitPos, code, len))
         {
-            if (bitPos == 0)
-                *dstPtr = 0;
-
-            *dstPtr |= code << (32 - bitPos - len);
-            bitPos += len;
-            if (bitPos == 32)
-            {
-                bitPos = 0;
-                dstPtr++;
-            }
-        }
-        else
-        {
-            bitPos += len - 32;
-            *dstPtr++ |= code >> bitPos;
-            *dstPtr = code << (32 - bitPos);
+          free(originalPtr);
+          return HUFF_UNEXPECTED;
         }
     }
 
-    size_t numUInts = dstPtr - arr + (bitPos > 0 ? 1 : 0) + 1;    // add one more as the decode LUT can read ahead
+    size_t numUInts = (bitPos > 0 ? 1 : 0) + 1;    // add one more as the decode LUT can read ahead
     *ppByte += numUInts * sizeof(unsigned int);
 
     int ret = (int)(*ppByte - originalPtr);
@@ -542,28 +522,15 @@ bool fpl_EsriHuffman::DecodeHuffman(const unsigned char* inBytes, const size_t i
     }
 
     int offset = 0;
-
-    const unsigned int* arr = (const unsigned int*)(ppByte);
-    const unsigned int* srcPtr = arr;
     int bitPos = 0;
     size_t nBytesRemaining = nBytesRemainingInOut;
 
     for (size_t m = 0; m < expected_output_len; m++)
     {
         int val = 0;
-        if (nBytesRemaining >= 4 * sizeof(unsigned int))
+        if (!huffman.DecodeOneValue(&ppByte, nBytesRemaining, bitPos, numBitsLUT, val))
         {
-            if (!huffman.DecodeOneValue_NoOverrunCheck(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if (!huffman.DecodeOneValue(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-            {
-                return false;
-            }
+            return false;
         }
 
         data[m] = (unsigned char)(val - offset);

@@ -1879,7 +1879,7 @@ bool Lerc2::ComputeDiffSliceFlt(const T* data, const T* prevData, int numValidPi
 template<class T>
 bool Lerc2::WriteTile(const T* dataBuf, int num, Byte** ppByte, int& numBytesWritten, int j0, T zMin, T zMax,
   DataType dtZ, bool bDiffEnc, const std::vector<unsigned int>& quantVec, BlockEncodeMode blockEncodeMode,
-  const std::vector<std::pair<unsigned int, unsigned int> >& sortedQuantVec) const
+  const std::vector<std::pair<unsigned int, unsigned int>>& sortedQuantVec) const
 {
   Byte* ptr = *ppByte;
   Byte comprFlag = ((j0 >> 3) & 15) << 2;    // use bits 2345 for integrity check
@@ -2325,9 +2325,6 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
   int height = m_headerInfo.nRows;
   int width = m_headerInfo.nCols;
   int nDepth = m_headerInfo.nDepth;
-
-  unsigned int* arr = (unsigned int*)(*ppByte);
-  unsigned int* dstPtr = arr;
   int bitPos = 0;
 
   if (m_imageEncodeMode == IEM_DeltaHuffman)
@@ -2363,25 +2360,8 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
 
             unsigned int code = m_huffmanCodes[kBin].second;
 
-            if (32 - bitPos >= len)
-            {
-              if (bitPos == 0)
-                *dstPtr = 0;
-
-              *dstPtr |= code << (32 - bitPos - len);
-              bitPos += len;
-              if (bitPos == 32)
-              {
-                bitPos = 0;
-                dstPtr++;
-              }
-            }
-            else
-            {
-              bitPos += len - 32;
-              *dstPtr++ |= code >> bitPos;
-              *dstPtr = code << (32 - bitPos);
-            }
+            if (!Huffman::PushValue(ppByte, bitPos, code, len))
+              return false;
           }
     }
   }
@@ -2403,33 +2383,17 @@ bool Lerc2::EncodeHuffman(const T* data, Byte** ppByte) const
 
             unsigned int code = m_huffmanCodes[kBin].second;
 
-            if (32 - bitPos >= len)
-            {
-              if (bitPos == 0)
-                *dstPtr = 0;
-
-              *dstPtr |= code << (32 - bitPos - len);
-              bitPos += len;
-              if (bitPos == 32)
-              {
-                bitPos = 0;
-                dstPtr++;
-              }
-            }
-            else
-            {
-              bitPos += len - 32;
-              *dstPtr++ |= code >> bitPos;
-              *dstPtr = code << (32 - bitPos);
-            }
+            if (!Huffman::PushValue(ppByte, bitPos, code, len))
+              return false;
           }
   }
 
   else
     return false;
 
-  size_t numUInts = dstPtr - arr + (bitPos > 0 ? 1 : 0) + 1;    // add one more as the decode LUT can read ahead
+  size_t numUInts = (bitPos > 0 ? 1 : 0) + 1;    // add one more as the decode LUT can read ahead
   *ppByte += numUInts * sizeof(unsigned int);
+
   return true;
 }
 
@@ -2454,8 +2418,9 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
   int width = m_headerInfo.nCols;
   int nDepth = m_headerInfo.nDepth;
 
-  const unsigned int* arr = (const unsigned int*)(*ppByte);
-  const unsigned int* srcPtr = arr;
+  const Byte* ptr0 = *ppByte;
+  const Byte* ptr = ptr0;
+
   int bitPos = 0;
   size_t nBytesRemaining = nBytesRemainingInOut;
 
@@ -2470,16 +2435,8 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
           for (int j = 0; j < width; j++, m += nDepth)
           {
             int val = 0;
-            if (nBytesRemaining >= 4 * sizeof(unsigned int))
-            {
-              if (!huffman.DecodeOneValue_NoOverrunCheck(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-                return false;
-            }
-            else
-            {
-              if (!huffman.DecodeOneValue(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-                return false;
-            }
+            if (!huffman.DecodeOneValue(&ptr, nBytesRemaining, bitPos, numBitsLUT, val))
+              return false;
 
             T delta = (T)(val - offset);
 
@@ -2503,16 +2460,8 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
           for (int m = 0; m < nDepth; m++)
           {
             int val = 0;
-            if (nBytesRemaining >= 4 * sizeof(unsigned int))
-            {
-              if (!huffman.DecodeOneValue_NoOverrunCheck(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-                return false;
-            }
-            else
-            {
-              if (!huffman.DecodeOneValue(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-                return false;
-            }
+            if (!huffman.DecodeOneValue(&ptr, nBytesRemaining, bitPos, numBitsLUT, val))
+              return false;
 
             data[m0 + m] = (T)(val - offset);
           }
@@ -2534,16 +2483,8 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
             if (m_bitMask.IsValid(k))
             {
               int val = 0;
-              if (nBytesRemaining >= 4 * sizeof(unsigned int))
-              {
-                if (!huffman.DecodeOneValue_NoOverrunCheck(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-                  return false;
-              }
-              else
-              {
-                if (!huffman.DecodeOneValue(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-                  return false;
-              }
+              if (!huffman.DecodeOneValue(&ptr, nBytesRemaining, bitPos, numBitsLUT, val))
+                return false;
 
               T delta = (T)(val - offset);
 
@@ -2572,16 +2513,8 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
             for (int m = 0; m < nDepth; m++)
             {
               int val = 0;
-              if (nBytesRemaining >= 4 * sizeof(unsigned int))
-              {
-                if (!huffman.DecodeOneValue_NoOverrunCheck(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-                  return false;
-              }
-              else
-              {
-                if (!huffman.DecodeOneValue(&srcPtr, nBytesRemaining, bitPos, numBitsLUT, val))
-                  return false;
-              }
+              if (!huffman.DecodeOneValue(&ptr, nBytesRemaining, bitPos, numBitsLUT, val))
+                return false;
 
               data[m0 + m] = (T)(val - offset);
             }
@@ -2591,8 +2524,8 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
       return false;
   }
 
-  size_t numUInts = srcPtr - arr + (bitPos > 0 ? 1 : 0) + 1;    // add one more as the decode LUT can read ahead
-  size_t len = numUInts * sizeof(unsigned int);
+  size_t numUInts = (bitPos > 0 ? 1 : 0) + 1;    // add one more as the decode LUT can read ahead
+  size_t len = (ptr - ptr0) + numUInts * sizeof(unsigned int);
 
   if (nBytesRemainingInOut < len)
     return false;
@@ -2605,7 +2538,7 @@ bool Lerc2::DecodeHuffman(const Byte** ppByte, size_t& nBytesRemainingInOut, T* 
 // -------------------------------------------------------------------------- ;
 
 template<class T>
-bool Lerc2::WriteMinMaxRanges(const T* /*data*/, Byte** ppByte) const
+bool Lerc2::WriteMinMaxRanges(const T*, Byte** ppByte) const
 {
   if (!ppByte || !(*ppByte))
     return false;
