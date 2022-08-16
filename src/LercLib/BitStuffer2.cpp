@@ -64,6 +64,7 @@ bool BitStuffer2::EncodeSimple(Byte** ppByte, const vector<unsigned int>& dataVe
 
   if (numUInts > 0)    // numBits can be 0, then we only write the header
   {
+    // now (0 < numBits < 32)
     if (lerc2Version >= 3)
       BitStuff(ppByte, dataVec, numBits);
     else
@@ -75,7 +76,7 @@ bool BitStuffer2::EncodeSimple(Byte** ppByte, const vector<unsigned int>& dataVe
 
 // -------------------------------------------------------------------------- ;
 
-bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsigned int> >& sortedDataVec, int lerc2Version) const
+bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsigned int>>& sortedDataVec, int lerc2Version) const
 {
   if (!ppByte || sortedDataVec.empty())
     return false;
@@ -109,7 +110,7 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
   while ((numBits < 32) && (maxElem >> numBits))
     numBits++;
 
-  if (numBits >= 32)
+  if (numBits <= 0 || numBits >= 32)    // ensures (0 < numBits < 32)
     return false;
 
   Byte numBitsByte = (Byte)numBits;
@@ -128,7 +129,7 @@ bool BitStuffer2::EncodeLut(Byte** ppByte, const vector<pair<unsigned int, unsig
     return false;
 
   unsigned int nLut = (unsigned int)m_tmpLutVec.size();
-  if (nLut < 1 || nLut >= 255)
+  if (nLut < 1 || nLut >= 255)    // ensures (0 < nBitsLut < 32) below
     return false;
 
   **ppByte = (Byte)nLut + 1;    // size of lut, incl the 0
@@ -425,7 +426,8 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
 
 // -------------------------------------------------------------------------- ;
 
-// starting with version Lerc2v3: integer >> into local uint buffer, plus final memcpy
+// starting with version Lerc2v3: integer >> into local uint buffer, plus final memcpy;
+// note this function gets called only for (0 < numBits < 32)
 
 void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, int numBits) const
 {
@@ -444,7 +446,7 @@ void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, i
 
   for (unsigned int i = 0; i < numElements; i++)
   {
-    if (32 - bitPos >= numBits)
+    if (32 - bitPos >= numBits)    // 0 < numBits < 32
     {
       *dstPtr |= (*srcPtr++) << bitPos;
       bitPos += numBits;
@@ -457,7 +459,7 @@ void BitStuffer2::BitStuff(Byte** ppByte, const vector<unsigned int>& dataVec, i
     else
     {
       *dstPtr++ |= (*srcPtr) << bitPos;
-      *dstPtr |= (*srcPtr++) >> (32 - bitPos);
+      *dstPtr |= (*srcPtr++) >> (32 - bitPos);    // bitPos > 0 here, always
       bitPos += numBits - 32;
     }
   }

@@ -259,20 +259,16 @@ bool CntZImage::readCntTile(const Byte** ppByte, int i0, int i1, int j0, int j1)
   if (comprFlag == 0)
   {
     // read cnt's as flt arr uncompressed
-    const float* srcPtr = (const float*)ptr;
-
     for (int i = i0; i < i1; i++)
     {
       CntZ* dstPtr = getData() + i * width_ + j0;
       for (int j = j0; j < j1; j++)
       {
-        dstPtr->cnt = *srcPtr++;
+        memcpy(&dstPtr->cnt, ptr, 4);  ptr += 4;
         SWAP_4(dstPtr->cnt);
         dstPtr++;
       }
     }
-
-    ptr += numPixel * sizeof(float);
   }
   else
   {
@@ -311,8 +307,6 @@ bool CntZImage::readCntTile(const Byte** ppByte, int i0, int i1, int j0, int j1)
 bool CntZImage::readZTile(const Byte** ppByte, int i0, int i1, int j0, int j1, double maxZErrorInFile, float maxZInImg)
 {
   const Byte* ptr = *ppByte;
-  int numPixel = 0;
-
   Byte comprFlag = *ptr++;
   int bits67 = comprFlag >> 6;
   comprFlag &= 63;
@@ -340,8 +334,6 @@ bool CntZImage::readZTile(const Byte** ppByte, int i0, int i1, int j0, int j1, d
   if (comprFlag == 0)
   {
     // read z's as flt arr uncompressed
-    const float* srcPtr = (const float*)ptr;
-
     for (int i = i0; i < i1; i++)
     {
       CntZ* dstPtr = getData() + i * width_ + j0;
@@ -349,15 +341,12 @@ bool CntZImage::readZTile(const Byte** ppByte, int i0, int i1, int j0, int j1, d
       {
         if (dstPtr->cnt > 0)
         {
-          dstPtr->z = *srcPtr++;
+          memcpy(&dstPtr->z, ptr, 4);  ptr += 4;
           SWAP_4(dstPtr->z);
-          numPixel++;
         }
         dstPtr++;
       }
     }
-
-    ptr += numPixel * sizeof(float);
   }
   else
   {
