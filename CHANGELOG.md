@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+* Cleaned up the code to avoid pointer casts from unaligned byte pointers to integer or float pointers. Such pointer casts may cause problems on some platforms (e.g., embedded).
+
+
 ## [4.0.0](https://github.com/Esri/lerc/releases/tag/v4.0.0) - 2022-07-15
 
 ### Milestones reached
