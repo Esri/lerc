@@ -236,7 +236,8 @@ def findMaxZError_ma(npmaArrOrig, npmaArrDec):
 # Lerc version 3.0
 
 def findDataRange(npArr, bHasMask, npValidMask, nBands, printInfo = False):
-    start = timer()
+    if printInfo:
+        start = timer()
 
     if not bHasMask or npValidMask is None:
         zMin = np.amin(npArr)
@@ -255,8 +256,8 @@ def findDataRange(npArr, bHasMask, npValidMask, nBands, printInfo = False):
                 zMin = min(np.amin(npArr[m][npValidMask]), zMin)
                 zMax = max(np.amax(npArr[m][npValidMask]), zMax)
 
-    end = timer()
     if printInfo:
+        end = timer()
         print('time findDataRange() = ', (end - start))
     return (zMin, zMax)
 
@@ -406,17 +407,19 @@ def _encode_Ext(npArr, nValuesPerPixel, npValidMask, maxZErr, nBytesHint, npmaNo
     ptr = ct.cast((ct.c_uint * 1)(), ct.POINTER(ct.c_uint))
     
     if nBytesHint == 0 or nBytesHint == 1:
-        start = timer()
+        if printInfo:
+            start = timer()
+
         result = lercDll.lerc_computeCompressedSize_4D(cpData, dataType, nValuesPerPixel, nCols, nRows, nBands,
                                                        nMasks, cpValidArr, maxZErr, ptr, cpHasNoData, cpNoData)
         nBytesNeeded = ptr[0]
-        end = timer()
 
         if result > 0:
             print(fctErr, 'lercDll.lerc_computeCompressedSize_4D() failed with error code = ', result)
             return (result, 0)
 
         if printInfo:
+            end = timer()
             print('time lerc_computeCompressedSize_4D() = ', (end - start))
     else:
         nBytesNeeded = nBytesHint
@@ -424,17 +427,20 @@ def _encode_Ext(npArr, nValuesPerPixel, npValidMask, maxZErr, nBytesHint, npmaNo
     if nBytesHint > 0:
         outBytes = ct.create_string_buffer(nBytesNeeded)
         cpOutBuffer = ct.cast(outBytes, ct.c_char_p)
-        start = timer()
+
+        if printInfo:
+            start = timer()
+
         result = lercDll.lerc_encode_4D(cpData, dataType, nValuesPerPixel, nCols, nRows, nBands, nMasks, cpValidArr,
                                         maxZErr, cpOutBuffer, nBytesNeeded, ptr, cpHasNoData, cpNoData)
         nBytesWritten = ptr[0]
-        end = timer()
 
         if result > 0:
             print(fctErr, 'lercDll.lerc_encode_4D() failed with error code = ', result)
             return (result, 0)
 
         if printInfo:
+            end = timer()
             print('time lerc_encode_4D() = ', (end - start))
 
     if nBytesHint == 0:
@@ -590,15 +596,17 @@ def getLercDataRanges(lercBlob, nDepth, nBands, printInfo = False):
     cpMins = ct.cast(mins, ct.POINTER(ct.c_double))
     cpMaxs = ct.cast(maxs, ct.POINTER(ct.c_double))
 
-    start = timer()
+    if printInfo:
+        start = timer()
+
     result = lercDll.lerc_getDataRanges(cpBytes, nBytes, nDepth, nBands, cpMins, cpMaxs)
-    end = timer()
 
     if result > 0:
         print('Error in getLercDataRanges(): lercDLL.lerc_getDataRanges() failed with error code = ', result)
         return (result)
 
     if printInfo:
+        end = timer()
         print('time lerc_getDataRanges() = ', (end - start))
         print('data ranges per band and depth:')
         for i in range(nBands):
@@ -673,18 +681,20 @@ def _decode_Ext(lercBlob, nSupportNoData, printInfo):
         noDataBuf = ct.create_string_buffer(nBands * 8)
         cpHasNoDataArr = ct.cast(hasNoDataBuf, ct.c_char_p)
         cpNoDataArr = ct.cast(noDataBuf, ct.POINTER(ct.c_double))
-    
+
     # call decode
-    start = timer()
+    if printInfo:
+        start = timer()
+
     result = lercDll.lerc_decode_4D(cpBytes, len(lercBlob), nMasks, cpValidArr, nValuesPerPixel,
                                     nCols, nRows, nBands, dataType, cpData, cpHasNoDataArr, cpNoDataArr)
-    end = timer()
 
     if result > 0:
         print(fctErr, 'lercDll.lerc_decode() failed with error code = ', result)
         return result
-    
+
     if printInfo:
+        end = timer()
         print('time lerc_decode() = ', (end - start))
 
     # return result, np data array, and np valid pixels array if there
