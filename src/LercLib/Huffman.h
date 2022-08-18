@@ -220,7 +220,7 @@ inline bool Huffman::PushValue(Byte** ppByte, int& bitPos, unsigned int value, i
 {
   const size_t s4 = sizeof(unsigned int);
 
-  if (!ppByte || !(*ppByte) || bitPos < 0 || bitPos >= 32 || len < 0 || len > 32)
+  if (!ppByte || !(*ppByte) || bitPos < 0 || bitPos >= 32 || len <= 0 || len > 32)
     return false;
 
   if (32 - bitPos >= len)
