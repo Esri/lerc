@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][HEAD]
 
+
+## [4.0.0][HEAD]
+
 Now uses web assembly, as a result:
 * The existing Javascript decoder ```js/LercDecode.js``` is deprecated. It will be removed in next major release.
 * [Web Assembly](https://caniuse.com/wasm) support is now required. IE11 is therefore no longer supported.
