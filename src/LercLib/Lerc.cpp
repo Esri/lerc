@@ -26,6 +26,7 @@ Contributors:  Thomas Maurer
 #include "Lerc2.h"
 #include <typeinfo>
 #include <limits>
+#include <functional>
 
 #ifdef HAVE_LERC1_DECODE
   #include "Lerc1Decode/CntZImage.h"
