@@ -28,6 +28,7 @@ Original coding 2021 Yuriy Yakimenko
 #include <cmath>
 #include <cstring>
 #include <stdint.h>
+#include <algorithm>
 
 USING_NAMESPACE_LERC
 
