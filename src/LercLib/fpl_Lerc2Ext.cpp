@@ -466,7 +466,7 @@ bool LosslessFPCompression::ComputeHuffmanCodesFltSlice (const void* pInput, boo
   UnitType unit_type = bIsDouble ? UNIT_TYPE_DOUBLE : UNIT_TYPE_FLOAT;
 
   int max_byte_delta = MAX_DELTA;   // in pactice it will rarely be more than 3.
-                                    // I observed values greater than 3 only with doble data.
+                                    // I observed values greater than 3 only with double data.
                                     // see getMaxByteDelta() call below.
 
   size_t size = (size_t)iCols * iRows;

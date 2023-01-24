@@ -551,7 +551,7 @@ export function getBlobInfo(input: ArrayBuffer | Uint8Array, options: { inputOff
 }
 
 export function getBandCount(input: ArrayBuffer | Uint8Array, options: { inputOffset?: number } = {}): number {
-  // this was available in the old JS version but not documented. Keep as is for backward compatiblity
+  // this was available in the old JS version but not documented. Keep as is for backward compatibility.
   const info = getBlobInfo(input, options);
   return info.bandCount;
 }
