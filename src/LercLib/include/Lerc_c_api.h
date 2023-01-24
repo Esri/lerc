@@ -261,7 +261,7 @@ extern "C" {
   //! if possible. If not possible, it switches to lossless. On decode, that temporary noData value gets mapped back to the original
   //! noData value. 
   //! 
-  //! To minimize the occurence of noData values (and for better compression), Lerc tries to move noData values to the byte mask 
+  //! To minimize the occurrence of noData values (and for better compression), Lerc tries to move noData values to the byte mask
   //! wherever possible (e.g., all values at some pixel are invalid). So for a given band the noData values may disappear and get
   //! all moved to the byte mask. Decode only returns a noData value if it is really used. In that case the caller needs to filter
   //! the decoded arrays using both the byte mask returned and the noData value returned. 

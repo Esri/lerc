@@ -431,7 +431,7 @@ Contributors:  Thomas Maurer, Wenxue Ju
       return lercLib.getBlobInfo(blob);
   }
   function getBandCount(input, options = {}) {
-      // this was available in the old JS version but not documented. Keep as is for backward compatiblity
+      // this was available in the old JS version but not documented. Keep as is for backward compatibility.
       const info = getBlobInfo(input, options);
       return info.bandCount;
   }
