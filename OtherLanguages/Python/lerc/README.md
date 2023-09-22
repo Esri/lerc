@@ -1,3 +1,7 @@
+## `pylerc` is the LERC Python package
+
+LERC is an open-source raster format which supports rapid encoding and decoding for any pixel type, with user-set maximum compression error per pixel.
+
 # What's new in Lerc 4.0?
 
 ## Option 1, uses numpy masked array

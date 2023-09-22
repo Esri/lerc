@@ -1,12 +1,10 @@
 import setuptools
-import os
 
 from glob import glob
 from os.path import basename, exists, join, getmtime
 from shutil import copyfile
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-readme_path = os.path.join(dir_path, "..", "..", "README.md")
+readme_path = join("lerc", "README.md")
 
 try:
     with open(readme_path, "r") as fh:
@@ -28,16 +26,17 @@ for platform in PLATFORMS:
                 copyfile(input_binary, output_binary)
 
 setuptools.setup(
-    name="lerc",
+    name="pylerc",
     version="4.0",
     author="esri",
     author_email="python@esri.com",
     description="Limited Error Raster Compression",
-    # long_description=long_description,
-    # long_description_content_type="text/markdown",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     license="Apache 2",
     url="https://github.com/Esri/lerc",
     packages=setuptools.find_packages(),
+    install_requires=["numpy"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
