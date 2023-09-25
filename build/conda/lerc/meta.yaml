@@ -1,5 +1,5 @@
 package:
-  name: lerc
+  name: pylerc
   version: 4.0
 
 build:
@@ -25,7 +25,7 @@ test:
 
 about:
   description: |
-    LERC is an open-source raster format which supports rapid encoding and decoding
+    pylerc is the LERC Python package. LERC is an open-source raster format which supports rapid encoding and decoding
     for any pixel type, with user-set maximum compression error per pixel.
   home: https://esri.github.io/lerc/
   dev_url:  https://github.com/Esri/lerc
