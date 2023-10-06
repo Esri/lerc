@@ -44,6 +44,18 @@ install(
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+# Handle both absolute paths (e.g. NixOS) and relative for a relocatable package
+if(IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+    set(LERC_PC_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}")
+else()
+    set(LERC_PC_INCLUDEDIR "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
+endif()
+if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
+    set(LERC_PC_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+else()
+    set(LERC_PC_LIBDIR "\${exec_prefix}/${CMAKE_INSTALL_LIBDIR}")
+endif()
+
 # Configure and install pkgconfig file
 configure_file(Lerc.pc.in ${CMAKE_CURRENT_BINARY_DIR}/Lerc.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Lerc.pc
