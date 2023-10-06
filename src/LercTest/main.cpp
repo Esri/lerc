@@ -125,7 +125,7 @@ int main(int argc, char* arcv[])
     cout << "sample 1 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
 
     // decompress
-    if (hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize))
+    if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
       cout << "lerc_getBlobInfo(...) failed" << endl;
 
     BlobInfo_Print(infoArr);
@@ -222,7 +222,7 @@ int main(int argc, char* arcv[])
 
     // decode
 
-    if (hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize))
+    if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
       cout << "lerc_getBlobInfo(...) failed" << endl;
 
     BlobInfo_Print(infoArr);
@@ -231,7 +231,7 @@ int main(int argc, char* arcv[])
       cout << "got wrong lerc info" << endl;
 
     vector<double> zMinVec(3, 0), zMaxVec(3, 0);
-    if (hr = lerc_getDataRanges(pLercBlob, numBytesBlob, 3, 1, &zMinVec[0], &zMaxVec[0]))
+    if ((hr = lerc_getDataRanges(pLercBlob, numBytesBlob, 3, 1, &zMinVec[0], &zMaxVec[0])))
       cout << "lerc_getDataRanges(...) failed" << endl;
 
     // new data storage
@@ -240,7 +240,7 @@ int main(int argc, char* arcv[])
 
     t0 = high_resolution_clock::now();
 
-    if (hr = lerc_decode(pLercBlob, numBytesBlob, 0, nullptr, 3, w, h, 1, (uint32)dt_uchar, (void*)byteImg2))
+    if ((hr = lerc_decode(pLercBlob, numBytesBlob, 0, nullptr, 3, w, h, 1, (uint32)dt_uchar, (void*)byteImg2)))
       cout << "lerc_decode(...) failed" << endl;
 
     t1 = high_resolution_clock::now();
@@ -334,7 +334,7 @@ int main(int argc, char* arcv[])
 
     // decode
 
-    if (hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize))
+    if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
       cout << "lerc_getBlobInfo(...) failed" << endl;
 
     BlobInfo_Print(infoArr);
@@ -358,7 +358,7 @@ int main(int argc, char* arcv[])
       memset(maskByteImg2, 0, nMasks * w * h);
     }
 
-    if (hr = lerc_decode(pLercBlob, numBytesBlob, nMasks, maskByteImg2, 1, w, h, 4, (uint32)dt_float, (void*)fImg2))
+    if ((hr = lerc_decode(pLercBlob, numBytesBlob, nMasks, maskByteImg2, 1, w, h, 4, (uint32)dt_float, (void*)fImg2)))
       cout << "lerc_decode(...) failed" << endl;
 
     t1 = high_resolution_clock::now();
@@ -480,7 +480,7 @@ int main(int argc, char* arcv[])
 
     // decode
 
-    if (hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize))
+    if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
       cout << "lerc_getBlobInfo(...) failed" << endl;
 
     BlobInfo_Print(infoArr);
@@ -611,7 +611,7 @@ int main(int argc, char* arcv[])
       continue;
     }
 
-    if (hr = lerc_getBlobInfo(pLercBuffer, (uint32)fileSize, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize))
+    if ((hr = lerc_getBlobInfo(pLercBuffer, (uint32)fileSize, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
       cout << "lerc_getBlobInfo(...) failed" << endl;
 
     {
@@ -640,7 +640,7 @@ int main(int argc, char* arcv[])
       t0 = high_resolution_clock::now();
 
       string resultMsg = "ok";
-      if (hr = lerc_decode_4D(pLercBuffer, (uint32)fileSize, nMasks, pValidBytes, nDepth, w, h, nBands, dt, (void*)pDstArr, pUsesNoData, pNoDataVal))
+      if ((hr = lerc_decode_4D(pLercBuffer, (uint32)fileSize, nMasks, pValidBytes, nDepth, w, h, nBands, dt, (void*)pDstArr, pUsesNoData, pNoDataVal)))
         resultMsg = "FAILED";
 
       //memset(pDstArr, 5, nBands * w * h * nDepth * bpp[dt]);    // to double check on the CompareTwoTiles() function
