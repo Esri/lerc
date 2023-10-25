@@ -354,6 +354,10 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
         if (rle_len > 0 && (rle_len < numBytes) && (rle_len < (long)input_len))
         {
             *ppByte = (unsigned char *)malloc (rle_len + 1);
+
+            if (*ppByte == NULL)
+              return MEMORY_ALLOC_FAIL;
+
             unsigned char * originalPtr = *ppByte ;
             originalPtr[0] = HUFFMAN_PACKBITS;
 
@@ -367,6 +371,10 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
     if (numBytes >= (int)input_len) // huffman will take more space than uncompressed. Don't encode.
     {
         *ppByte = (unsigned char *)malloc (input_len + 1);
+
+        if (*ppByte == NULL)
+          return MEMORY_ALLOC_FAIL;
+
         unsigned char * originalPtr = *ppByte ;
         originalPtr[0] = HUFFMAN_NO_ENCODING; // as is flag
         memcpy (originalPtr + 1, input, input_len);
@@ -377,9 +385,7 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
     *ppByte = (unsigned char *)malloc (numBytes + 1);
 
     if (*ppByte == NULL)
-    {
-        return MEMORY_ALLOC_FAIL;
-    }
+      return MEMORY_ALLOC_FAIL;
 
     unsigned char * originalPtr = *ppByte ;
 
@@ -392,6 +398,7 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
     if (!huffman.SetCodes(m_huffmanCodes) || !huffman.WriteCodeTable(ppByte, 5))    // header and code table
     {
         free (originalPtr);
+        *ppByte = NULL;
         return HUFF_UNEXPECTED;
     }
 
@@ -409,6 +416,7 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
         if (len <= 0)
         {
             free (originalPtr);
+            *ppByte = NULL;
             return HUFF_UNEXPECTED;
         }
 
@@ -417,6 +425,7 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
         if (!Huffman::PushValue(ppByte, bitPos, code, len))
         {
           free(originalPtr);
+          *ppByte = NULL;
           return HUFF_UNEXPECTED;
         }
     }
