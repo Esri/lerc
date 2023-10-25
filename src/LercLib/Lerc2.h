@@ -106,7 +106,7 @@ public:
       numValidPixel,
       microBlockSize,
       blobSize,
-      nBlobsMore;         // for multi-band Lerc blob, how many more blobs or bands appended to this one
+      nBlobsMore;    // for multi-band Lerc blob, how many more blobs or bands appended to this one
 
     Byte bPassNoDataValues,  // 1 - pass noData values to decoder, 0 - don't pass, ignore
       bIsInt,    // 1 - float or double data is all integer numbers, 0 - not
@@ -435,8 +435,8 @@ inline int Lerc2::NumBytesTile(int numValidPixel, T zMin, T zMax, DataType dtZ, 
     unsigned int maxElem = (unsigned int)(maxVal + 0.5);
     if (maxElem > 0)
     {
-      nBytes += (!tryLut) ? m_bitStuffer2.ComputeNumBytesNeededSimple(numValidPixel, maxElem)
-                          : m_bitStuffer2.ComputeNumBytesNeededLut(sortedQuantVec, tryLut);
+      nBytes += (!tryLut) ? BitStuffer2::ComputeNumBytesNeededSimple(numValidPixel, maxElem)
+                          : BitStuffer2::ComputeNumBytesNeededLut(sortedQuantVec, tryLut);
     }
 
     if (nBytes < nBytesRaw)

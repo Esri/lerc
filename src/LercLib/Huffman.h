@@ -176,7 +176,6 @@ inline bool Huffman::DecodeOneValue(const Byte** ppSrc, size_t& nBytesRemaining,
   }
 
   // if not there, go through the tree (slower)
-
   if (!m_root)
     return false;
 
