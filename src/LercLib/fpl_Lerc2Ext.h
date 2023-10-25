@@ -54,6 +54,9 @@ private:
       best_level = 0;
     }
 
+    outBlockBuffer(const outBlockBuffer&) = delete;             // disable copy constructor
+    outBlockBuffer& operator=(const outBlockBuffer&) = delete;  // disable assignment
+
     ~outBlockBuffer()
     {
       free(compressed);
@@ -69,6 +72,9 @@ private:
     {
       m_predictor_code = PREDICTOR_UNKNOWN;
     }
+
+    compressedDataSlice(const compressedDataSlice&) = delete;             // disable copy constructor
+    compressedDataSlice& operator=(const compressedDataSlice&) = delete;  // disable assignment
 
     ~compressedDataSlice()
     {

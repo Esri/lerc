@@ -67,10 +67,13 @@ size_t fpl_Compression::compress_buffer(const char* data, size_t size, char** ou
 
         int ret = fpl_EsriHuffman::EncodeHuffman(data, size, (unsigned char**)output, use_rle);
 
+        if (ret < 0)
+        {
 #ifdef _DEBUG
-        //if (ret < 0)
-        //  fprintf(stderr, "Huffman failed. Input size: %zd. Code: %d\n", size, ret);
+          //  fprintf(stderr, "Huffman failed. Input size: %zd. Code: %d\n", size, ret);
 #endif
+          return (size_t)UINT_MAX + 1;
+        }
 
         return ret;
     }
