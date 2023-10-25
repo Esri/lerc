@@ -1422,7 +1422,7 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes) const
 
   const bool bDtInt = (hd.dt < DT_Float);
   const bool bIntLossless = bDtInt && (hd.maxZError == 0.5);
-  const bool bTryDiffEnc = (hd.version >= 5) && (nDepth > 1) && (hd.maxZError > 0);  // turn off for flt lossless
+  const bool bTryDiffEnc = (hd.version >= 5) && (nDepth > 1) && bIntLossless;  // only for int lossless to avoid error propagation
 
   const bool bCheckForIntOverflow = NeedToCheckForIntOverflow(hd);
   const bool bCheckForFltRndErr = NeedToCheckForFltRndErr(hd);
