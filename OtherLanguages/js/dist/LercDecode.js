@@ -176,6 +176,7 @@ Contributors:  Thomas Maurer, Wenxue Ju
               bandCountWithNoData
           };
           if (bandCountWithNoData) {
+              _free(ptr);
               return headerInfo;
           }
           if (depthCount === 1 && bandCount === 1) {

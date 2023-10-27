@@ -1,6 +1,6 @@
 {
   "name": "lerc",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "browser": "LercDecode.js",
   "bugs": {
     "url": "https://github.com/esri/lerc/issues"
