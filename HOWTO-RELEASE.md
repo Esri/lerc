@@ -6,7 +6,7 @@ Update version numbers in src/LercLib/include/Lerc_c_api.h and CMakeLists.txt
 
 - Config build environment. For 4.0 release: Node.js v16 LTS, npm 8.11
 - Update the following files in OtherLanguages/js
-  - Update version numbers in package.json
+  - Run npm version xxx to update version numbers in package.json
   - Update CHANGELOG.md
   - Update copyright year in Gruntfile.js, README.md and README.hbs
   - If applicable, update usage in README.md and README.hbs

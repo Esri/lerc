@@ -107,7 +107,7 @@ A function for decoding both LERC1 and LERC2 byte streams capable of handling mu
 
 ## Licensing
 
-Copyright &copy; 2017-2022 Esri
+Copyright &copy; 2017-2023 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
