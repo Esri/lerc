@@ -18,6 +18,5 @@ npm install && npm run build
 cd dist
 npm pack --dry-run (check file list and version)
 npm login
-npm pack (stop here and review tar file locally)
 npm publish
 ```

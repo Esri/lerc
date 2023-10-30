@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][HEAD]
 
+## [4.0.4] - 2023-10-30
+* Removed unnecessary files in the npm package.
+
+## [4.0.3] - 2023-10-30
+* Fixed release package -- should include dist only.
+
 ## [4.0.2] - 2023-10-27
 * Fixed a small memory leak when nDepth is more than 1 and when noData value is actually used in one or more bands.
 
