@@ -43,7 +43,7 @@ namespace LercNS
     public readonly struct LercBlobInfo
     {
         public const int Count = 11;
-        public const int Size = Count * sizeof(int);
+        public const int Size = Count * sizeof(uint);
         public readonly uint Version { get; }
         public readonly DataType DataType { get; }
         public readonly uint NDim { get; }
@@ -64,12 +64,9 @@ namespace LercNS
             {
                 return NDepth * NCols * NRows * NBands * (DataType switch
                 {
-                    DataType.Byte => sizeof(byte),
-                    DataType.SByte => sizeof(sbyte),
-                    DataType.Short => sizeof(short),
-                    DataType.UShort => sizeof(ushort),
-                    DataType.Int => sizeof(int),
-                    DataType.UInt => sizeof(uint),
+                    DataType.Byte or DataType.SByte => sizeof(byte),
+                    DataType.Short or DataType.UShort => sizeof(short),
+                    DataType.Int or DataType.UInt => sizeof(int),
                     DataType.Float => sizeof(float),
                     DataType.Double => sizeof(double),
                     _ => ThrowUnsupportedDataType()
@@ -85,7 +82,7 @@ namespace LercNS
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             [SkipLocalsInit]
-            get { return NCols * NRows * NMasks; }
+            get => NCols * NRows * NMasks;
         }
     };
 
@@ -122,19 +119,21 @@ namespace LercNS
                                                         double maxZErr = 0d,
                                                         ReadOnlySpan<byte> validBytes = default) where T : unmanaged
         {
-            Unsafe.SkipInit(out uint numBytes);
             fixed (void* pData = data)
             fixed (byte* pValidBytes = validBytes)
+            {
+                Unsafe.SkipInit(out uint numBytes);
                 LercAPICall(lerc_computeCompressedSize(
                     pData,
                     GetDataType<T>(),
                     nDepth, nCols,
                     nRows, nBands,
                     TranslateMaskSettings(nBands, masks),
-                    validBytes.IsEmpty ? null : pValidBytes,
+                    pValidBytes,
                     maxZErr,
                     &numBytes));
-            return numBytes;
+                return numBytes;
+            }
         }
 
         /// <summary>
@@ -179,14 +178,16 @@ namespace LercNS
                                 nDepth, nCols,
                                 nRows, nBands,
                                 nMasks,
-                                validBytes.IsEmpty ? null : pValidBytes,
+                                pValidBytes,
                                 maxZErr,
                                 &numBytes));
                     outBuffer = GC.AllocateUninitializedArray<byte>((int)numBytes);
                 }
 
-                Unsafe.SkipInit(out uint nBytesWritten);
                 fixed (byte* pOutBuffer = outBuffer)
+                {
+                    int bufferLength = outBuffer.Length;
+                    Unsafe.SkipInit(out uint nBytesWritten);
                     LercAPICall(lerc_encode(
                         pData,
                         dataType,
@@ -196,19 +197,18 @@ namespace LercNS
                         pValidBytes,
                         maxZErr,
                         pOutBuffer,
-                        (uint)outBuffer.Length,
+                        (uint)bufferLength,
                         &nBytesWritten));
 
-                int intBytesWritten = (int)nBytesWritten;
-                if (intBytesWritten == outBuffer.Length)
-                    return outBuffer;
-                return outBuffer[..intBytesWritten];
+                    int intBytesWritten = (int)nBytesWritten;
+                    return intBytesWritten == bufferLength ? outBuffer : outBuffer[..intBytesWritten];
+                }
             }
         }
 
         [SkipLocalsInit]
         public static void EncodeToFile<T>([DisallowNull][NotNull] string path,
-                                             [DisallowNull][NotNull] ReadOnlySpan<T> data,
+                                           [DisallowNull][NotNull] ReadOnlySpan<T> data,
                                                         int nDepth,
                                                         int nCols,
                                                         int nRows,
@@ -236,14 +236,16 @@ namespace LercNS
         public static unsafe LercBlobInfo GetLercBlobInfo([DisallowNull][NotNull] ReadOnlySpan<byte> lercBlob,
                                                           out DataRangeInfo dataRangeInfo)
         {
-            Unsafe.SkipInit(out LercBlobInfo lercBlobInfo);
             fixed (byte* pLercBlob = lercBlob)
             fixed (DataRangeInfo* pDataRangeInfo = &dataRangeInfo)
+            {
+                Unsafe.SkipInit(out LercBlobInfo lercBlobInfo);
                 LercAPICall(lerc_getBlobInfo(pLercBlob,
                                              (uint)lercBlob.Length,
                                              &lercBlobInfo,
                                              pDataRangeInfo));
-            return lercBlobInfo;
+                return lercBlobInfo;
+            }
         }
 
         [SkipLocalsInit]
@@ -270,17 +272,19 @@ namespace LercNS
 
                 fixed (byte* pData = outBuffer)
                 fixed (byte* pValidBytes = validBytesBuffer)
+                {
                     LercAPICall(lerc_decode(pLercBlob,
                                             (uint)lercBlob.Length,
                                             (int)lercBlobInfo.NMasks,
-                                            validBytesBuffer.IsEmpty ? null : pValidBytes,
+                                            pValidBytes,
                                             (int)lercBlobInfo.NDepth,
                                             (int)lercBlobInfo.NCols,
                                             (int)lercBlobInfo.NRows,
                                             (int)lercBlobInfo.NBands,
                                             lercBlobInfo.DataType,
                                             pData));
-                return outBuffer;
+                    return outBuffer;
+                }
             }
         }
 
@@ -328,13 +332,20 @@ namespace LercNS
 
         [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int TranslateMaskSettings(int nBands, MaskSettings masks) => masks switch
+        private static int TranslateMaskSettings(int nBands, MaskSettings masks)
         {
-            MaskSettings.AllValid => 0,
-            MaskSettings.SameMaskForAllBands => 1,
-            MaskSettings.UniqueMaskForEveryBand => nBands,
-            _ => throw new Exception("Invalid mask type.")
-        };
+            return masks switch
+            {
+                MaskSettings.AllValid => 0,
+                MaskSettings.SameMaskForAllBands => 1,
+                MaskSettings.UniqueMaskForEveryBand => nBands,
+                _ => ThrowInvalidMaskSetting()
+            };
+
+            [DoesNotReturn]
+            static int ThrowInvalidMaskSetting() => 
+            throw new Exception("Invalid mask type.");
+        }
 
         #region Native interop
         [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
