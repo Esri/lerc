@@ -31,7 +31,7 @@ namespace LercNS
         Double
     };
 
-    public enum MaskSettings : int
+    public enum MaskType : int
     {
         AllValid,
         SameMaskForAllBands,
@@ -55,14 +55,31 @@ namespace LercNS
         public readonly uint NMasks { get; }
         public readonly uint NDepth { get; }
         private readonly uint UsesNoDataValueInternal { get; }
-        public readonly bool UsesNoDataValue => UsesNoDataValueInternal is not 0;
+        public readonly bool UsesNoDataValue
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [SkipLocalsInit]
+            get => UsesNoDataValueInternal is not 0;
+        }
 
-        public readonly uint OutputBlobSize
+        public readonly MaskType MaskType
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [SkipLocalsInit]
+            get => NMasks switch
+            {
+                0 => MaskType.AllValid,
+                1 => MaskType.SameMaskForAllBands,
+                _ => MaskType.UniqueMaskForEveryBand,
+            };
+        }
+
+        public readonly uint DecodedRasterDataSize
         {
             [SkipLocalsInit]
             get
             {
-                return NDepth * NCols * NRows * NBands * (DataType switch
+                uint decodedRasterDataSize = NDepth * NCols * NRows * NBands * (DataType switch
                 {
                     DataType.Byte or DataType.SByte => sizeof(byte),
                     DataType.Short or DataType.UShort => sizeof(short),
@@ -72,17 +89,60 @@ namespace LercNS
                     _ => ThrowUnsupportedDataType()
                 });
 
+                if (decodedRasterDataSize is 0u)
+                {
+                    ThrowInvalidBlobSize();
+
+                    [DoesNotReturn]
+                    [SkipLocalsInit]
+                    static void ThrowInvalidBlobSize() =>
+                    throw new Exception("Invalid blob size. The struct might be uninitialized.");
+                }
+
+                return decodedRasterDataSize;
+
                 [DoesNotReturn]
+                [SkipLocalsInit]
                 static uint ThrowUnsupportedDataType() =>
                  throw new Exception("Unsupported data type.");
             }
         }
 
-        public readonly uint ByteMaskSize
+        public readonly uint PixelMasksLength
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             [SkipLocalsInit]
-            get => NCols * NRows * NMasks;
+            get
+            {
+                uint pixelMaskLength = NCols * NRows * NMasks;
+                if (pixelMaskLength is 0u)
+                {
+                    ThrowInvalidPixelMasksLength();
+
+                    [DoesNotReturn]
+                    [SkipLocalsInit]
+                    static void ThrowInvalidPixelMasksLength() =>
+                    throw new Exception("Invalid pixel mask size. The struct might be uninitialized.");
+                }
+                return pixelMaskLength;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [SkipLocalsInit]
+        public readonly void Decompose(out DataType dataType,
+                                       out int nDepth,
+                                       out int nCols,
+                                       out int nRows,
+                                       out int nBands,
+                                       out MaskType maskType)
+        {
+            dataType = DataType;
+            nDepth = (int)NDepth;
+            nCols = (int)NCols;
+            nRows = (int)NRows;
+            nBands = (int)NBands;
+            maskType = MaskType;
         }
     };
 
@@ -110,25 +170,25 @@ namespace LercNS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining), SkipLocalsInit]
-        public static unsafe uint ComputeCompressedSize<T>([DisallowNull][NotNull] ReadOnlySpan<T> data,
+        public static unsafe uint ComputeEncodedSize<T>(ReadOnlySpan<T> rasterData,
                                                         int nDepth,
                                                         int nCols,
                                                         int nRows,
                                                         int nBands,
-                                                        MaskSettings masks = MaskSettings.AllValid,
+                                                        MaskType maskType = MaskType.AllValid,
                                                         double maxZErr = 0d,
-                                                        ReadOnlySpan<byte> validBytes = default) where T : unmanaged
+                                                        ReadOnlySpan<byte> pixelMasks = default) where T : unmanaged
         {
-            fixed (void* pData = data)
-            fixed (byte* pValidBytes = validBytes)
+            fixed (void* pData = rasterData)
+            fixed (byte* pValidBytes = pixelMasks)
             {
                 Unsafe.SkipInit(out uint numBytes);
                 LercAPICall(lerc_computeCompressedSize(
                     pData,
-                    GetDataType<T>(),
+                    GetLercDataType<T>(),
                     nDepth, nCols,
                     nRows, nBands,
-                    TranslateMaskSettings(nBands, masks),
+                    MaskTypeToNMask(nBands, maskType),
                     pValidBytes,
                     maxZErr,
                     &numBytes));
@@ -141,37 +201,37 @@ namespace LercNS
         /// float and double.
         /// </summary>
         /// <typeparam name="T">T can be byte, sbyte, short, ushort, int, uint, float and double.</typeparam>
-        /// <param name="data">Data to compress, stored as vector.</param>
+        /// <param name="rasterData">Data to compress, stored as vector.</param>
         /// <param name="nDepth">Number of multidimensional planes. Use 1 for common rasters.</param>
         /// <param name="nCols">Number of columns.</param>
         /// <param name="nRows">Number of rows.</param>
         /// <param name="nBands">Number of bands.</param>
-        /// <param name="masks">Type of masking.</param>
+        /// <param name="maskType">Type of masking.</param>
         /// <param name="maxZErr">Maximal error of compression.</param>
-        /// <param name="validBytes">Byte mask of valid pixels.</param>
-        /// <param name="outBuffer">Preallocated buffer for output. If you leave it empty/default,
+        /// <param name="pixelMasks">Byte mask of valid pixels.</param>
+        /// <param name="encodedLercBlobBuffer">Preallocated buffer for output. If you leave it empty/default,
         /// if will be allocated & filled automatically.</param>
         /// <returns>Compressed bytes as Span<byte>. If outputBuffer is provided, no allocation occur.</returns>
         [SkipLocalsInit]
-        public static unsafe Span<byte> Encode<T>([DisallowNull][NotNull] ReadOnlySpan<T> data,
+        public static unsafe Span<byte> Encode<T>(ReadOnlySpan<T> rasterData,
                                                         int nDepth,
                                                         int nCols,
                                                         int nRows,
                                                         int nBands,
-                                                        MaskSettings masks = MaskSettings.AllValid,
+                                                        MaskType maskType = MaskType.AllValid,
                                                         double maxZErr = 0d,
-                                                        ReadOnlySpan<byte> validBytes = default,
-                                                        Span<byte> outBuffer = default) where T : unmanaged
+                                                        ReadOnlySpan<byte> pixelMasks = default,
+                                                        Span<byte> encodedLercBlobBuffer = default) where T : unmanaged
         {
-            DataType dataType = GetDataType<T>();
-            int nMasks = TranslateMaskSettings(nBands, masks);
+            DataType dataType = GetLercDataType<T>();
+            int nMasks = MaskTypeToNMask(nBands, maskType);
 
-            fixed (void* pData = data)
-            fixed (byte* pValidBytes = validBytes)
+            fixed (void* pData = rasterData)
+            fixed (byte* pValidBytes = pixelMasks)
             {
-                if (outBuffer.IsEmpty)
+                int bufferLength = encodedLercBlobBuffer.Length;
+                if (bufferLength is 0)
                 {
-                    Unsafe.SkipInit(out uint numBytes);
                     LercAPICall(lerc_computeCompressedSize(
                                 pData,
                                 dataType,
@@ -180,13 +240,12 @@ namespace LercNS
                                 nMasks,
                                 pValidBytes,
                                 maxZErr,
-                                &numBytes));
-                    outBuffer = GC.AllocateUninitializedArray<byte>((int)numBytes);
+                                (uint*)&bufferLength));
+                    encodedLercBlobBuffer = GC.AllocateUninitializedArray<byte>(bufferLength);
                 }
 
-                fixed (byte* pOutBuffer = outBuffer)
+                fixed (byte* pOutBuffer = encodedLercBlobBuffer)
                 {
-                    int bufferLength = outBuffer.Length;
                     Unsafe.SkipInit(out uint nBytesWritten);
                     LercAPICall(lerc_encode(
                         pData,
@@ -201,47 +260,21 @@ namespace LercNS
                         &nBytesWritten));
 
                     int intBytesWritten = (int)nBytesWritten;
-                    return intBytesWritten == bufferLength ? outBuffer : outBuffer[..intBytesWritten];
+                    return intBytesWritten == bufferLength ? encodedLercBlobBuffer : encodedLercBlobBuffer[..intBytesWritten];
                 }
             }
         }
 
         [SkipLocalsInit]
-        public static void EncodeToFile<T>([DisallowNull][NotNull] string path,
-                                           [DisallowNull][NotNull] ReadOnlySpan<T> data,
-                                                        int nDepth,
-                                                        int nCols,
-                                                        int nRows,
-                                                        int nBands,
-                                                        MaskSettings masks = MaskSettings.AllValid,
-                                                        double maxZErr = 0d,
-                                                        ReadOnlySpan<byte> validBytes = default,
-                                                        Span<byte> outBuffer = default) where T : unmanaged
-        {
-            using SafeFileHandle fileHandle = File.OpenHandle(path, FileMode.Create, FileAccess.Write, FileShare.None);
-            RandomAccess.Write(fileHandle,
-                Encode(data,
-                       nDepth,
-                       nCols,
-                       nRows,
-                       nBands,
-                       masks,
-                       maxZErr,
-                       validBytes,
-                       outBuffer),
-                0L);
-        }
-
-        [SkipLocalsInit]
-        public static unsafe LercBlobInfo GetLercBlobInfo([DisallowNull][NotNull] ReadOnlySpan<byte> lercBlob,
+        public static unsafe LercBlobInfo GetLercBlobInfo(ReadOnlySpan<byte> encodedLercBlob,
                                                           out DataRangeInfo dataRangeInfo)
         {
-            fixed (byte* pLercBlob = lercBlob)
+            fixed (byte* pLercBlob = encodedLercBlob)
             fixed (DataRangeInfo* pDataRangeInfo = &dataRangeInfo)
             {
                 Unsafe.SkipInit(out LercBlobInfo lercBlobInfo);
                 LercAPICall(lerc_getBlobInfo(pLercBlob,
-                                             (uint)lercBlob.Length,
+                                             (uint)encodedLercBlob.Length,
                                              &lercBlobInfo,
                                              pDataRangeInfo));
                 return lercBlobInfo;
@@ -249,48 +282,53 @@ namespace LercNS
         }
 
         [SkipLocalsInit]
-        public static unsafe Span<byte> Decode([DisallowNull][NotNull] ReadOnlySpan<byte> lercBlob,
+        public static unsafe Span<byte> Decode(ReadOnlySpan<byte> elcodedLercBlob,
                                                 out LercBlobInfo lercBlobInfo,
                                                 out DataRangeInfo dataRangeInfo,
-                                                ref Span<byte> validBytesBuffer,
-                                                Span<byte> outBuffer = default)
+                                                ref Span<byte> pixelMasks,
+                                                Span<byte> rasterDataBuffer = default)
         {
-            fixed (byte* pLercBlob = lercBlob)
-            {
-                fixed (LercBlobInfo* pLercBlobInfo = &lercBlobInfo)
-                fixed (DataRangeInfo* pDataRangeInfo = &dataRangeInfo)
-                    LercAPICall(lerc_getBlobInfo(pLercBlob,
-                                                 (uint)lercBlob.Length,
-                                                 pLercBlobInfo,
-                                                 pDataRangeInfo));
-
-                if (outBuffer.IsEmpty)
-                    outBuffer = GC.AllocateUninitializedArray<byte>((int)lercBlobInfo.OutputBlobSize);
-
-                if (lercBlobInfo.NMasks is not 0 && validBytesBuffer.IsEmpty)
-                    validBytesBuffer = GC.AllocateUninitializedArray<byte>((int)lercBlobInfo.ByteMaskSize);
-
-                fixed (byte* pData = outBuffer)
-                fixed (byte* pValidBytes = validBytesBuffer)
-                {
-                    LercAPICall(lerc_decode(pLercBlob,
-                                            (uint)lercBlob.Length,
-                                            (int)lercBlobInfo.NMasks,
-                                            pValidBytes,
-                                            (int)lercBlobInfo.NDepth,
-                                            (int)lercBlobInfo.NCols,
-                                            (int)lercBlobInfo.NRows,
-                                            (int)lercBlobInfo.NBands,
-                                            lercBlobInfo.DataType,
-                                            pData));
-                    return outBuffer;
-                }
-            }
+            lercBlobInfo = GetLercBlobInfo(elcodedLercBlob, out dataRangeInfo);
+            return Decode(elcodedLercBlob, lercBlobInfo, ref pixelMasks, rasterDataBuffer);
         }
 
         [SkipLocalsInit]
+        public static unsafe Span<byte> Decode(ReadOnlySpan<byte> encodedLercBlob,
+                                         LercBlobInfo lercBlobInfo,
+                                         ref Span<byte> pixelMasks,
+                                         Span<byte> rasterDataBuffer = default)
+        {
+
+            int decodedRasterDataSize = (int)lercBlobInfo.DecodedRasterDataSize;
+
+            if (rasterDataBuffer.IsEmpty)
+                rasterDataBuffer = GC.AllocateUninitializedArray<byte>(decodedRasterDataSize);
+
+            if (lercBlobInfo.NMasks is not 0 && pixelMasks.IsEmpty)
+                pixelMasks = GC.AllocateUninitializedArray<byte>((int)lercBlobInfo.PixelMasksLength);
+
+            fixed (byte* pLercBlob = encodedLercBlob)
+            fixed (byte* pData = rasterDataBuffer)
+            fixed (byte* pValidBytes = pixelMasks)
+            {
+                LercAPICall(lerc_decode(pLercBlob,
+                                        (uint)encodedLercBlob.Length,
+                                        (int)lercBlobInfo.NMasks,
+                                        pValidBytes,
+                                        (int)lercBlobInfo.NDepth,
+                                        (int)lercBlobInfo.NCols,
+                                        (int)lercBlobInfo.NRows,
+                                        (int)lercBlobInfo.NBands,
+                                        lercBlobInfo.DataType,
+                                        pData));
+                return rasterDataBuffer.Length != decodedRasterDataSize ? rasterDataBuffer[..decodedRasterDataSize] : rasterDataBuffer;
+            }
+        }
+
+
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static DataType GetDataType<T>() where T : unmanaged
+        private static DataType GetLercDataType<T>() where T : unmanaged
         {
             return typeof(T) == typeof(sbyte) ? DataType.SByte :
               typeof(T) == typeof(byte) ? DataType.Byte :
@@ -300,10 +338,11 @@ namespace LercNS
               typeof(T) == typeof(uint) ? DataType.UInt :
               typeof(T) == typeof(float) ? DataType.Float :
               typeof(T) == typeof(double) ? DataType.Double :
-              ThrowUnsupportedDataType();
+              ThrowUnsupportedLercDataType();
 
             [DoesNotReturn]
-            static DataType ThrowUnsupportedDataType() =>
+            [SkipLocalsInit]
+            static DataType ThrowUnsupportedLercDataType() =>
             throw new Exception("Unsupported data type.");
         }
 
@@ -332,25 +371,26 @@ namespace LercNS
 
         [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int TranslateMaskSettings(int nBands, MaskSettings masks)
+        private static int MaskTypeToNMask(int nBands, MaskType maskType)
         {
-            return masks switch
+            return maskType switch
             {
-                MaskSettings.AllValid => 0,
-                MaskSettings.SameMaskForAllBands => 1,
-                MaskSettings.UniqueMaskForEveryBand => nBands,
-                _ => ThrowInvalidMaskSetting()
+                MaskType.AllValid => 0,
+                MaskType.SameMaskForAllBands => 1,
+                MaskType.UniqueMaskForEveryBand => nBands,
+                _ => ThrowInvalidMaskType()
             };
 
             [DoesNotReturn]
-            static int ThrowInvalidMaskSetting() => 
+            [SkipLocalsInit]
+            static int ThrowInvalidMaskType() =>
             throw new Exception("Invalid mask type.");
         }
 
         #region Native interop
         [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
-               EntryPoint = nameof(lerc_computeCompressedSize), ExactSpelling = true,
-               PreserveSig = true, SetLastError = false)]
+                   EntryPoint = nameof(lerc_computeCompressedSize), ExactSpelling = true,
+                   PreserveSig = true, SetLastError = false)]
         private static extern unsafe ErrorCode lerc_computeCompressedSize(
                                           [DisallowNull][NotNull] void* pData,       // raw image data, row by row, band by band
                                           DataType dataType, // char = 0, uchar = 1, short = 2, ushort = 3, int = 4, uint = 5, float = 6, double = 7
@@ -364,8 +404,8 @@ namespace LercNS
                                           [DisallowNull][NotNull] uint* numBytes);   // size of outgoing Lerc blob
 
         [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
-           EntryPoint = nameof(lerc_encode), ExactSpelling = true,
-           PreserveSig = true, SetLastError = false)]
+                   EntryPoint = nameof(lerc_encode), ExactSpelling = true,
+                   PreserveSig = true, SetLastError = false)]
         private static extern unsafe ErrorCode lerc_encode(
                                           [DisallowNull][NotNull] void* pData, // raw image data, row by row, band by band
                                           DataType dataType,                   // char = 0, uchar = 1, short = 2, ushort = 3, int = 4, uint = 5, float = 6, double = 7
@@ -381,8 +421,8 @@ namespace LercNS
                                           [DisallowNull][NotNull] uint* nBytesWritten); // number of bytes written to output buffer
 
         [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
-            EntryPoint = nameof(lerc_getBlobInfo), ExactSpelling = true,
-            PreserveSig = true, SetLastError = false)]
+                   EntryPoint = nameof(lerc_getBlobInfo), ExactSpelling = true,
+                   PreserveSig = true, SetLastError = false)]
         private static extern unsafe ErrorCode lerc_getBlobInfo(
                                            [DisallowNull][NotNull] byte* pLercBlob, // Lerc blob to decode
                                            uint blobSize, // blob size in bytes
@@ -392,8 +432,8 @@ namespace LercNS
                                            [ConstantExpected(Max = DataRangeInfo.Count, Min = DataRangeInfo.Count)] int dataRangeFieldCount = DataRangeInfo.Count);           // number of elements of dataRangeArray
 
         [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
-    EntryPoint = nameof(lerc_decode), ExactSpelling = true,
-    PreserveSig = true, SetLastError = false)]
+                   EntryPoint = nameof(lerc_decode), ExactSpelling = true,
+                   PreserveSig = true, SetLastError = false)]
         private static extern unsafe ErrorCode lerc_decode(
                                    [DisallowNull][NotNull] byte* pLercBlob, // Lerc blob to decode
                                    uint blobSize,             // blob size in bytes
