@@ -389,9 +389,9 @@ namespace LercNS
         }
 
         #region Native interop
-        [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
-                   EntryPoint = nameof(lerc_computeCompressedSize), ExactSpelling = true,
-                   PreserveSig = true, SetLastError = false)]
+        [DllImport(LercDLL, BestFitMapping = false,
+                   CallingConvention = CallingConvention.StdCall,
+                   ExactSpelling = true)]
         private static extern unsafe ErrorCode lerc_computeCompressedSize(
                                           [DisallowNull][NotNull] void* pData,       // raw image data, row by row, band by band
                                           DataType dataType, // char = 0, uchar = 1, short = 2, ushort = 3, int = 4, uint = 5, float = 6, double = 7
@@ -404,9 +404,9 @@ namespace LercNS
                                           double maxZErr,    // max coding error per pixel, defines the precision
                                           [DisallowNull][NotNull] uint* numBytes);   // size of outgoing Lerc blob
 
-        [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
-                   EntryPoint = nameof(lerc_encode), ExactSpelling = true,
-                   PreserveSig = true, SetLastError = false)]
+        [DllImport(LercDLL, BestFitMapping = false,
+                   CallingConvention = CallingConvention.StdCall,
+                   ExactSpelling = true)]
         private static extern unsafe ErrorCode lerc_encode(
                                           [DisallowNull][NotNull] void* pData, // raw image data, row by row, band by band
                                           DataType dataType,                   // char = 0, uchar = 1, short = 2, ushort = 3, int = 4, uint = 5, float = 6, double = 7
@@ -421,9 +421,9 @@ namespace LercNS
                                           uint outBufferSize,                  // size of output buffer
                                           [DisallowNull][NotNull] uint* nBytesWritten); // number of bytes written to output buffer
 
-        [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
-                   EntryPoint = nameof(lerc_getBlobInfo), ExactSpelling = true,
-                   PreserveSig = true, SetLastError = false)]
+        [DllImport(LercDLL, BestFitMapping = false,
+                   CallingConvention = CallingConvention.StdCall,
+                   ExactSpelling = true)]
         private static extern unsafe ErrorCode lerc_getBlobInfo(
                                            [DisallowNull][NotNull] byte* pLercBlob, // Lerc blob to decode
                                            uint blobSize, // blob size in bytes
@@ -432,9 +432,9 @@ namespace LercNS
                                            [ConstantExpected(Max = LercBlobInfo.Count, Min = LercBlobInfo.Count)] int infoFieldCount = LercBlobInfo.Count, // number of elements of infoArray
                                            [ConstantExpected(Max = DataRangeInfo.Count, Min = DataRangeInfo.Count)] int dataRangeFieldCount = DataRangeInfo.Count);           // number of elements of dataRangeArray
 
-        [DllImport(LercDLL, BestFitMapping = false, CallingConvention = CallingConvention.StdCall,
-                   EntryPoint = nameof(lerc_decode), ExactSpelling = true,
-                   PreserveSig = true, SetLastError = false)]
+        [DllImport(LercDLL, BestFitMapping = false,
+                   CallingConvention = CallingConvention.StdCall,
+                   ExactSpelling = true)]
         private static extern unsafe ErrorCode lerc_decode(
                                    [DisallowNull][NotNull] byte* pLercBlob, // Lerc blob to decode
                                    uint blobSize,             // blob size in bytes
