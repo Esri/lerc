@@ -2,7 +2,8 @@
 // By Ákos Halmai 2024.
 
 
-using Microsoft.Win32.SafeHandles;
+using System;
+using System.IO;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
