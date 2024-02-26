@@ -12,7 +12,7 @@ namespace LercNS
 {
     public enum ErrorCode : int
     {
-        Ok = 0,
+        Ok,
         Failed,
         WrongParam,
         BufferTooSmall,
@@ -22,7 +22,7 @@ namespace LercNS
 
     public enum DataType : uint
     {
-        SByte = 0,
+        SByte,
         Byte,
         Short,
         UShort,
@@ -44,7 +44,8 @@ namespace LercNS
     public readonly struct LercBlobInfo
     {
         public const int Count = 11;
-        public const int Size = Count * sizeof(uint);
+
+        private const int Size = Count * sizeof(uint);
         public readonly uint Version { get; }
         public readonly DataType DataType { get; }
         public readonly uint NDim { get; }
@@ -131,12 +132,12 @@ namespace LercNS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [SkipLocalsInit]
-        public readonly void Decompose(out DataType dataType,
-                                       out int nDepth,
-                                       out int nCols,
-                                       out int nRows,
-                                       out int nBands,
-                                       out MaskType maskType)
+        public readonly void Deconstruct(out DataType dataType,
+                                         out int nDepth,
+                                         out int nCols,
+                                         out int nRows,
+                                         out int nBands,
+                                         out MaskType maskType)
         {
             dataType = DataType;
             nDepth = (int)NDepth;
@@ -152,24 +153,13 @@ namespace LercNS
     public readonly struct DataRangeInfo
     {
         public const int Count = 3;
-        public const int Size = Count * sizeof(double);
+        private const int Size = Count * sizeof(double);
         public readonly double ZMin { get; }
         public readonly double ZMax { get; }
         public readonly double MaxZErrorUsed { get; }
     };
     public static class LercCS
     {
-        [NotNull]
-        [DisallowNull]
-        public const string LercDLL = @"Lerc.dll";
-
-        public static bool IsLercDLLAvailable
-        {
-            [SkipLocalsInit]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => File.Exists(LercDLL);
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining), SkipLocalsInit]
         public static unsafe uint ComputeEncodedSize<T>(ReadOnlySpan<T> rasterData,
                                                         int nDepth,
@@ -261,7 +251,8 @@ namespace LercNS
                         &nBytesWritten));
 
                     int intBytesWritten = (int)nBytesWritten;
-                    return intBytesWritten == bufferLength ? encodedLercBlobBuffer : encodedLercBlobBuffer[..intBytesWritten];
+                    return intBytesWritten == bufferLength ? 
+                        encodedLercBlobBuffer : encodedLercBlobBuffer[..intBytesWritten];
                 }
             }
         }
@@ -322,10 +313,13 @@ namespace LercNS
                                         (int)lercBlobInfo.NBands,
                                         lercBlobInfo.DataType,
                                         pData));
-                return rasterDataBuffer.Length != decodedRasterDataSize ? rasterDataBuffer[..decodedRasterDataSize] : rasterDataBuffer;
+                
+                return rasterDataBuffer.Length != decodedRasterDataSize ? 
+                    rasterDataBuffer[..decodedRasterDataSize] : rasterDataBuffer;
             }
         }
 
+        #region "Utility functions"
 
         [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -388,7 +382,18 @@ namespace LercNS
             throw new Exception("Invalid mask type.");
         }
 
-        #region Native interop
+        #endregion "Utility functions"
+
+        #region "Native P/Invoke"
+
+        private const string LercDLL = @"Lerc.dll";
+        public static bool IsLercDLLAvailable
+        {
+            [SkipLocalsInit]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => File.Exists(LercDLL);
+        }
+
         [DllImport(LercDLL, BestFitMapping = false,
                    CallingConvention = CallingConvention.StdCall,
                    ExactSpelling = true)]
@@ -447,6 +452,6 @@ namespace LercNS
                                    DataType dataType,         // char = 0, uchar = 1, short = 2, ushort = 3, int = 4, uint = 5, float = 6, double = 7
                                    [DisallowNull][NotNull] void* pData); // outgoing data array
 
-        #endregion Native interop
+        #endregion "Native P/Invoke"
     };
 }
