@@ -61,7 +61,7 @@ namespace LercNS
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             [SkipLocalsInit]
-            get => UsesNoDataValueInternal is not 0;
+            get => UsesNoDataValueInternal is not 0u;
         }
 
         public readonly MaskType MaskType
@@ -70,8 +70,8 @@ namespace LercNS
             [SkipLocalsInit]
             get => NMasks switch
             {
-                0 => MaskType.AllValid,
-                1 => MaskType.SameMaskForAllBands,
+                0u => MaskType.AllValid,
+                1u => MaskType.SameMaskForAllBands,
                 _ => MaskType.UniqueMaskForEveryBand,
             };
         }
@@ -91,17 +91,12 @@ namespace LercNS
                     _ => ThrowUnsupportedDataType()
                 });
 
-                if (decodedRasterDataSize is 0u)
-                {
-                    ThrowInvalidBlobSize();
+                return decodedRasterDataSize is not 0u ? decodedRasterDataSize : ThrowInvalidBlobSize();
 
-                    [DoesNotReturn]
-                    [SkipLocalsInit]
-                    static void ThrowInvalidBlobSize() =>
-                    throw new Exception("Invalid blob size. The struct might be uninitialized.");
-                }
-
-                return decodedRasterDataSize;
+                [DoesNotReturn]
+                [SkipLocalsInit]
+                static uint ThrowInvalidBlobSize() =>
+                throw new Exception("Invalid blob size. The struct might be uninitialized.");
 
                 [DoesNotReturn]
                 [SkipLocalsInit]
@@ -170,7 +165,7 @@ namespace LercNS
                                                         double maxZErr = 0d,
                                                         ReadOnlySpan<byte> pixelMasks = default) where T : unmanaged
         {
-            fixed (void* pData = rasterData)
+            fixed (T* pData = rasterData)
             fixed (byte* pValidBytes = pixelMasks)
             {
                 Unsafe.SkipInit(out uint numBytes);
@@ -217,7 +212,7 @@ namespace LercNS
             DataType dataType = GetLercDataType<T>();
             int nMasks = MaskTypeToNMask(nBands, maskType);
 
-            fixed (void* pData = rasterData)
+            fixed (T* pData = rasterData)
             fixed (byte* pValidBytes = pixelMasks)
             {
                 int bufferLength = encodedLercBlobBuffer.Length;
@@ -251,7 +246,7 @@ namespace LercNS
                         &nBytesWritten));
 
                     int intBytesWritten = (int)nBytesWritten;
-                    return intBytesWritten == bufferLength ? 
+                    return intBytesWritten == bufferLength ?
                         encodedLercBlobBuffer : encodedLercBlobBuffer[..intBytesWritten];
                 }
             }
@@ -313,8 +308,8 @@ namespace LercNS
                                         (int)lercBlobInfo.NBands,
                                         lercBlobInfo.DataType,
                                         pData));
-                
-                return rasterDataBuffer.Length != decodedRasterDataSize ? 
+
+                return rasterDataBuffer.Length != decodedRasterDataSize ?
                     rasterDataBuffer[..decodedRasterDataSize] : rasterDataBuffer;
             }
         }
@@ -385,7 +380,6 @@ namespace LercNS
         #endregion "Utility functions"
 
         #region "Native P/Invoke"
-
         private const string LercDLL = @"Lerc.dll";
         public static bool IsLercDLLAvailable
         {
