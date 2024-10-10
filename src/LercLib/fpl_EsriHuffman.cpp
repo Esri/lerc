@@ -32,7 +32,7 @@ Original coding 2021 Yuriy Yakimenko
 
 USING_NAMESPACE_LERC
 
-void _assert(bool v);
+void lerc_assert(bool v);
 
 bool decodePackBits (const unsigned char *ptr, const size_t size, size_t expected, unsigned char **output)
 {
@@ -332,7 +332,7 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
         ptr[0] = HUFFMAN_RLE; // RLE flag
         ptr[1] = input[0];
 
-        _assert(input_len <= 0xffffffff);
+        lerc_assert(input_len <= 0xffffffff);
 
         uint32_t len = (uint32_t)input_len;
 
@@ -498,7 +498,7 @@ bool fpl_EsriHuffman::DecodeHuffman(const unsigned char* inBytes, const size_t i
     {
         unsigned char *unpacked = NULL;
 
-        _assert (true == decodePackBits (ppByte + 1, inCount - 1, nBytesRemainingInOut, &unpacked));
+        lerc_assert (true == decodePackBits (ppByte + 1, inCount - 1, nBytesRemainingInOut, &unpacked));
 
         *output = unpacked;
 
