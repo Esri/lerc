@@ -709,8 +709,10 @@ int main(int argc, char* arcv[])
   else
     printf("\nSUMMARY: all good.\n");
 
-  printf("\npress ENTER\n");
-  getchar();
+  if (!getenv("LERCTEST_NONINTERACTIVE")) {
+    printf("\npress ENTER\n");
+    getchar();
+  }
 
   return failures? 1:0;
 }
