@@ -38,6 +38,12 @@ bool CompareTwoTiles(int nMasks, const Byte* pValidBytes, int nDepth, int w, int
   int nMasks2, const Byte* pValidBytes2, int nDepth2, int w2, int h2, int nBands2, int bpp2, const void* pArr2, int dt);
 #endif
 
+int failures = 0;
+void failed(const char* name) {
+  cout << name << " failed" << endl;
+  failures++;
+}
+
 //-----------------------------------------------------------------------------
 //    main
 //-----------------------------------------------------------------------------
@@ -307,7 +313,7 @@ int main(int argc, char* arcv[])
       &numBytesNeeded);    // size of outgoing Lerc blob
 
     if (hr)
-      cout << "lerc_computeCompressedSize(...) failed" << endl;
+      failed("lerc_computeCompressedSize(...)");
 
     uint32 numBytesBlob = numBytesNeeded;
     Byte* pLercBlob = new Byte[numBytesBlob];
@@ -324,7 +330,7 @@ int main(int argc, char* arcv[])
       &numBytesWritten);   // num bytes written to buffer
 
     if (hr)
-      cout << "lerc_encode(...) failed" << endl;
+      failed("lerc_encode(...)");
 
     t1 = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(t1 - t0).count();
@@ -335,7 +341,7 @@ int main(int argc, char* arcv[])
     // decode
 
     if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
-      cout << "lerc_getBlobInfo(...) failed" << endl;
+      failed("lerc_getBlobInfo(...)");
 
     BlobInfo_Print(infoArr);
 
@@ -359,7 +365,7 @@ int main(int argc, char* arcv[])
     }
 
     if ((hr = lerc_decode(pLercBlob, numBytesBlob, nMasks, maskByteImg2, 1, w, h, 4, (uint32)dt_float, (void*)fImg2)))
-      cout << "lerc_decode(...) failed" << endl;
+      failed("lerc_decode(...) failed");
 
     t1 = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(t1 - t0).count();
@@ -451,7 +457,7 @@ int main(int argc, char* arcv[])
       noDataArr);          // array of size nBands, set noData value for each band that uses it
 
     if (hr)
-      cout << "lerc_computeCompressedSize(...) failed" << endl;
+      failed("lerc_computeCompressedSize(...)");
 
     uint32 numBytesBlob = numBytesNeeded;
     Byte* pLercBlob = new Byte[numBytesBlob];
@@ -470,7 +476,7 @@ int main(int argc, char* arcv[])
       noDataArr);          // array of size nBands, set noData value for each band that uses it
 
     if (hr)
-      cout << "lerc_encode(...) failed" << endl;
+      failed("lerc_encode(...)");
 
     t1 = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(t1 - t0).count();
@@ -481,7 +487,7 @@ int main(int argc, char* arcv[])
     // decode
 
     if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
-      cout << "lerc_getBlobInfo(...) failed" << endl;
+      failed("lerc_getBlobInfo(...)");
 
     BlobInfo_Print(infoArr);
 
@@ -513,7 +519,7 @@ int main(int argc, char* arcv[])
       &bUsesNoDataVec[0], &noDataVec[0]);
 
     if (hr)
-      cout << "lerc_decode(...) failed" << endl;
+      failed("lerc_decode(...)");
 
     t1 = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(t1 - t0).count();
@@ -612,7 +618,7 @@ int main(int argc, char* arcv[])
     }
 
     if ((hr = lerc_getBlobInfo(pLercBuffer, (uint32)fileSize, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
-      cout << "lerc_getBlobInfo(...) failed" << endl;
+      failed("lerc_getBlobInfo(...)");
 
     {
       int codecVersion = infoArr[0];
@@ -658,8 +664,10 @@ int main(int argc, char* arcv[])
       fnDec += s;
 
 #ifdef DumpDecodedTiles
-      if (!WriteDecodedTile(fnDec, nMasks, pValidBytes, nDepth, w, h, nBands, bpp[dt], pDstArr))
+      if (!WriteDecodedTile(fnDec, nMasks, pValidBytes, nDepth, w, h, nBands, bpp[dt], pDstArr)) {
         printf("Write decoded Lerc tile failed for %s\n", fnDec.c_str());
+        failures++;
+      }
 #endif
 
 #ifdef CompareAgainstDumpedTiles
@@ -667,12 +675,16 @@ int main(int argc, char* arcv[])
       Byte* pValidBytes2 = new Byte[nMasks * w * h];
 
       int nMasks2(0), nDepth2(0), w2(0), h2(0), nBands2(0), bpp2(0);
-      if (!ReadDecodedTile(fnDec, nMasks2, pValidBytes2, nDepth2, w2, h2, nBands2, bpp2, pDstArr2))
+      if (!ReadDecodedTile(fnDec, nMasks2, pValidBytes2, nDepth2, w2, h2, nBands2, bpp2, pDstArr2)) {
         printf("Read decoded Lerc tile failed for %s\n", fnDec.c_str());
+        failures++;
+      }
 
       if (!CompareTwoTiles(nMasks, pValidBytes, nDepth, w, h, nBands, bpp[dt], pDstArr,
-        nMasks2, pValidBytes2, nDepth2, w2, h2, nBands2, bpp2, pDstArr2, dt))
+        nMasks2, pValidBytes2, nDepth2, w2, h2, nBands2, bpp2, pDstArr2, dt)) {
         printf("Compare two Lerc tiles failed for %s vs %s\n", fnVec[n].c_str(), fnDec.c_str());
+        failures++;
+      }
 
       delete[] pDstArr2;
       delete[] pValidBytes2;
@@ -692,10 +704,17 @@ int main(int argc, char* arcv[])
 
 #endif
 
-  printf("\npress ENTER\n");
-  getchar();
+  if (failures)
+    printf("\nSUMMARY: %d failures.\n", failures);
+  else
+    printf("\nSUMMARY: all good.\n");
 
-  return 0;
+  if (!getenv("LERCTEST_NONINTERACTIVE")) {
+    printf("\npress ENTER\n");
+    getchar();
+  }
+
+  return failures? 1:0;
 }
 
 //-----------------------------------------------------------------------------
