@@ -60,6 +60,7 @@ Check out the Lerc decoders and encoders in `OtherLanguages/`. You may need to a
 - Lerc for Python (pylerc): [Conda](https://anaconda.org/Esri/pylerc) / [PyPI](https://pypi.org/project/pylerc/) (Note: The python package name is being renamed from `lerc` to `pylerc` in the next release- currently available under both names. However, the import name will remain the same (ie. `import lerc`).
 - [Lerc for JavaScript / npm](https://www.npmjs.com/package/lerc)
 - [Lerc conda-forge install](https://anaconda.org/conda-forge/lerc)
+- [Lerc for Rust](https://github.com/FreemapSlovakia/lerc)
 
 ### How to compile LERC and the C++ test program
 
