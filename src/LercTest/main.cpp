@@ -38,10 +38,10 @@ bool CompareTwoTiles(int nMasks, const Byte* pValidBytes, int nDepth, int w, int
   int nMasks2, const Byte* pValidBytes2, int nDepth2, int w2, int h2, int nBands2, int bpp2, const void* pArr2, int dt);
 #endif
 
-int failures = 0;
-void failed(const char* name) {
-  cout << name << " failed" << endl;
-  failures++;
+static void Failed(const char* fctName, int& cntFailures)
+{
+  std::cout << fctName << " failed" << endl;
+  cntFailures++;
 }
 
 //-----------------------------------------------------------------------------
@@ -54,6 +54,7 @@ int main(int argc, char* arcv[])
   const int dataRangeArrSize = (int)LercNS::DataRangeArrOrder::_last;
 
   lerc_status hr(0);
+  int cntFailures(0);
   uint32 infoArr[infoArrSize];
   double dataRangeArr[dataRangeArrSize];
   high_resolution_clock::time_point t0, t1;
@@ -105,7 +106,7 @@ int main(int argc, char* arcv[])
       &numBytesNeeded);    // size of outgoing Lerc blob
 
     if (hr)
-      cout << "lerc_computeCompressedSize(...) failed" << endl;
+      Failed("lerc_computeCompressedSize(...)", cntFailures);
 
     uint32 numBytesBlob = numBytesNeeded;
     Byte* pLercBlob = new Byte[numBytesBlob];
@@ -122,22 +123,25 @@ int main(int argc, char* arcv[])
       &numBytesWritten);   // num bytes written to buffer
 
     if (hr)
-      cout << "lerc_encode(...) failed" << endl;
+      Failed("lerc_encode(...)", cntFailures);
 
     t1 = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(t1 - t0).count();
 
     double ratio = w * h * (0.125 + sizeof(float)) / numBytesBlob;
-    cout << "sample 1 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
+    std::cout << "sample 1 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
 
     // decompress
     if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
-      cout << "lerc_getBlobInfo(...) failed" << endl;
+      Failed("lerc_getBlobInfo(...)", cntFailures);
 
     BlobInfo_Print(infoArr);
 
     if (!BlobInfo_Equal(infoArr, 1, w, h, 1, (uint32)dt_float))
-      cout << "got wrong lerc info" << endl;
+    {
+      std::cout << "got wrong lerc info" << endl;
+      cntFailures++;
+    }
 
     // new empty data storage
     float* zImg2 = new float[w * h];
@@ -153,19 +157,20 @@ int main(int argc, char* arcv[])
       maskByteImg2, 1, w, h, 1, (uint32)dt_float, (void*)zImg2);
 
     if (hr)
-      cout << "lerc_decode(...) failed" << endl;
+      Failed("lerc_decode(...)", cntFailures);
 
     t1 = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(t1 - t0).count();
 
     // compare to orig
 
+    bool bDiffDetected(false);
     double maxDelta = 0;
     for (int k = 0, i = 0; i < h; i++)
       for (int j = 0; j < w; j++, k++)
       {
         if (maskByteImg2[k] != maskByteImg[k])
-          cout << "Error in main: decoded valid bytes differ from encoded valid bytes" << endl;
+          bDiffDetected = true;
 
         if (maskByteImg2[k])
         {
@@ -175,8 +180,14 @@ int main(int argc, char* arcv[])
         }
       }
 
-    cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
-    cout << endl;
+    if (bDiffDetected)
+    {
+      std::cout << "Error in main: decoded valid bytes differ from encoded valid bytes" << endl;
+      cntFailures++;
+    }
+
+    std::cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
+    std::cout << endl;
 
     delete[] zImg;
     delete[] zImg2;
@@ -217,28 +228,31 @@ int main(int argc, char* arcv[])
       &numBytesWritten);   // num bytes written to buffer
 
     if (hr)
-      cout << "lerc_encode(...) failed" << endl;
+      Failed("lerc_encode(...)", cntFailures);
 
     t1 = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(t1 - t0).count();
 
     numBytesBlob = numBytesWritten;
     double ratio = 3 * w * h / (double)numBytesBlob;
-    cout << "sample 2 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
+    std::cout << "sample 2 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
 
     // decode
 
     if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
-      cout << "lerc_getBlobInfo(...) failed" << endl;
+      Failed("lerc_getBlobInfo(...)", cntFailures);
 
     BlobInfo_Print(infoArr);
 
     if (!BlobInfo_Equal(infoArr, 3, w, h, 1, (uint32)dt_uchar))
-      cout << "got wrong lerc info" << endl;
+    {
+      std::cout << "got wrong lerc info" << endl;
+      cntFailures++;
+    }
 
     vector<double> zMinVec(3, 0), zMaxVec(3, 0);
     if ((hr = lerc_getDataRanges(pLercBlob, numBytesBlob, 3, 1, &zMinVec[0], &zMaxVec[0])))
-      cout << "lerc_getDataRanges(...) failed" << endl;
+      Failed("lerc_getDataRanges(...)", cntFailures);
 
     // new data storage
     Byte* byteImg2 = new Byte[3 * w * h];
@@ -247,7 +261,7 @@ int main(int argc, char* arcv[])
     t0 = high_resolution_clock::now();
 
     if ((hr = lerc_decode(pLercBlob, numBytesBlob, 0, nullptr, 3, w, h, 1, (uint32)dt_uchar, (void*)byteImg2)))
-      cout << "lerc_decode(...) failed" << endl;
+      Failed("lerc_decode(...)", cntFailures);
 
     t1 = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(t1 - t0).count();
@@ -264,8 +278,8 @@ int main(int argc, char* arcv[])
             maxDelta = delta;
         }
 
-    cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
-    cout << endl;
+    std::cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
+    std::cout << endl;
 
     delete[] byteImg;
     delete[] byteImg2;
@@ -313,7 +327,7 @@ int main(int argc, char* arcv[])
       &numBytesNeeded);    // size of outgoing Lerc blob
 
     if (hr)
-      failed("lerc_computeCompressedSize(...)");
+      Failed("lerc_computeCompressedSize(...)", cntFailures);
 
     uint32 numBytesBlob = numBytesNeeded;
     Byte* pLercBlob = new Byte[numBytesBlob];
@@ -330,23 +344,26 @@ int main(int argc, char* arcv[])
       &numBytesWritten);   // num bytes written to buffer
 
     if (hr)
-      failed("lerc_encode(...)");
+      Failed("lerc_encode(...)", cntFailures);
 
     t1 = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(t1 - t0).count();
 
     double ratio = 4 * w * h * sizeof(float) / (double)numBytesBlob;
-    cout << "sample 3 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
+    std::cout << "sample 3 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
 
     // decode
 
     if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
-      failed("lerc_getBlobInfo(...)");
+      Failed("lerc_getBlobInfo(...)", cntFailures);
 
     BlobInfo_Print(infoArr);
 
     if (!BlobInfo_Equal(infoArr, 1, w, h, 4, (uint32)dt_float))
-      cout << "got wrong lerc info" << endl;
+    {
+      std::cout << "got wrong lerc info" << endl;
+      cntFailures++;
+    }
 
     // new data storage
     float* fImg2 = new float[4 * w * h];
@@ -365,7 +382,7 @@ int main(int argc, char* arcv[])
     }
 
     if ((hr = lerc_decode(pLercBlob, numBytesBlob, nMasks, maskByteImg2, 1, w, h, 4, (uint32)dt_float, (void*)fImg2)))
-      failed("lerc_decode(...) failed");
+      Failed("lerc_decode(...)", cntFailures);
 
     t1 = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(t1 - t0).count();
@@ -390,8 +407,8 @@ int main(int argc, char* arcv[])
           }
     }
 
-    cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
-    cout << endl;
+    std::cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
+    std::cout << endl;
 
     delete[] fImg;
     delete[] fImg2;
@@ -457,7 +474,7 @@ int main(int argc, char* arcv[])
       noDataArr);          // array of size nBands, set noData value for each band that uses it
 
     if (hr)
-      failed("lerc_computeCompressedSize(...)");
+      Failed("lerc_computeCompressedSize(...)", cntFailures);
 
     uint32 numBytesBlob = numBytesNeeded;
     Byte* pLercBlob = new Byte[numBytesBlob];
@@ -476,23 +493,26 @@ int main(int argc, char* arcv[])
       noDataArr);          // array of size nBands, set noData value for each band that uses it
 
     if (hr)
-      failed("lerc_encode(...)");
+      Failed("lerc_encode(...)", cntFailures);
 
     t1 = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(t1 - t0).count();
 
     double ratio = nValues * sizeof(float) / (double)numBytesBlob;
-    cout << "sample 4 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
+    std::cout << "sample 4 compression ratio = " << ratio << ", encode time = " << duration << " ms" << endl;
 
     // decode
 
     if ((hr = lerc_getBlobInfo(pLercBlob, numBytesBlob, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
-      failed("lerc_getBlobInfo(...)");
+      Failed("lerc_getBlobInfo(...)", cntFailures);
 
     BlobInfo_Print(infoArr);
 
     if (!BlobInfo_Equal(infoArr, nDepth, w, h, nBands, (uint32)dt_float))
-      cout << "got wrong lerc info" << endl;
+    {
+      std::cout << "got wrong lerc info" << endl;
+      cntFailures++;
+    }
 
     // new data storage
     float* fImg2 = new float[nValues];
@@ -519,7 +539,7 @@ int main(int argc, char* arcv[])
       &bUsesNoDataVec[0], &noDataVec[0]);
 
     if (hr)
-      failed("lerc_decode(...)");
+      Failed("lerc_decode(...)", cntFailures);
 
     t1 = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(t1 - t0).count();
@@ -565,10 +585,13 @@ int main(int argc, char* arcv[])
     }
 
     if (bNoDataValueHasChanged)
-      cout << "Error: some noData value has changed!" << endl;
+    {
+      std::cout << "Error: some noData value has changed!" << endl;
+      cntFailures++;
+    }
 
-    cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
-    cout << endl;
+    std::cout << "max z error per pixel = " << maxDelta << ", decode time = " << duration << " ms" << endl;
+    std::cout << endl;
 
     delete[] fImg;
     delete[] fImg2;
@@ -618,7 +641,7 @@ int main(int argc, char* arcv[])
     }
 
     if ((hr = lerc_getBlobInfo(pLercBuffer, (uint32)fileSize, infoArr, dataRangeArr, infoArrSize, dataRangeArrSize)))
-      failed("lerc_getBlobInfo(...)");
+      Failed("lerc_getBlobInfo(...)", cntFailures);
 
     {
       int codecVersion = infoArr[0];
@@ -664,9 +687,10 @@ int main(int argc, char* arcv[])
       fnDec += s;
 
 #ifdef DumpDecodedTiles
-      if (!WriteDecodedTile(fnDec, nMasks, pValidBytes, nDepth, w, h, nBands, bpp[dt], pDstArr)) {
+      if (!WriteDecodedTile(fnDec, nMasks, pValidBytes, nDepth, w, h, nBands, bpp[dt], pDstArr))
+      {
         printf("Write decoded Lerc tile failed for %s\n", fnDec.c_str());
-        failures++;
+        cntFailures++;
       }
 #endif
 
@@ -675,15 +699,17 @@ int main(int argc, char* arcv[])
       Byte* pValidBytes2 = new Byte[nMasks * w * h];
 
       int nMasks2(0), nDepth2(0), w2(0), h2(0), nBands2(0), bpp2(0);
-      if (!ReadDecodedTile(fnDec, nMasks2, pValidBytes2, nDepth2, w2, h2, nBands2, bpp2, pDstArr2)) {
+      if (!ReadDecodedTile(fnDec, nMasks2, pValidBytes2, nDepth2, w2, h2, nBands2, bpp2, pDstArr2))
+      {
         printf("Read decoded Lerc tile failed for %s\n", fnDec.c_str());
-        failures++;
+        cntFailures++;
       }
 
       if (!CompareTwoTiles(nMasks, pValidBytes, nDepth, w, h, nBands, bpp[dt], pDstArr,
-        nMasks2, pValidBytes2, nDepth2, w2, h2, nBands2, bpp2, pDstArr2, dt)) {
+        nMasks2, pValidBytes2, nDepth2, w2, h2, nBands2, bpp2, pDstArr2, dt))
+      {
         printf("Compare two Lerc tiles failed for %s vs %s\n", fnVec[n].c_str(), fnDec.c_str());
-        failures++;
+        cntFailures++;
       }
 
       delete[] pDstArr2;
@@ -704,17 +730,18 @@ int main(int argc, char* arcv[])
 
 #endif
 
-  if (failures)
-    printf("\nSUMMARY: %d failures.\n", failures);
+  if (cntFailures)
+    printf("\nSUMMARY: %d failures.\n", cntFailures);
   else
     printf("\nSUMMARY: all good.\n");
 
-  if (!getenv("LERCTEST_NONINTERACTIVE")) {
+  if (!getenv("LERCTEST_NONINTERACTIVE"))
+  {
     printf("\npress ENTER\n");
     getchar();
   }
 
-  return failures? 1:0;
+  return cntFailures ? 1 : 0;
 }
 
 //-----------------------------------------------------------------------------
