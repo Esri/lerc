@@ -73,7 +73,7 @@ class Lerc2
 public:
   Lerc2();
   Lerc2(int nDepth, int nCols, int nRows, const Byte* pMaskBits = nullptr);    // valid / invalid bits as byte array
-  virtual ~Lerc2()  {}
+  ~Lerc2()  {}
 
   static int CurrentVersion() { return 6; }
 
