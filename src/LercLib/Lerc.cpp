@@ -1,5 +1,5 @@
 /*
-Copyright 2015 - 2022 Esri
+Copyright 2015 - 2026 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -356,6 +356,8 @@ ErrCode Lerc::EncodeTempl(const T* pData, int version, int nDepth, int nCols, in
 
   if (!(nMasks == 0 || nMasks == 1 || nMasks == nBands) || (nMasks > 0 && !pValidBytes))
     return ErrCode::WrongParam;
+
+  memset(pBuffer, 0, (size_t)numBytesBuffer);
 
   unsigned int numBytesNeeded = 0;
 
