@@ -717,14 +717,9 @@ ErrCode Lerc::EncodeInternal(const T* pData, int version, int nDepth, int nCols,
     }
 
     // set other flags
-
-    if (!lerc2.SetNoDataValues(bNeedNoData, noDataL, noDataOrig))
-      return ErrCode::Failed;
-
-    if (!lerc2.SetNumBlobsMoreToCome(nBands - 1 - iBand))
-      return ErrCode::Failed;
-
-    if (!lerc2.SetIsAllInt(bIsFltDblAllInt))
+    if ( !lerc2.SetNoDataValues(bNeedNoData, noDataL, noDataOrig)
+      || !lerc2.SetNumBlobsMoreToCome(nBands - 1 - iBand)
+      || !lerc2.SetIsAllInt(bIsFltDblAllInt))
       return ErrCode::Failed;
 
     unsigned int nBytes = lerc2.ComputeNumBytesNeededToWrite(arrL, maxZErrL, bEncMsk);
@@ -925,7 +920,7 @@ template<class T> bool Lerc::Resize(std::vector<T>& buffer, size_t nElem)
     return false;
   }
 
-  return true;
+  return (buffer.size() == nElem);
 }
 
 // -------------------------------------------------------------------------- ;
@@ -1375,7 +1370,7 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
 
   double minVal = DBL_MAX;
   double maxVal = -DBL_MAX;
-  long cntValidPixels = 0;
+  int cntValidPixels = 0;
 
   // check for NaN or noData in valid pixels
   for (int k = 0, i = 0; i < nRows; i++)
@@ -1399,6 +1394,8 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
 
             if (bPassNoDataValue && nDepth > 1)
               zVal = origNoData;    // replace NaN
+            else if (nDepth == 1)
+              zVal = 0;
           }
           else if (bPassNoDataValue && zVal == origNoData)
           {
@@ -1473,23 +1470,6 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
   {
     T remapVal = origNoData;
     bool bRemapNoData = FindNewNoDataBelowValidMin(minVal, maxZErrL, bAllInt, lowIntLimit, remapVal);
-
-
-    //T remapVal = (T)(minVal - max(4 * maxZErrL, 1.0));    // leave some safety margin
-    //T lowestVal = (T)(bIsFloat4 ? -FLT_MAX : -DBL_MAX);
-    //bool bRemapNoData = (remapVal > lowestVal) && (remapVal < (T)(minVal - 2 * maxZErrL));
-
-    //if (bAllInt)
-    //{
-    //  bRemapNoData &= IsInt(remapVal) && (remapVal >= lowIntLimit);    // prefer all int over remap
-    //}
-    //else if (!bRemapNoData)
-    //{
-    //  // if minVal is a big number
-    //  remapVal = (T)((minVal > 0) ? minVal / 2 : minVal * 2);    // try bigger gap
-    //  bRemapNoData = (remapVal > lowestVal) && (remapVal < (T)(minVal - 2 * maxZErrL));
-    //}
-
 
     if (bRemapNoData)
     {
