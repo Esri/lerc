@@ -37,7 +37,7 @@ extern "C" {
 /* LERC version numbers and related macros added in 3.0.0 */
 
 #define LERC_VERSION_MAJOR 4
-#define LERC_VERSION_MINOR 0
+#define LERC_VERSION_MINOR 1
 #define LERC_VERSION_PATCH 0
 
 /* Macro to compute a LERC version number from its components */
