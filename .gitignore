@@ -22,6 +22,7 @@
 .svn
 build/windows/MS_VS2019/.vs/
 build/conda/output/
+bin/
 
 cmake
 

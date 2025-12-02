@@ -49,7 +49,7 @@ In a nutshell, if jpeg is good enough for your images, use jpeg. If not, if you 
 
 ## How to use
 
-Lerc can be run anywhere without external dependencies. This project includes test samples of how to use LERC directly, currently for C++, Python, JavaScript, and C#. We have added a few small data samples under `testData/`. There is also a precompiled Windows dll and a Linux .so file under `bin/`.
+Lerc can be run anywhere without external dependencies. This project includes test samples of how to use LERC directly, currently for C++, Python, JavaScript, and C#. We have added a few small data samples under `testData/`.
 
 ### How to use without compiling LERC
 

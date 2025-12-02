@@ -8,5 +8,3 @@ src/*.js
 **/*.js.map
 npm-debug.log
 dist/**/*.*
-!dist/*.wasm
-!dist/LercDecode.js

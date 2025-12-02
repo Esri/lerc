@@ -45,12 +45,17 @@ module.exports = function (grunt) {
             dest: `${distFolder}/LercDecode.es.d.ts`
           },
           {
+            src: "src/lerc-wasm.wasm",
+            dest: `${distFolder}/lerc-wasm.wasm`
+          },
+          {
             expand: true,
             src: ["package.json", "README.*", "CHANGELOG.*"],
             dest: `${distFolder}/`
           }
         ],
         options: {
+          processContentExclude: "**/*.wasm",
           process: (content, srcpath) => {
             if (!srcpath.includes("package.json")) {
               return content;
