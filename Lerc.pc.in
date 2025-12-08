@@ -10,3 +10,4 @@ Version: @PROJECT_VERSION@
 Cflags: -I${includedir}
 Cflags.private: -DLERC_STATIC
 Libs: -L${libdir} -lLerc
+Libs.private: -lstdc++
