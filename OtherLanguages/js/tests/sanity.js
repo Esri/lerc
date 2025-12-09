@@ -28,7 +28,8 @@ const sanity = () =>
       result.pixelType === "U8" &&
       result.dimCount === 3 &&
       result.depthCount === 3 &&
-      result.mask == null;
+      result.mask == null &&
+      result.noDataValues == null;
     const bandStat = result.statistics[0];
     pass =
       pass &&
