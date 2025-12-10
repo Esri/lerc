@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][HEAD]
+* Updated to support v4.1 lerc blobs
+* Return `noDataValues (4D data)` in decode result
+* Deprecated helper function `getBandCount`, use `getBlobInfo` instead
 
 ## [4.0.4] - 2023-10-30
 * Removed unnecessary files in the npm package.

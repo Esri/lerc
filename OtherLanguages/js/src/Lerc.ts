@@ -79,6 +79,7 @@ interface LercData {
   dimCount: number;
   depthCount: number;
   bandMasks?: Uint8Array[];
+  noDataValues: (number | null)[] | null;
 }
 
 interface PixelTypeInfo {
@@ -93,7 +94,7 @@ const pixelTypeInfoMap: PixelTypeInfo[] = [
     pixelType: "S8",
     size: 1,
     ctor: Int8Array,
-    range: [-128, 128]
+    range: [-128, 127]
   },
   {
     pixelType: "U8",
@@ -150,12 +151,10 @@ export function load(
     return loadPromise;
   }
   const locateFile = options.locateFile || ((wasmFileName: string, scriptDir: string) => `${scriptDir}${wasmFileName}`);
-  loadPromise = lercWasm({ locateFile }).then((lercFactory) =>
-    lercFactory.ready.then(() => {
-      initLercLib(lercFactory);
-      loaded = true;
-    })
-  );
+  loadPromise = lercWasm({ locateFile }).then((lercFactory) => {
+    initLercLib(lercFactory);
+    loaded = true;
+  });
   return loadPromise;
 }
 
@@ -188,13 +187,11 @@ function copyBytesFromWasm(wasmHeapU8: Uint8Array, ptr_data: number, data: Uint8
 }
 
 function initLercLib(lercFactory: LercFactory): void {
-  const { _malloc, _free, _lerc_getBlobInfo, _lerc_getDataRanges, _lerc_decode_4D, asm } = lercFactory;
-  // do not use HeapU8 as memory dynamically grows from the initial 16MB
-  // test case: landsat_6band_8bit.24
+  const { _malloc, _free, memory, _lerc_getBlobInfo, _lerc_getDataRanges, _lerc_decode_4D } = lercFactory;
+  // test case for dynamic memory growing from the initial 16MB: landsat_6band_8bit.24
   let heapU8: Uint8Array;
-  const memory = Object.values(asm).find((val) => val && "buffer" in val && val.buffer === lercFactory.HEAPU8.buffer);
   // avoid pointer for detached memory, malloc once:
-  const mallocMultiple = (byteLengths: number[]) => {
+  const mallocMultiple = (byteLengths: number[]): number[] => {
     const lens = byteLengths.map((len) => normalizeByteLength(len));
     const byteLength = lens.reduce((a, b) => a + b);
     const ret = _malloc(byteLength);
@@ -224,14 +221,13 @@ function initLercLib(lercFactory: LercFactory): void {
     let hr = _lerc_getBlobInfo(ptr, blob.length, ptr_info, ptr_range, infoArrSize, rangeArrSize);
     if (hr) {
       _free(ptr);
-      throw `lerc-getBlobInfo: error code is ${hr}`;
+      throw new Error(`lerc-getBlobInfo: error code is ${hr}`);
     }
     heapU8 = new Uint8Array(memory.buffer);
     copyBytesFromWasm(heapU8, ptr_info, infoArr);
     copyBytesFromWasm(heapU8, ptr_range, rangeArr);
     const lercInfoArr = new Uint32Array(infoArr.buffer);
     const statsArr = new Float64Array(rangeArr.buffer);
-    // skip ndepth
     const [
       version,
       dataType,
@@ -262,16 +258,13 @@ function initLercLib(lercFactory: LercFactory): void {
       statistics: [],
       bandCountWithNoData
     };
-    if (bandCountWithNoData) {
+    if (bandCountWithNoData && depthCount > 1) {
       _free(ptr);
       return headerInfo;
     }
     if (depthCount === 1 && bandCount === 1) {
       _free(ptr);
-      headerInfo.statistics.push({
-        minValue: statsArr[0],
-        maxValue: statsArr[1]
-      });
+      headerInfo.statistics.push({ minValue: statsArr[0], maxValue: statsArr[1] });
       return headerInfo;
     }
 
@@ -280,10 +273,10 @@ function initLercLib(lercFactory: LercFactory): void {
     const numStatsBytes = depthCount * bandCount * 8;
     const bandStatsMinArr = new Uint8Array(numStatsBytes);
     const bandStatsMaxArr = new Uint8Array(numStatsBytes);
-    let ptr_blob = ptr,
-      ptr_min = 0,
-      ptr_max = 0,
-      blob_freed = false;
+    let ptr_blob = ptr;
+    let ptr_min = 0;
+    let ptr_max = 0;
+    let blob_freed = false;
     if (heapU8.byteLength < ptr + numStatsBytes * 2) {
       _free(ptr);
       blob_freed = true;
@@ -301,7 +294,7 @@ function initLercLib(lercFactory: LercFactory): void {
         // we have two pointers in two wasm function calls
         _free(ptr_min);
       }
-      throw `lerc-getDataRanges: error code is ${hr}`;
+      throw new Error(`lerc-getDataRanges: error code is ${hr}`);
     }
     heapU8 = new Uint8Array(memory.buffer);
     copyBytesFromWasm(heapU8, ptr_min, bandStatsMinArr);
@@ -313,8 +306,8 @@ function initLercLib(lercFactory: LercFactory): void {
       if (depthCount > 1) {
         const minValues = allMinValues.slice(i * depthCount, (i + 1) * depthCount);
         const maxValues = allMaxValues.slice(i * depthCount, (i + 1) * depthCount);
-        const minValue = Math.min.apply(null, minValues);
-        const maxValue = Math.max.apply(null, maxValues);
+        const minValue = Math.min.apply(null, minValues as unknown as number[]);
+        const maxValue = Math.max.apply(null, maxValues as unknown as number[]);
         statistics.push({
           minValue,
           maxValue,
@@ -377,12 +370,12 @@ function initLercLib(lercFactory: LercFactory): void {
     );
     if (hr) {
       _free(ptr);
-      throw `lerc-decode: error code is ${hr}`;
+      throw new Error(`lerc-decode: error code is ${hr}`);
     }
     heapU8 = new Uint8Array(memory.buffer);
     copyBytesFromWasm(heapU8, ptr_data, data);
     copyBytesFromWasm(heapU8, ptr_mask, maskData);
-    let noDataValues: (number | null)[] = null;
+    let noDataValues: (number | null)[] | null = null;
     if (bandCountWithNoData) {
       copyBytesFromWasm(heapU8, ptr_useNoData, useNoDataArr);
       copyBytesFromWasm(heapU8, ptr_noData, noDataArr);
@@ -455,7 +448,7 @@ export function decode(input: ArrayBuffer | Uint8Array, options: DecodeOptions =
   const blobInfo = lercLib.getBlobInfo(blob);
 
   // decode
-  const { data, maskData } = lercLib.decode(blob, blobInfo);
+  const { data, maskData, noDataValues } = lercLib.decode(blob, blobInfo);
   const { width, height, bandCount, dimCount, depthCount, dataType, maskCount, statistics } = blobInfo;
 
   // get pixels, per-band masks, and statistics
@@ -520,7 +513,9 @@ export function decode(input: ArrayBuffer | Uint8Array, options: DecodeOptions =
     mask,
     dimCount,
     depthCount,
-    bandMasks
+    bandMasks,
+    // the noDataValues for 4D data
+    noDataValues
   };
 }
 

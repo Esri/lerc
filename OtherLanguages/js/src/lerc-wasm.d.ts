@@ -1,5 +1,5 @@
 export interface LercFactory {
-  HEAPU8: Uint8Array;
+  memory: { buffer: ArrayBuffer };
   _malloc: (ptr: number) => number;
   _free: (ptr: number) => number;
   _lerc_getBlobInfo: (
