@@ -10,6 +10,7 @@
 # Breaking changes
 - [Web Assembly](https://caniuse.com/wasm) support is now required.
 - <code>Lerc.load()</code> must be invoked and the returned promise must be resolved prior to <code>Lerc.decode</code>. This only needs to be done once per worker (or the main thread). There's no extra cost when invoked multiple times as the internal wasm loading promise is cached.
+- These changes were introduced in 4.0.
 
 ## Get started
 
@@ -49,6 +50,7 @@ for (let i = 0; i < height; i++) {
 const pixelBlock = Lerc.decode(arrayBuffer, {
   inputOffset: 10, // start from the 10th byte (default is 0)
   returnInterleaved: true // only applicable to n-depth lerc blobs (default is false)
+  // noDataValue: -9999  // not recommended, use mask if possible
 });
 ```
 

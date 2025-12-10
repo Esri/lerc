@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [4.1.0][HEAD]
 * Updated to support v4.1 lerc blobs
-* Return `noDataValues (4D data)` in decode result
-* Deprecated helper function `getBandCount`, use `getBlobInfo` instead
+* Return `noDataValues` (4D data) in decode result
+* Updated typing to indicate nullable props
+* Use TypedArray<ArrayBuffer> for decoded data following typescript 5.7 change.
+* Helper function `getBandCount` is deprecated, use `getBlobInfo` instead
 
 ## [4.0.4] - 2023-10-30
 * Removed unnecessary files in the npm package.

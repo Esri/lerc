@@ -9,7 +9,8 @@
     "experimentalDecorators": true,
     "preserveConstEnums": true,
     "importHelpers": false,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "strictNullChecks": true
   },
   "include": [
     "**/*.ts"

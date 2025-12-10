@@ -1,20 +1,18 @@
 import lercWasm, { LercFactory } from "./lerc-wasm";
 
 type PixelTypedArray =
-  | Int8Array
-  | Uint8Array
-  | Uint8ClampedArray
-  | Int16Array
-  | Uint16Array
-  | Int32Array
-  | Uint32Array
-  | Float32Array
-  | Float64Array;
+  | Int8Array<ArrayBuffer>
+  | Uint8Array<ArrayBuffer>
+  | Int16Array<ArrayBuffer>
+  | Uint16Array<ArrayBuffer>
+  | Int32Array<ArrayBuffer>
+  | Uint32Array<ArrayBuffer>
+  | Float32Array<ArrayBuffer>
+  | Float64Array<ArrayBuffer>;
 
 type PixelTypedArrayCtor =
   | Int8ArrayConstructor
   | Uint8ArrayConstructor
-  | Uint8ClampedArrayConstructor
   | Int16ArrayConstructor
   | Uint16ArrayConstructor
   | Int32ArrayConstructor
@@ -75,10 +73,10 @@ interface LercData {
   pixelType: LercPixelType;
   statistics: BandStats[];
   pixels: PixelTypedArray[];
-  mask: Uint8Array;
+  mask: Uint8Array<ArrayBuffer> | null;
   dimCount: number;
   depthCount: number;
-  bandMasks?: Uint8Array[];
+  bandMasks: Uint8Array<ArrayBuffer>[] | null;
   noDataValues: (number | null)[] | null;
 }
 
@@ -140,7 +138,7 @@ const pixelTypeInfoMap: PixelTypeInfo[] = [
   }
 ];
 
-let loadPromise: Promise<void> = null;
+let loadPromise: Promise<void> | null = null;
 let loaded = false;
 export function load(
   options: {
@@ -173,8 +171,8 @@ const lercLib: {
     noDataValues: (number | null)[] | null;
   };
 } = {
-  getBlobInfo: null,
-  decode: null
+  getBlobInfo: null!,
+  decode: null!
 };
 
 function normalizeByteLength(n: number): number {
@@ -473,7 +471,7 @@ export function decode(input: ArrayBuffer | Uint8Array, options: DecodeOptions =
 
   // get unified mask
   const mask = maskCount === 0 ? null : maskCount === 1 ? masks[0] : new Uint8Array(numPixels);
-  if (maskCount > 1) {
+  if (maskCount > 1 && mask) {
     mask.set(masks[0]);
     for (let i = 1; i < masks.length; i++) {
       const bandMask = masks[i];
