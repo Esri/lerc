@@ -1,8 +1,9 @@
-const Lerc = require("../dist/LercDecode.js");
-const fs = require("fs");
-
+import * as Lerc from "../dist/LercDecode.es.js";
+import fs from "fs";
+import { dirname } from "path";
+const __dirname = dirname(import.meta.url).replace("file:", "");
 const datadir = __dirname.split("/").slice(0, -4).join("/") + "/data/lerc";
-
+console.log(datadir);
 function formatPixelBlock(pb) {
   const pixels = pb.pixels.map((band) => band.join(","));
   const mask = pb.mask?.join(",");

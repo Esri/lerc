@@ -8,7 +8,6 @@
     "target": "es6",
     "experimentalDecorators": true,
     "preserveConstEnums": true,
-    "suppressImplicitAnyIndexErrors": true,
     "importHelpers": false,
     "moduleResolution": "node"
   },

@@ -2,6 +2,7 @@
   "name": "lerc",
   "version": "4.1.0",
   "browser": "LercDecode.js",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/esri/lerc/issues"
   },
@@ -15,22 +16,29 @@
     "Thomas Maurer",
     "Wenxue Ju"
   ],
+  "exports": {
+    ".": {
+      "require": "./LercDecode.js",
+      "import": "./LercDecode.es.js",
+      "default": "./LercDecode.js"
+    }
+  },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "~5.33.1",
-    "@typescript-eslint/parser": "~5.33.1",
-    "eslint": "~8.15.0",
-    "eslint-plugin-prettier": "^4.0.0",
-    "grunt": "~1.5.3",
+    "@typescript-eslint/eslint-plugin": "~8.49.0",
+    "@typescript-eslint/parser": "~8.49.0",
+    "eslint": "~9.39.1",
+    "eslint-plugin-prettier": "~5.5.4",
+    "grunt": "~1.6.1",
     "grunt-contrib-clean": "~2.0.1",
     "grunt-contrib-concat": "~2.1.0",
     "grunt-contrib-copy": "~1.0.0",
-    "grunt-eslint": "~24.0.0",
+    "grunt-eslint": "~26.0.0",
     "grunt-rollup": "~12.0.0",
     "grunt-terser": "~2.0.0",
-    "prettier": "~2.6.2",
-    "rollup": "~2.73.0",
-    "terser": "~5.14.2",
-    "typescript": "~4.7.4"
+    "prettier": "~3.7.4",
+    "rollup": "~4.53.3",
+    "terser": "~5.44.1",
+    "typescript": "~5.9.3"
   },
   "homepage": "https://github.com/Esri/lerc",
   "license": "Apache-2.0",
@@ -45,10 +53,9 @@
     "build": "npm run ts && grunt clean && grunt dist --format=umd && grunt dist --format=es && npm run tests:sanity",
     "dev": "npm run ts && grunt clean && grunt --format=umd && npm run tests:sanity",
     "tests": "npm run tests:sanity && npm run tests:level2",
-    "tests:sanity": "node tests/sanity.js",
-    "tests:level2": "node tests/level2.js",
+    "tests:sanity": "node tests/sanity.mjs",
+    "tests:level2": "node tests/level2.mjs",
     "lint": "grunt eslint",
-    "rollup": "rollup wasm/Lerc.js --file dist/LercDecode.js --format umd --name Lerc --sourcemap true",
     "ts": "tsc"
   }
 }

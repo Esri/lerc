@@ -168,8 +168,8 @@ const lercLib: {
     blob: Uint8Array,
     blobInfo: LercHeaderInfo
   ) => {
-    data: Uint8Array;
-    maskData: Uint8Array;
+    data: Uint8Array<ArrayBuffer>;
+    maskData: Uint8Array<ArrayBuffer>;
     noDataValues: (number | null)[] | null;
   };
 } = {

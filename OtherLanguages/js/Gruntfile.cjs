@@ -1,4 +1,4 @@
-const copyright = `/*! Lerc 4.0
+const copyright = `/*! Lerc {version}
 Copyright 2015 - 2026 Esri
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ Contributors:  Thomas Maurer, Wenxue Ju
 
 // eslint-disable-next-line no-undef
 module.exports = function (grunt) {
+  const version = grunt.file.readJSON("package.json").version;
   const bundeFormat = grunt.option("format") || "umd";
   const outputSurfix = bundeFormat === "umd" ? "" : "." + bundeFormat;
   const distFolder = "dist";
@@ -31,7 +32,7 @@ module.exports = function (grunt) {
       target: ["src/**/*.ts"]
     },
     clean: {
-      dist: [`${distFolder}/**/*.*`, `!${distFolder}/*.wasm`]
+      dist: [`${distFolder}/**/*.*`]
     },
     copy: {
       dist: {
@@ -39,10 +40,6 @@ module.exports = function (grunt) {
           {
             src: "src/LercDecode.d.ts",
             dest: `${distFolder}/LercDecode.d.ts`
-          },
-          {
-            src: "src/LercDecode.d.ts",
-            dest: `${distFolder}/LercDecode.es.d.ts`
           },
           {
             src: "src/lerc-wasm.wasm",
@@ -61,6 +58,7 @@ module.exports = function (grunt) {
               return content;
             }
             const json = { ...JSON.parse(content), dependencies: {}, devDependencies: {}, scripts: {} };
+            delete json.type;
             return JSON.stringify(json, null, 2);
           }
         }
@@ -68,7 +66,7 @@ module.exports = function (grunt) {
     },
     rollup: {
       options: {
-        banner: copyright,
+        banner: copyright.replace("{version}",version),
         name: "Lerc",
         format: bundeFormat,
         sourcemap: false
@@ -88,7 +86,7 @@ module.exports = function (grunt) {
       dist: {
         files: [
           {
-            dest: lercBundle.replace(".js", ".min.js"),
+            dest: lercBundle,
             src: lercBundle
           }
         ]

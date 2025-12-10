@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased][HEAD]
+## [4.1.0][HEAD]
 * Updated to support v4.1 lerc blobs
 * Return `noDataValues (4D data)` in decode result
 * Deprecated helper function `getBandCount`, use `getBlobInfo` instead
