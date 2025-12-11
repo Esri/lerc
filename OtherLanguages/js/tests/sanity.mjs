@@ -1,17 +1,4 @@
-const Lerc = require("../dist/LercDecode.js");
-
-/***************
- * es6.
- * - npm run build
- * - temporarily add esm type to package.json:  "type": "module"
- ***************/
-
-// import * as Lerc from "./dist/LercDecode.es.js";
-// // workaround of es6 + nodejs 16
-// import { dirname } from "path";
-// import { createRequire } from "module";
-// globalThis.__dirname = dirname(import.meta.url).replace("file:", "") + "/dist";
-// globalThis.require = createRequire(import.meta.url);
+import * as Lerc from "../dist/LercDecode.es.js";
 
 const sanity = () =>
   Lerc.load().then(() => {

@@ -8,9 +8,9 @@
     "target": "es6",
     "experimentalDecorators": true,
     "preserveConstEnums": true,
-    "suppressImplicitAnyIndexErrors": true,
     "importHelpers": false,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "strictNullChecks": true
   },
   "include": [
     "**/*.ts"

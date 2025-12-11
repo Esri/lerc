@@ -1,13 +1,13 @@
 export type PixelTypedArray =
-  | Int8Array
-  | Uint8Array
-  | Uint8ClampedArray
-  | Int16Array
-  | Uint16Array
-  | Int32Array
-  | Uint32Array
-  | Float32Array
-  | Float64Array;
+  | Int8Array<ArrayBuffer>
+  | Uint8Array<ArrayBuffer>
+  | Uint8ClampedArray<ArrayBuffer>
+  | Int16Array<ArrayBuffer>
+  | Uint16Array<ArrayBuffer>
+  | Int32Array<ArrayBuffer>
+  | Uint32Array<ArrayBuffer>
+  | Float32Array<ArrayBuffer>
+  | Float64Array<ArrayBuffer>;
 
 export type LercPixelType = "S8" | "U8" | "S16" | "U16" | "S32" | "U32" | "F32" | "F64";
 
@@ -49,9 +49,10 @@ export interface LercData {
   pixelType: LercPixelType;
   statistics: BandStats[];
   pixels: PixelTypedArray[];
-  mask: Uint8Array;
+  mask: Uint8Array<ArrayBuffer> | null;
+  dimCount: number;
   depthCount: number;
-  bandMasks?: Uint8Array[];
+  bandMasks: Uint8Array<ArrayBuffer>[] | null;
   noDataValues: (number | null)[] | null;
 }
 
