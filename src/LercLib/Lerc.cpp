@@ -24,9 +24,10 @@ Contributors:  Thomas Maurer
 #include "Defines.h"
 #include "Lerc.h"
 #include "Lerc2.h"
-#include <typeinfo>
-#include <limits>
+#include <cstring>
 #include <functional>
+#include <limits>
+#include <typeinfo>
 
 #ifdef HAVE_LERC1_DECODE
   #include "Lerc1Decode/CntZImage.h"
