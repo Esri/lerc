@@ -4,6 +4,8 @@
 *.cpp text
 *.hpp text
 *.h text
+*.cs text
+*.md text
 *.txt text
 *.css text
 *.html text
