@@ -188,6 +188,9 @@ bool CntZImage::read(const Byte** ppByte, double maxZError, bool onlyHeader, boo
 bool CntZImage::readTiles(bool zPart, double maxZErrorInFile, int numTilesVert, int numTilesHori,
   float maxValInImg, const Byte* bArr)
 {
+  if (!numTilesVert || !numTilesHori) {
+    return false;
+  }
   const Byte* ptr = bArr;
 
   for (int iTile = 0; iTile <= numTilesVert; iTile++)
