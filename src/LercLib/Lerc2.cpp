@@ -22,6 +22,7 @@ Contributors:   Thomas Maurer
                 Lucian Plesea (provided checksum code)
 */
 
+#include <climits>
 #include <typeinfo>
 #include "Defines.h"
 #include "Lerc2.h"
@@ -841,7 +842,7 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   hd.noDataValOrig  = (hd.version >= 6) ? dblVec[i++] : 0;
 
   if (hd.nRows <= 0 || hd.nCols <= 0 || hd.nDepth <= 0 || hd.numValidPixel < 0 || hd.microBlockSize <= 0 || hd.blobSize <= 0
-    || hd.numValidPixel > hd.nRows * hd.nCols)
+    || (hd.nRows > INT_MAX / hd.nCols) || hd.numValidPixel > hd.nRows * hd.nCols)
     return false;
 
   *ppByte = ptr;
