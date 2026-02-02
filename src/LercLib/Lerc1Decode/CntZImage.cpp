@@ -228,9 +228,10 @@ bool CntZImage::readTiles(bool zPart, double maxZErrorInFile, int numTilesVert, 
 
 bool CntZImage::readCntTile(const Byte** ppByte, int i0, int i1, int j0, int j1)
 {
-  const Byte* ptr = *ppByte;
-  //int numPixel = (i1 - i0) * (j1 - j0);
+  if (i0 >= i1 || j0 >= j1)
+    return false;
 
+  const Byte* ptr = *ppByte;
   Byte comprFlag = *ptr++;
 
   if (comprFlag == 2)    // entire tile is constant 0 (invalid)
@@ -283,9 +284,9 @@ bool CntZImage::readCntTile(const Byte** ppByte, int i0, int i1, int j0, int j1)
     if (!readFlt(&ptr, offset, n))
       return false;
 
-    BitStuffer bitStuffer;
     int numPixel = (i1 - i0) * (j1 - j0);
-    if (!bitStuffer.read(&ptr, m_tmpDataVec) || m_tmpDataVec.size() < numPixel)
+    BitStuffer bitStuffer;
+    if (!bitStuffer.read(&ptr, m_tmpDataVec) || m_tmpDataVec.size() < (size_t)numPixel)
       return false;
 
     unsigned int* srcPtr = &m_tmpDataVec[0];
