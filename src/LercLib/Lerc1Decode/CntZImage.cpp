@@ -283,12 +283,12 @@ bool CntZImage::readCntTile(const Byte** ppByte, int i0, int i1, int j0, int j1)
     if (!readFlt(&ptr, offset, n))
       return false;
 
-    vector<unsigned int>& dataVec = m_tmpDataVec;
     BitStuffer bitStuffer;
-    if (!bitStuffer.read(&ptr, dataVec))
+    int numPixel = (i1 - i0) * (j1 - j0);
+    if (!bitStuffer.read(&ptr, m_tmpDataVec) || m_tmpDataVec.size() < numPixel)
       return false;
 
-    unsigned int* srcPtr = &dataVec[0];
+    unsigned int* srcPtr = &m_tmpDataVec[0];
 
     for (int i = i0; i < i1; i++)
     {
