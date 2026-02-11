@@ -22,7 +22,9 @@ for platform in PLATFORMS:
         input_binaries = glob(join(platform_dir, ext))
         for input_binary in input_binaries:
             output_binary = join("lerc", basename(input_binary))
-            if not exists(output_binary) or getmtime(input_binary) > getmtime(output_binary):
+            if not exists(output_binary) or getmtime(input_binary) > getmtime(
+                output_binary
+            ):
                 copyfile(input_binary, output_binary)
 
 setuptools.setup(
@@ -36,13 +38,15 @@ setuptools.setup(
     license="Apache 2",
     url="https://github.com/Esri/lerc",
     packages=setuptools.find_packages(),
-    install_requires=["numpy"],
+    install_requires=["numpy >=2.3.0,<3"],
     classifiers=[
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
     package_data={"lerc": BINARY_TYPES},
-    python_requires=">=3.6",
+    python_requires=">=3.11",
     zip_safe=False,
 )
