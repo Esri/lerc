@@ -22,9 +22,7 @@ for platform in PLATFORMS:
         input_binaries = glob(join(platform_dir, ext))
         for input_binary in input_binaries:
             output_binary = join("lerc", basename(input_binary))
-            if not exists(output_binary) or getmtime(input_binary) > getmtime(
-                output_binary
-            ):
+            if not exists(output_binary) or getmtime(input_binary) > getmtime(output_binary):
                 copyfile(input_binary, output_binary)
 
 setuptools.setup(
