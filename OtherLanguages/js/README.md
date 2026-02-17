@@ -10,7 +10,7 @@
 # Breaking changes
 - [Web Assembly](https://caniuse.com/wasm) support is now required.
 - <code>Lerc.load()</code> must be invoked and the returned promise must be resolved prior to <code>Lerc.decode</code>. This only needs to be done once per worker (or the main thread). There's no extra cost when invoked multiple times as the internal wasm loading promise is cached.
-- These changes were introduced in 4.0.
+- The changes above were introduced in 4.0.
 
 ## Get started
 
@@ -26,7 +26,7 @@ const Lerc = require('lerc');
 
 ```js
 // use umd via a script tag
-<script type="text/javascript" src="https://unpkg.com/lerc@latest/LercDecode.min.js"></script>
+<script type="text/javascript" src="https://unpkg.com/lerc@latest/LercDecode.js"></script>
 ```
 
 ## Sample usage
@@ -46,7 +46,10 @@ for (let i = 0; i < height; i++) {
   }
 }
 
-// use options
+// use load options
+await Lerc.load({ locateFile: (wasmFileName, _scriptDir) => `${my-https-wasm-location}/${wasmFileName}` });
+
+// use decode options
 const pixelBlock = Lerc.decode(arrayBuffer, {
   inputOffset: 10, // start from the 10th byte (default is 0)
   returnInterleaved: true // only applicable to n-depth lerc blobs (default is false)
@@ -65,7 +68,7 @@ A module for decoding LERC blobs.
 <a name="exp_module_Lerc--load"></a>
 
 ### load([options]) ⇒ <code>Promise<void></code> ⏏
-Load the dependencies (web assembly). Check whether dependencies has been loaded using <code>Lerc.isLoaded()</code>. The loading promise is cached so it can be invoked multiple times if needed.
+Load the dependencies (web assembly). The loading promise is cached so it can be invoked multiple times if needed. You can also check whether dependencies have been loaded using <code>Lerc.isLoaded()</code>. 
 
 
 **Kind**: Exported function
@@ -109,7 +112,7 @@ A function for decoding both LERC1 and LERC2 byte streams capable of handling mu
 
 ## Licensing
 
-Copyright &copy; 2017-2023 Esri
+Copyright &copy; 2017-2026 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
