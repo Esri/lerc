@@ -1,0 +1,70 @@
+name: Build Platform Wheels
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'OtherLanguages/Python/**'
+      - 'src/**'
+      - '.github/workflows/build_wheels.yml'
+    
+    tags:
+      - 'v*'
+
+  pull_request:
+    paths:
+      - 'OtherLanguages/Python/**'
+      - '.github/workflows/build_wheels.yml'
+  
+  workflow_dispatch:
+
+
+jobs:
+  build_wheels:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build C++ Binaries (CMake)
+        run: |
+          mkdir cmake_build
+          cd cmake_build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release
+
+      - name: Stage Binaries for setup.py
+        shell: bash
+        run: |
+          mkdir -p bin/Linux bin/windows bin/MacOS
+          
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp cmake_build/Release/Lerc.dll bin/windows/ || cp cmake_build/Lerc.dll bin/windows/ || echo "DLL not found"
+            cp cmake_build/Release/Lerc.lib bin/windows/ || cp cmake_build/Lerc.lib bin/windows/ || echo "LIB not found"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            cp cmake_build/libLerc.dylib bin/MacOS/ || cp cmake_build/Release/libLerc.dylib bin/MacOS/ || echo "DYLIB not found"
+          else
+            cp cmake_build/libLerc.so bin/Linux/ || cp cmake_build/Release/libLerc.so bin/Linux/ || echo "SO not found"
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build Wheel
+        run: |
+          python -m pip install --upgrade pip setuptools wheel build
+          cd OtherLanguages/Python
+          python -m build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pylerc-wheels-${{ matrix.os }}
+          path: OtherLanguages/Python/dist/*.whl
