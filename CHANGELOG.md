@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+## [4.1.0](https://github.com/Esri/lerc/releases/tag/v4.1.0) - 2026-03-09
+
 ### Fixed
 
 * Renamed Lerc python package to pylerc.
