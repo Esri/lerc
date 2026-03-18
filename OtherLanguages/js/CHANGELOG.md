@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [4.1.0][HEAD]
+## [4.1.1][HEAD]
+* Updated package.json to export types and lerc-wasm.wasm
+* Updated build script to handle dynamic module import for webpack in es output
+* Updated build script to handle document.currentScript issue in cjs output. 
+
+## [4.1.0]
 * Updated to support v4.1 lerc blobs
 * Return `noDataValues` (4D data) in decode result
 * Updated typing to indicate nullable props
