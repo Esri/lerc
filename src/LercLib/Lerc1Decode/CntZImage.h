@@ -47,7 +47,7 @@ public:
   static unsigned int computeNumBytesNeededToReadHeader(bool onlyZPart);
 
   /// read succeeds only if maxZError on file <= maxZError requested
-  bool read(const Byte** ppByte, double maxZError, bool onlyHeader = false, bool onlyZPart = false);
+  bool read(const Byte** ppByte, const Byte* bArr_end, double maxZError, bool onlyHeader = false, bool onlyZPart = false);
 
 protected:
 
