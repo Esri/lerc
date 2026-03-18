@@ -1,6 +1,6 @@
 {
   "name": "lerc",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "browser": "LercDecode.js",
   "type": "module",
   "bugs": {
@@ -18,10 +18,12 @@
   ],
   "exports": {
     ".": {
+      "types": "./LercDecode.d.ts",
       "require": "./LercDecode.js",
       "import": "./LercDecode.es.js",
       "default": "./LercDecode.js"
-    }
+    },
+    "./lerc-wasm.wasm": "./lerc-wasm.wasm"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "~8.49.0",
@@ -43,6 +45,7 @@
   "homepage": "https://github.com/Esri/lerc",
   "license": "Apache-2.0",
   "main": "LercDecode.js",
+  "types": "LercDecode.d.ts",
   "module": "LercDecode.es.js",
   "readmeFilename": "README.md",
   "repository": {
