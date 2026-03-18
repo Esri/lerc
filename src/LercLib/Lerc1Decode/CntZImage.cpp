@@ -69,12 +69,16 @@ unsigned int CntZImage::computeNumBytesNeededToReadHeader(bool onlyZPart)
 
 // -------------------------------------------------------------------------- ;
 
-bool CntZImage::read(const Byte** ppByte, double maxZError, bool onlyHeader, bool onlyZPart)
+bool CntZImage::read(const Byte** ppByte, const Byte* bArr_end, double maxZError, bool onlyHeader, bool onlyZPart)
 {
   if (!ppByte || !*ppByte)
     return false;
 
   size_t len = getTypeString().length();
+
+  if (*ppByte + len > bArr_end)
+    return false;
+
   string typeStr(len, '0');
   memcpy(&typeStr[0], *ppByte, len);
   *ppByte += len;
@@ -86,6 +90,9 @@ bool CntZImage::read(const Byte** ppByte, double maxZError, bool onlyHeader, boo
   double maxZErrorInFile = 0;
 
   const Byte* ptr = *ppByte;
+
+  if (ptr + 4 * sizeof(int) + sizeof(double) > bArr_end)
+    return false;
 
   memcpy(&version, ptr, sizeof(int));  ptr += sizeof(int);
   memcpy(&type,    ptr, sizeof(int));  ptr += sizeof(int);
@@ -130,6 +137,9 @@ bool CntZImage::read(const Byte** ppByte, double maxZError, bool onlyHeader, boo
 
     const Byte* ptr = *ppByte;
 
+    if (ptr + 3 * sizeof(int) + sizeof(float) > bArr_end)
+      return false;
+
     memcpy(&numTilesVert, ptr, sizeof(int));  ptr += sizeof(int);
     memcpy(&numTilesHori, ptr, sizeof(int));  ptr += sizeof(int);
     memcpy(&numBytes, ptr, sizeof(int));  ptr += sizeof(int);
@@ -142,6 +152,9 @@ bool CntZImage::read(const Byte** ppByte, double maxZError, bool onlyHeader, boo
     SWAP_4(numTilesHori);
     SWAP_4(numBytes);
     SWAP_4(maxValInImg);
+
+    if (numBytes < 0 || ptr + numBytes > bArr_end)
+      return false;
 
     if (!zPart && numTilesVert == 0 && numTilesHori == 0)    // no tiling for this cnt part
     {
