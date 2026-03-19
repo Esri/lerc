@@ -46,7 +46,7 @@ for (let i = 0; i < height; i++) {
   }
 }
 
-// use load options
+// use load options, locateFile is often needed when using a bundler that places wasm in a separate assets folder.
 await Lerc.load({ locateFile: (wasmFileName, _scriptDir) => `${my-https-wasm-location}/${wasmFileName}` });
 
 // use decode options
@@ -75,7 +75,7 @@ Load the dependencies (web assembly). The loading promise is cached so it can be
 
 | Param | Type | Description |
 | --- | --- | --- |
-| [options.locateFile] | <code>(wasmFileName?: string, scriptDir?: string) => string</code> | The function to locate lerc-wasm.wasm. Used when the web assembly file is moved to a different location. |
+| [options.locateFile] | <code>(wasmFileName: string, scriptDir: string) => string</code> | The function to locate lerc-wasm.wasm. Used when the web assembly file is moved to a different location. |
 
 
 <a name="exp_module_Lerc--decode"></a>

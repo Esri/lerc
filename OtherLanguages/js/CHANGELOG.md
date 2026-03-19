@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * Updated package.json to export types and lerc-wasm.wasm
 * Updated build script to handle dynamic module import for webpack in es output
 * Updated build script to handle document.currentScript issue in cjs output. 
+* Fixed locateFile parameter typing to remove undefined type
 
 ## [4.1.0]
 * Updated to support v4.1 lerc blobs

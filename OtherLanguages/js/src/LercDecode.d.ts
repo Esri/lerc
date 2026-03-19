@@ -61,7 +61,7 @@ export interface LercData {
  *
  * @param options Use the options to specify a function to locate the wasm file, if not located in the same directory as the script.
  */
-export function load(options?: { locateFile?: (wasmFileName?: string, scriptDir?: string) => string }): Promise<void>;
+export function load(options?: { locateFile?: (wasmFileName: string, scriptDir: string) => string }): Promise<void>;
 
 export function isLoaded(): boolean;
 
