@@ -55,8 +55,9 @@
   "scripts": {
     "build": "npm run ts && grunt clean && grunt dist --format=umd && grunt dist --format=es && npm run tests:sanity",
     "dev": "npm run ts && grunt clean && grunt --format=umd && npm run tests:sanity",
-    "tests": "npm run tests:sanity && npm run tests:level2",
+    "tests": "npm run tests:sanity && npm run tests:level2 && npm run tests:sanity:umd",
     "tests:sanity": "node tests/sanity.mjs",
+    "tests:sanity:umd": "node tests/sanity-umd.cjs",
     "tests:level2": "node tests/level2.mjs",
     "lint": "grunt eslint",
     "ts": "tsc"

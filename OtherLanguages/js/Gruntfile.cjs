@@ -76,7 +76,7 @@ module.exports = function (grunt) {
                 'currentScript'
               ).replace(
                 '"use strict";async',
-                '"use strict";var currentScript=document?.currentScript;async'
+                '"use strict";var currentScript=globalThis.document?.currentScript;async'
               );
             }
             if (!srcpath.includes("package.json")) {
