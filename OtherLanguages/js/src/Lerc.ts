@@ -142,7 +142,7 @@ let loadPromise: Promise<void> | null = null;
 let loaded = false;
 export function load(
   options: {
-    locateFile?: (wasmFileName?: string, scriptDir?: string) => string;
+    locateFile?: (wasmFileName: string, scriptDir: string) => string;
   } = {}
 ): Promise<void> {
   if (loadPromise) {

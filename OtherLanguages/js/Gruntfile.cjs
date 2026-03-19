@@ -46,6 +46,14 @@ module.exports = function (grunt) {
             dest: `${distFolder}/lerc-wasm.wasm`
           },
           {
+            src: `${distFolder}/LercDecode.es.js`,
+            dest: `${distFolder}/LercDecode.es.js`
+          },
+          {
+            src: `${distFolder}/LercDecode.js`,
+            dest: `${distFolder}/LercDecode.js`
+          },
+          {
             expand: true,
             src: ["package.json", "README.*", "CHANGELOG.*"],
             dest: `${distFolder}/`
@@ -54,6 +62,23 @@ module.exports = function (grunt) {
         options: {
           processContentExclude: "**/*.wasm",
           process: (content, srcpath) => {
+            // workaround webpack dynamic import issue to remove the need of custom resolve fallback config for "module"
+            if (srcpath.includes(`${distFolder}/LercDecode.es.js`)) {
+              return content.replace(
+                'await import("module")',
+                'await import(/*webpackIgnore:true*/"module")'
+              );
+            }
+            // fix umd document.currentScript issue. this may also be fixed by import meta handling in rollup.
+            if (srcpath.includes(`${distFolder}/LercDecode.js`)) {
+              return content.replace(
+                /document.currentScript/g,
+                'currentScript'
+              ).replace(
+                '"use strict";async',
+                '"use strict";var currentScript=globalThis.document?.currentScript;async'
+              );
+            }
             if (!srcpath.includes("package.json")) {
               return content;
             }
