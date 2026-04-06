@@ -204,6 +204,9 @@ bool CntZImage::readTiles(bool zPart, double maxZErrorInFile, int numTilesVert, 
   if (numTilesVert <= 0 || numTilesHori <= 0)
     return false;
 
+  if (numTilesVert > height_ || numTilesHori > width_)
+    return false;
+
   const Byte* ptr = bArr;
 
   for (int iTile = 0; iTile <= numTilesVert; iTile++)
