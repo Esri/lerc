@@ -123,7 +123,7 @@ The codecs Lerc2 and Lerc1 have been in use for years, bugs in those low level m
 
 ## Licensing
 
-Copyright 2015-2022 Esri
+Copyright 2015-2026 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

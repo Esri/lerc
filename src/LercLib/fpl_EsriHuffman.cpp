@@ -353,6 +353,11 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
         long rle_len = getPackBitsSize ((unsigned char *)input, input_len, &limit);
         if (rle_len > 0 && (rle_len < numBytes) && (rle_len < (long)input_len))
         {
+            if ((rle_len + 1) <= 0) // rle_len is maximum long value, so adding 1 results in overflow.
+            {
+              return HUFF_UNEXPECTED; // this should not normally happen.
+            }
+
             *ppByte = (unsigned char *)malloc (rle_len + 1);
 
             if (*ppByte == NULL)
