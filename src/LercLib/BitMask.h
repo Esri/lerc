@@ -25,6 +25,7 @@ Contributors:  Thomas Maurer
 #define BITMASK_H
 
 #include "Defines.h"
+#include <cstddef>
 
 NAMESPACE_LERC_START
 
