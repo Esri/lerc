@@ -59,7 +59,7 @@ public:
 
   int GetWidth() const                      { return m_nCols; }
   int GetHeight() const                     { return m_nRows; }
-  int Size() const                          { return (m_nCols * m_nRows + 7) >> 3; }
+  size_t Size() const                       { return ((size_t)m_nCols * m_nRows + 7) >> 3; }
   const Byte* Bits() const                  { return m_pBits; }
   Byte* Bits()                              { return m_pBits; }
   static Byte Bit(int k)                    { return (1 << 7) >> (k & 7); }

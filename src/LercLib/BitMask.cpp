@@ -102,7 +102,7 @@ int BitMask::CountValidBits() const
   const Byte numBitsHB[16] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
   const Byte* ptr = m_pBits;
   int sum = 0;
-  int i = Size();
+  size_t i = Size();
   while (i--)
   {
     sum += numBitsHB[*ptr & 15] + numBitsHB[*ptr >> 4];
