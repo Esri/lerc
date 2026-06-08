@@ -86,6 +86,9 @@ public:
   bool SetNumBlobsMoreToCome(int nBlobsMore);    // for safer decode of multi-band blobs
   bool SetIsAllInt(bool bIsAllInt);
 
+  bool SetMinMax(int nDepth, double minVal, double maxVal);    // set min / max but only for nDepth = 1
+  void ClearMinMax();
+
   template<class T>
   unsigned int ComputeNumBytesNeededToWrite(const T* arr, double maxZError, bool encodeMask);
 
@@ -146,7 +149,8 @@ private:
   HeaderInfo  m_headerInfo;
   BitStuffer2 m_bitStuffer2;
   bool        m_encodeMask,
-              m_writeDataOneSweep;
+              m_writeDataOneSweep,
+              m_minMaxSet;
   ImageEncodeMode  m_imageEncodeMode;
 
   std::vector<double> m_zMinVec, m_zMaxVec;

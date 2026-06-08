@@ -799,17 +799,23 @@ bool ReadFile(const string& fn, Byte* pBuffer, size_t bufferSize, size_t& nBytes
   }
 
   fseek(fp, 0, SEEK_END);
-  size_t fileSize = ftell(fp);    // get the file size
-  fclose(fp);
-  fp = 0;
+  int rv = ftell(fp);    // get the file size
+  if (rv <= 0)
+  {
+    fclose(fp);
+    return false;
+  }
+
+  size_t fileSize = (size_t)rv;
 
   if (fileSize > bufferSize)
   {
     printf("Lerc blob size %d > buffer size of %d\n", (uint32)fileSize, (uint32)bufferSize);
+    fclose(fp);
     return false;
   }
 
-  fp = fopen(fn.c_str(), "rb");
+  rewind(fp);
   nBytesRead = fread(pBuffer, 1, fileSize, fp);    // read Lerc blob into buffer
   fclose(fp);
   return nBytesRead == fileSize;
