@@ -70,6 +70,7 @@ void Lerc2::Init()
   m_maxValToQuantize  = 0;
   m_encodeMask        = true;
   m_writeDataOneSweep = false;
+  m_minMaxSet         = false;
   m_imageEncodeMode   = IEM_Tiling;
 
   m_headerInfo.RawInit();
@@ -145,6 +146,31 @@ bool Lerc2::SetIsAllInt(bool bIsAllInt)
 
 // -------------------------------------------------------------------------- ;
 
+bool Lerc2::SetMinMax(int nDepth, double minVal, double maxVal)
+{
+  ClearMinMax();
+
+  if (nDepth != 1 || minVal > maxVal)
+    return false;
+
+  m_zMinVec.assign(1, minVal);
+  m_zMaxVec.assign(1, maxVal);
+  m_minMaxSet = true;
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
+
+void Lerc2::ClearMinMax()
+{
+  m_zMinVec.clear();
+  m_zMaxVec.clear();
+  m_minMaxSet = false;
+}
+
+// -------------------------------------------------------------------------- ;
+
 template<class T>
 unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError, bool encodeMask)
 {
@@ -214,7 +240,8 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   Byte* ptr = nullptr;    // only emulate the writing and just count the bytes needed
   int nBytesTiling = 0;
 
-  if (!ComputeMinMaxRanges(arr, m_zMinVec, m_zMaxVec))    // need this for diff encoding before WriteTiles()
+  if ((!m_minMaxSet || m_headerInfo.nDepth > 1)
+    && !ComputeMinMaxRanges(arr, m_zMinVec, m_zMaxVec))    // need this for diff encoding before WriteTiles()
     return 0;
 
   m_headerInfo.zMin = *std::min_element(m_zMinVec.begin(), m_zMinVec.end());
@@ -823,8 +850,11 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   hd.microBlockSize = intVec[i++];
   hd.blobSize       = intVec[i++];
   const int dt      = intVec[i++];
-  if (dt < DT_Char || dt > DT_Double)
+
+  if (hd.nRows <= 0 || hd.nCols <= 0 || hd.nDepth <= 0 || hd.numValidPixel < 0
+    || hd.microBlockSize <= 0 || hd.blobSize <= 0 || dt < DT_Char || dt > DT_Double)
     return false;
+
   hd.dt             = static_cast<DataType>(dt);
   hd.nBlobsMore     = (hd.version >= 6) ? intVec[i++] : 0;
 
@@ -841,8 +871,9 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   hd.noDataVal      = (hd.version >= 6) ? dblVec[i++] : 0;
   hd.noDataValOrig  = (hd.version >= 6) ? dblVec[i++] : 0;
 
-  if (hd.nRows <= 0 || hd.nCols <= 0 || hd.nDepth <= 0 || hd.numValidPixel < 0 || hd.microBlockSize <= 0 || hd.blobSize <= 0
-    || (hd.nRows > INT_MAX / hd.nCols) || hd.numValidPixel > hd.nRows * hd.nCols)
+  size_t numPixel = (size_t)hd.nRows * hd.nCols;
+
+  if (numPixel > (size_t)INT_MAX || hd.numValidPixel > numPixel)
     return false;
 
   *ppByte = ptr;

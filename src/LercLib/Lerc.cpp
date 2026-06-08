@@ -675,14 +675,18 @@ ErrCode Lerc::EncodeInternal(const T* pData, int version, int nDepth, int nCols,
     bool bNeedNoData = false;    // can only turn true for nDepth > 1, and mix of valid and invalid values at the same pixel (special case)
     errCode = ErrCode::Ok;
 
+    double minVal(+1), maxVal(-1);
+    lerc2.ClearMinMax();
+
     if (bIsFltOrDbl)    // if flt type, filter out NaN and / or noData values and update the mask if possible
     {
       errCode = FilterNoDataAndNaN(dataBuffer, maskBuffer, nDepth, nCols, nRows, maxZErrL, bPassNoDataValue, noDataL,
-        bModifiedMask, bNeedNoData, bIsFltDblAllInt);
+        bModifiedMask, bNeedNoData, bIsFltDblAllInt, minVal, maxVal);
     }
     else if (bPassNoDataValue)    // if int type (no NaN), and no noData value specified, nothing to do
     {
-      errCode = FilterNoData(dataBuffer, maskBuffer, nDepth, nCols, nRows, maxZErrL, bPassNoDataValue, noDataL, bModifiedMask, bNeedNoData);
+      errCode = FilterNoData(dataBuffer, maskBuffer, nDepth, nCols, nRows, maxZErrL, bPassNoDataValue, noDataL,
+        bModifiedMask, bNeedNoData, minVal, maxVal);
     }
 
     if (errCode != ErrCode::Ok)
@@ -721,6 +725,10 @@ ErrCode Lerc::EncodeInternal(const T* pData, int version, int nDepth, int nCols,
     if ( !lerc2.SetNoDataValues(bNeedNoData, noDataL, noDataOrig)
       || !lerc2.SetNumBlobsMoreToCome(nBands - 1 - iBand)
       || !lerc2.SetIsAllInt(bIsFltDblAllInt))
+      return ErrCode::Failed;
+
+    if (nDepth == 1 && (maxVal >= minVal)
+      && !lerc2.SetMinMax(nDepth, minVal, maxVal))
       return ErrCode::Failed;
 
     unsigned int nBytes = lerc2.ComputeNumBytesNeededToWrite(arrL, maxZErrL, bEncMsk);
@@ -1210,7 +1218,8 @@ bool Lerc::GetTypeRange(const T, std::pair<double, double>& range)
 
 template<class T>
 ErrCode Lerc::FilterNoData(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDepth, int nCols, int nRows,
-  double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData)
+  double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData,
+  double& minValA, double& maxValA)
 {
   if (nDepth <= 0 || nCols <= 0 || nRows <= 0 || maxZError < 0)
     return ErrCode::WrongParam;
@@ -1252,10 +1261,13 @@ ErrCode Lerc::FilterNoData(std::vector<T>& dataBuffer, std::vector<Byte>& maskBu
 
           if (z == origNoData)
             cntInvalid++;
-          else if (z < minVal)
-            minVal = z;
-          else if (z > maxVal)
-            maxVal = z;
+          else
+          {
+            if (z < minVal)
+              minVal = z;
+            if (z > maxVal)
+              maxVal = z;
+          }
         }
 
         if (cntInvalid == nDepth)
@@ -1270,6 +1282,16 @@ ErrCode Lerc::FilterNoData(std::vector<T>& dataBuffer, std::vector<Byte>& maskBu
 
   double maxZErrL = (std::max)(0.5, floor(maxZError));    // same mapping for int types as in Lerc2.cpp
   double dist = floor(maxZErrL);
+
+  if (minVal == DBL_MAX && maxVal == -DBL_MAX)    // if the tile has no valid data
+  {
+    minValA = maxValA = 0;
+    maxZError = 0.5;
+    return ErrCode::Ok;
+  }
+
+  minValA = minVal;
+  maxValA = maxVal;
 
   // check the orig noData value is far enough away from the valid range
   if ((origNoData >= minVal - dist) && (origNoData <= maxVal + dist))
@@ -1333,7 +1355,8 @@ ErrCode Lerc::FilterNoData(std::vector<T>& dataBuffer, std::vector<Byte>& maskBu
 
 template<class T>
 ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDepth, int nCols, int nRows,
-  double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData, bool& bIsFltDblAllInt)
+  double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData, bool& bIsFltDblAllInt,
+  double& minValA, double& maxValA)
 {
   if (nDepth <= 0 || nCols <= 0 || nRows <= 0 || maxZError < 0)
     return ErrCode::WrongParam;
@@ -1371,7 +1394,6 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
 
   double minVal = DBL_MAX;
   double maxVal = -DBL_MAX;
-  int cntValidPixels = 0;
 
   // check for NaN or noData in valid pixels
   for (int k = 0, i = 0; i < nRows; i++)
@@ -1381,7 +1403,6 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
     for (int n = 0, j = 0; j < nCols; j++, k++, n += nDepth)
       if (maskBuffer[k])
       {
-        cntValidPixels++;
         int cntInvalidValues = 0;
 
         for (int m = 0; m < nDepth; m++)
@@ -1406,7 +1427,7 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
           {
             if (zVal < minVal)
               minVal = zVal;
-            else if (zVal > maxVal)
+            if (zVal > maxVal)
               maxVal = zVal;
 
             if (bAllInt && !IsInt(zVal))
@@ -1424,10 +1445,16 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
       }
   }
 
-  bNeedNoData = bHasNoDataValuesLeft;
+  if (minVal == DBL_MAX && maxVal == -DBL_MAX)    // if the tile has no valid data
+  {
+    minValA = maxValA = 0;
+    maxZError = 0;
+    return ErrCode::Ok;
+  }
 
-  if (cntValidPixels == 0)
-    bAllInt = false;
+  minValA = minVal;
+  maxValA = maxVal;
+  bNeedNoData = bHasNoDataValuesLeft;
 
   if (bHasNaN && nDepth > 1 && bHasNoDataValuesLeft && !bPassNoDataValue)
   {

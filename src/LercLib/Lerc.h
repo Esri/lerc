@@ -272,11 +272,13 @@ NAMESPACE_LERC_START
 
     template<class T>
     static ErrCode FilterNoData(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDepth, int nCols, int nRows,
-      double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData);
+      double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData,
+      double& minVal, double& maxVal);
 
     template<class T>
     static ErrCode FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& maskBuffer, int nDepth, int nCols, int nRows,
-      double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData, bool& bIsFltDblAllInt);
+      double& maxZError, bool bPassNoDataValue, double& noDataValue, bool& bModifiedMask, bool& bNeedNoData, bool& bIsFltDblAllInt,
+      double& minVal, double& maxVal);
 
     template<class T>
     static bool FindNewNoDataBelowValidMin(double minVal, double maxZErr, bool bAllInt, double lowIntLimit, T& newNoDataVal);
