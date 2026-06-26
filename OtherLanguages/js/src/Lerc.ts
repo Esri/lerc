@@ -76,6 +76,7 @@ interface LercData {
   mask: Uint8Array<ArrayBuffer> | null;
   dimCount: number;
   depthCount: number;
+  validPixelCount: number;
   bandMasks: Uint8Array<ArrayBuffer>[] | null;
   noDataValues: (number | null)[] | null;
 }
@@ -128,7 +129,7 @@ const pixelTypeInfoMap: PixelTypeInfo[] = [
     pixelType: "F32",
     size: 4,
     ctor: Float32Array,
-    range: [-3.4027999387901484e38, 3.4027999387901484e38]
+    range: [-3.4028234663852886e38, 3.4028234663852886e38]
   },
   {
     pixelType: "F64",
@@ -221,6 +222,7 @@ function initLercLib(lercFactory: LercFactory): void {
       _free(ptr);
       throw new Error(`lerc-getBlobInfo: error code is ${hr}`);
     }
+
     heapU8 = new Uint8Array(memory.buffer);
     copyBytesFromWasm(heapU8, ptr_info, infoArr);
     copyBytesFromWasm(heapU8, ptr_range, rangeArr);
@@ -239,6 +241,8 @@ function initLercLib(lercFactory: LercFactory): void {
       depthCount,
       bandCountWithNoData
     ] = lercInfoArr;
+    // lerc1 encodes initial min/max value (3.4028234663852886e+38), not aligned with values in pixel array
+    const isAllNoData = validPixelCount === 0;
     const headerInfo: LercHeaderInfo = {
       version,
       dimCount,
@@ -256,13 +260,18 @@ function initLercLib(lercFactory: LercFactory): void {
       statistics: [],
       bandCountWithNoData
     };
+
     if (bandCountWithNoData && depthCount > 1) {
       _free(ptr);
       return headerInfo;
     }
+
     if (depthCount === 1 && bandCount === 1) {
       _free(ptr);
-      headerInfo.statistics.push({ minValue: statsArr[0], maxValue: statsArr[1] });
+      // lerc1 data could reach here, needs special handling of min/max values
+      const minValue = isAllNoData ? 0 : statsArr[0];
+      const maxValue = isAllNoData ? 0 : statsArr[1];
+      headerInfo.statistics.push({ minValue, maxValue });
       return headerInfo;
     }
 
@@ -297,6 +306,8 @@ function initLercLib(lercFactory: LercFactory): void {
     heapU8 = new Uint8Array(memory.buffer);
     copyBytesFromWasm(heapU8, ptr_min, bandStatsMinArr);
     copyBytesFromWasm(heapU8, ptr_max, bandStatsMaxArr);
+
+    // update statistics array
     const allMinValues = new Float64Array(bandStatsMinArr.buffer);
     const allMaxValues = new Float64Array(bandStatsMaxArr.buffer);
     const statistics = headerInfo.statistics;
@@ -304,8 +315,8 @@ function initLercLib(lercFactory: LercFactory): void {
       if (depthCount > 1) {
         const minValues = allMinValues.slice(i * depthCount, (i + 1) * depthCount);
         const maxValues = allMaxValues.slice(i * depthCount, (i + 1) * depthCount);
-        const minValue = Math.min.apply(null, minValues as unknown as number[]);
-        const maxValue = Math.max.apply(null, maxValues as unknown as number[]);
+        const minValue = isAllNoData ? 0 : Math.min.apply(null, minValues as unknown as number[]);
+        const maxValue = isAllNoData ? 0 : Math.max.apply(null, maxValues as unknown as number[]);
         statistics.push({
           minValue,
           maxValue,
@@ -314,8 +325,8 @@ function initLercLib(lercFactory: LercFactory): void {
         });
       } else {
         statistics.push({
-          minValue: allMinValues[i],
-          maxValue: allMaxValues[i]
+          minValue: isAllNoData ? 0 : allMinValues[i],
+          maxValue: isAllNoData ? 0 : allMaxValues[i],
         });
       }
     }
@@ -327,7 +338,7 @@ function initLercLib(lercFactory: LercFactory): void {
     return headerInfo;
   };
   lercLib.decode = (blob: Uint8Array, blobInfo: LercHeaderInfo) => {
-    const { maskCount, depthCount, bandCount, width, height, dataType, bandCountWithNoData } = blobInfo;
+    const { maskCount, depthCount, bandCount, width, height, dataType, bandCountWithNoData, validPixelCount } = blobInfo;
 
     // if the heap is increased dynamically between raw data, mask, and data, the malloc pointer is invalid as it will raise error when accessing mask:
     // Cannot perform %TypedArray%.prototype.slice on a detached ArrayBuffer
@@ -338,6 +349,14 @@ function initLercLib(lercFactory: LercFactory): void {
     const data = new Uint8Array(numDataBytes);
     const useNoDataArr = new Uint8Array(bandCount);
     const noDataArr = new Uint8Array(bandCount * 8);
+
+    if (validPixelCount === 0) {
+      return {
+        data,
+        maskData,
+        noDataValues: null,
+      };
+    }
 
     const [ptr, ptr_mask, ptr_data, ptr_useNoData, ptr_noData] = mallocMultiple([
       blob.length,
@@ -432,12 +451,14 @@ function swapDepthValuesOrder(
  * @returns {{width, height, pixels, pixelType, mask, statistics}}
  * @property {number} width Width of decoded image.
  * @property {number} height Height of decoded image.
+ * @property {number} validPixelCount Number of valid pixels.
  * @property {number} depthCount Depth count.
  * @property {array} pixels [band1, band2, …] Each band is a typed array of width*height*depthCount.
  * @property {string} pixelType The type of pixels represented in the output: U8/S8/S16/U16/S32/U32/F32.
  * @property {mask} mask Typed array with a size of width*height, or null if all pixels are valid.
  * @property {array} statistics [statistics_band1, statistics_band2, …] Each element is a statistics object representing min and max values
  * @property {array} [bandMasks] [band1_mask, band2_mask, …] Each band is a Uint8Array of width * height * depthCount.
+ * @property {array} [noDataValues] For 4D data only. Per-band noData values from metadata when present in the blob.
  **/
 export function decode(input: ArrayBuffer | Uint8Array, options: DecodeOptions = {}): LercData {
   // get blob info
@@ -485,13 +506,18 @@ export function decode(input: ArrayBuffer | Uint8Array, options: DecodeOptions =
   const { noDataValue } = options;
   const applyNoDataValue =
     noDataValue != null && pixelTypeInfo.range[0] <= noDataValue && pixelTypeInfo.range[1] >= noDataValue;
+  const { validPixelCount } = blobInfo;
   if (maskCount > 0 && applyNoDataValue) {
     for (let i = 0; i < bandCount; i++) {
       const band = pixels[i];
-      const bandMask = masks[i] || mask;
-      for (let j = 0; j < numPixels; j++) {
-        if (bandMask[j] === 0) {
-          band[j] = noDataValue;
+      if (validPixelCount === 0) {
+        band.fill(noDataValue);
+      } else {
+        const bandMask = masks[i] || mask;
+        for (let j = 0; j < numPixels; j++) {
+          if (bandMask[j] === 0) {
+            band[j] = noDataValue;
+          }
         }
       }
     }
@@ -509,6 +535,7 @@ export function decode(input: ArrayBuffer | Uint8Array, options: DecodeOptions =
     statistics,
     pixels,
     mask,
+    validPixelCount,
     dimCount,
     depthCount,
     bandMasks,
