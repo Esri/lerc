@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [4.1.1][HEAD]
+## [4.1.2][HEAD]
+* Pick up miscellaneous fixes in c++ decoder
+* Include validPixelCount in decode result
+* Ensure min/max statistics is 0 when result has no valid pixels
+
+## [4.1.1]
 * Updated package.json to export types and lerc-wasm.wasm
 * Updated build script to handle dynamic module import for webpack in es output
 * Updated build script to handle document.currentScript issue in cjs output. 
