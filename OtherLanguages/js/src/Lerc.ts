@@ -326,7 +326,7 @@ function initLercLib(lercFactory: LercFactory): void {
       } else {
         statistics.push({
           minValue: isAllNoData ? 0 : allMinValues[i],
-          maxValue: isAllNoData ? 0 : allMaxValues[i],
+          maxValue: isAllNoData ? 0 : allMaxValues[i]
         });
       }
     }
@@ -338,7 +338,8 @@ function initLercLib(lercFactory: LercFactory): void {
     return headerInfo;
   };
   lercLib.decode = (blob: Uint8Array, blobInfo: LercHeaderInfo) => {
-    const { maskCount, depthCount, bandCount, width, height, dataType, bandCountWithNoData, validPixelCount } = blobInfo;
+    const { maskCount, depthCount, bandCount, width, height, dataType, bandCountWithNoData, validPixelCount } =
+      blobInfo;
 
     // if the heap is increased dynamically between raw data, mask, and data, the malloc pointer is invalid as it will raise error when accessing mask:
     // Cannot perform %TypedArray%.prototype.slice on a detached ArrayBuffer
@@ -354,7 +355,7 @@ function initLercLib(lercFactory: LercFactory): void {
       return {
         data,
         maskData,
-        noDataValues: null,
+        noDataValues: null
       };
     }
 
