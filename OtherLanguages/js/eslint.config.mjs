@@ -6,18 +6,15 @@ import prettier from "eslint-plugin-prettier";
 export default [
   js.configs.recommended,
   {
+    files: ["src/**/*.ts"],
     plugins: {
       "@typescript-eslint": tseslint,
       "prettier": prettier.default || prettier
     },
     languageOptions: {
       parser,
-      ecmaVersion: 2020,
+      ecmaVersion: 2023,
       sourceType: "module"
-    },
-    env: {
-      browser: true,
-      node: true
     },
     rules: {
       "arrow-body-style": "error",

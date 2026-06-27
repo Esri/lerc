@@ -52,6 +52,7 @@ export interface LercData {
   mask: Uint8Array<ArrayBuffer> | null;
   dimCount: number;
   depthCount: number;
+  validPixelCount: number;
   bandMasks: Uint8Array<ArrayBuffer>[] | null;
   noDataValues: (number | null)[] | null;
 }

@@ -64,20 +64,16 @@ module.exports = function (grunt) {
           process: (content, srcpath) => {
             // workaround webpack dynamic import issue to remove the need of custom resolve fallback config for "module"
             if (srcpath.includes(`${distFolder}/LercDecode.es.js`)) {
-              return content.replace(
-                'await import("module")',
-                'await import(/*webpackIgnore:true*/"module")'
-              );
+              return content.replace('await import("module")', 'await import(/*webpackIgnore:true*/"module")');
             }
             // fix umd document.currentScript issue. this may also be fixed by import meta handling in rollup.
             if (srcpath.includes(`${distFolder}/LercDecode.js`)) {
-              return content.replace(
-                /document.currentScript/g,
-                'currentScript'
-              ).replace(
-                '"use strict";async',
-                '"use strict";var currentScript=globalThis.document?.currentScript;async'
-              );
+              return content
+                .replace(/document.currentScript/g, "currentScript")
+                .replace(
+                  '"use strict";async',
+                  '"use strict";var currentScript=globalThis.document?.currentScript;async'
+                );
             }
             if (!srcpath.includes("package.json")) {
               return content;
@@ -87,11 +83,19 @@ module.exports = function (grunt) {
             return JSON.stringify(json, null, 2);
           }
         }
+      },
+      dev: {
+        files: [
+          {
+            src: "src/lerc-wasm.wasm",
+            dest: `${distFolder}/lerc-wasm.wasm`
+          }
+        ]
       }
     },
     rollup: {
       options: {
-        banner: copyright.replace("{version}",version),
+        banner: copyright.replace("{version}", version),
         name: "Lerc",
         format: bundeFormat,
         sourcemap: false
@@ -128,6 +132,6 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks("grunt-eslint");
   grunt.loadNpmTasks("grunt-terser");
 
-  grunt.registerTask("default", ["eslint", "rollup"]);
-  grunt.registerTask("dist", ["default", "terser", "copy"]);
+  grunt.registerTask("default", ["eslint", "rollup", "copy:dev"]);
+  grunt.registerTask("dist", ["default", "terser", "copy:dist"]);
 };
