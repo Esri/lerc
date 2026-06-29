@@ -29,7 +29,6 @@ jobs:
 
       - name: Build C++ Binaries (CMake)
         run: |
-          rm -rf cmake_build
           mkdir cmake_build
           cd cmake_build
           cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -52,7 +51,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Safe baseline to compile cross-compatible wheels
+          python-version: '3.11'
 
       - name: Build Wheel
         run: |
