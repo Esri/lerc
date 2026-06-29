@@ -111,7 +111,7 @@ bool CntZImage::read(const Byte** ppByte, const Byte* bArr_end, double maxZError
   if (version != 11 || type != type_)
     return false;
 
-  if (width > 20000 || height > 20000)
+  if (height < 0 || width < 0 || height > 40000 || width > 40000)  // guard against bogus numbers; size limitation for old Lerc1
     return false;
 
   if (maxZErrorInFile > maxZError)
@@ -201,10 +201,8 @@ bool CntZImage::read(const Byte** ppByte, const Byte* bArr_end, double maxZError
 bool CntZImage::readTiles(bool zPart, double maxZErrorInFile, int numTilesVert, int numTilesHori,
   float maxValInImg, const Byte* bArr)
 {
-  if (numTilesVert <= 0 || numTilesHori <= 0)
-    return false;
-
-  if (numTilesVert > height_ || numTilesHori > width_)
+  if (numTilesVert <= 0 || numTilesHori <= 0
+    || numTilesVert > height_ || numTilesHori > width_)
     return false;
 
   const Byte* ptr = bArr;
