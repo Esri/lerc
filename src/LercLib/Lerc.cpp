@@ -205,7 +205,7 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
     double maxZErrorInFile(0);
     memcpy(&maxZErrorInFile, ptr, sizeof(double));
 
-    if (height > 20000 || width > 20000)    // guard against bogus numbers; size limitation for old Lerc1
+    if (height < 0 || width < 0 || height > 40000 || width > 40000)  // guard against bogus numbers; size limitation for old Lerc1
       return ErrCode::Failed;
 
     lercInfo.nDepth = 1;
