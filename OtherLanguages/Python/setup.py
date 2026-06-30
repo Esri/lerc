@@ -26,8 +26,7 @@ try:
 except Exception:
     long_description = "Limited Error Raster Compression"
 
-# Using MANIFEST.in doesn't respect relative paths above the package root.
-# Instead, inspect the location and copy in the binaries if newer.
+# Stage binaries from repo root into package root
 BINARY_TYPES = ["*.dll", "*.lib", "*.so*", "*.dylib"]
 PLATFORMS = ["Linux", "MacOS", "windows"]
 for platform in PLATFORMS:
@@ -41,7 +40,7 @@ for platform in PLATFORMS:
 
 setuptools.setup(
     name="pylerc",
-    version="4.1",
+    version="4.1.1",
     author="esri",
     author_email="python@esri.com",
     description="Limited Error Raster Compression",
@@ -56,6 +55,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "License :: OSI Approved :: Apache Software License",
     ],
     package_data={"lerc": BINARY_TYPES},

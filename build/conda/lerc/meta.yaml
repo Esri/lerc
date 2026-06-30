@@ -1,6 +1,6 @@
 package:
   name: pylerc
-  version: 4.1
+  version: 4.1.1
 
 build:
   noarch: python
