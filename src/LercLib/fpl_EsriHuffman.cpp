@@ -53,23 +53,28 @@ bool decodePackBits (const unsigned char *ptr, const size_t size, size_t expecte
 
     for (size_t i = 0; i < size; )
     {
-        // read header byte.
+      int b = ptr[i++];  // read header byte
 
-        int b = ptr[i];
+      if (b <= 127)
+      {
+        if (curr + b >= expected)
+          return false;
 
-        if (b <= 127)
-        {
-            while (b >= 0) { i++; out[curr++] = ptr[i]; b--; }
-            i++;
-            continue;
-        }
-        else
-        {
-            i++;
-            while (b >= 127) { out[curr++] = ptr[i]; b--; }
-            i++;
-            continue;
-        }
+        int b1 = b + 1;
+        memcpy(&out[curr], &ptr[i], b1);
+        curr += b1;
+        i += b1;
+      }
+      else
+      {
+        if (curr + b - 127 >= expected)
+          return false;
+
+        int b1 = b - 127 + 1;
+        memset(&out[curr], ptr[i], b1);
+        curr += b1;
+        i++;
+      }
     }
 
     return (curr == expected);
