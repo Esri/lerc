@@ -873,7 +873,7 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
 
   size_t numPixel = (size_t)hd.nRows * hd.nCols;
 
-  if (numPixel > (size_t)INT_MAX || hd.numValidPixel > numPixel)
+  if (numPixel > (size_t)INT_MAX || (size_t)hd.numValidPixel > numPixel)
     return false;
 
   *ppByte = ptr;
