@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+## [4.1.1](https://github.com/Esri/lerc/releases/tag/v4.1.1) - 2026-07-02
+
 ### Fixed
 
-* Fixed one security issue and some minor bugs.
+* Fixed two security issues and some minor bugs.
 
 ## [4.1.0](https://github.com/Esri/lerc/releases/tag/v4.1.0) - 2026-03-09
 
