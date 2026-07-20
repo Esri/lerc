@@ -26,6 +26,7 @@ Contributors:  Thomas Maurer
 
 #include "Defines.h"
 #include <cstddef>
+#include <cstdint>
 
 NAMESPACE_LERC_START
 
@@ -39,19 +40,19 @@ public:
   BitMask() : m_pBits(nullptr), m_nCols(0), m_nRows(0)  {}
   BitMask(int nCols, int nRows) : m_pBits(nullptr), m_nCols(0), m_nRows(0) { SetSize(nCols, nRows); }
   BitMask(const BitMask& src);
-  ~BitMask()                        { Clear(); }
+  ~BitMask()                                { Clear(); }
 
   BitMask& operator= (const BitMask& src);
 
   // 1: valid, 0: not valid
-  Byte IsValid(int k) const                 { return (m_pBits[k >> 3] & Bit(k)) > 0; }
-  Byte IsValid(int row, int col) const      { return IsValid(row * m_nCols + col); }
+  Byte IsValid(int64_t k) const             { return (m_pBits[k >> 3] & Bit(k)) > 0; }
+  Byte IsValid(int row, int col) const      { return IsValid((int64_t)row * m_nCols + col); }
 
-  void SetValid(int k) const                { m_pBits[k >> 3] |= Bit(k); }
-  void SetValid(int row, int col) const     { SetValid(row * m_nCols + col); }
+  void SetValid(int64_t k) const            { m_pBits[k >> 3] |= Bit(k); }
+  void SetValid(int row, int col) const     { SetValid((int64_t)row * m_nCols + col); }
 
-  void SetInvalid(int k) const              { m_pBits[k >> 3] &= ~Bit(k); }
-  void SetInvalid(int row, int col) const   { SetInvalid(row * m_nCols + col); }
+  void SetInvalid(int64_t k) const          { m_pBits[k >> 3] &= ~Bit(k); }
+  void SetInvalid(int row, int col) const   { SetInvalid((int64_t)row * m_nCols + col); }
 
   void SetAllValid() const;
   void SetAllInvalid() const;
@@ -60,12 +61,12 @@ public:
 
   int GetWidth() const                      { return m_nCols; }
   int GetHeight() const                     { return m_nRows; }
-  size_t Size() const                       { return ((size_t)m_nCols * m_nRows + 7) >> 3; }
+  size_t Size() const                       { int64_t n = ((int64_t)m_nCols * m_nRows + 7) >> 3; return n >= 0 ? (size_t)n : 0; }
   const Byte* Bits() const                  { return m_pBits; }
   Byte* Bits()                              { return m_pBits; }
-  static Byte Bit(int k)                    { return (1 << 7) >> (k & 7); }
+  static Byte Bit(int64_t k)                { return (1 << 7) >> (k & 7); }
 
-  int CountValidBits() const;
+  int64_t CountValidBits() const;
   void Clear();
 
 private:

@@ -91,7 +91,12 @@ bool Lerc2::Set(int nDepth, int nCols, int nRows, const Byte* pMaskBits)
   if (pMaskBits)
   {
     memcpy(m_bitMask.Bits(), pMaskBits, m_bitMask.Size());
-    m_headerInfo.numValidPixel = m_bitMask.CountValidBits();
+
+    int64_t numValid = m_bitMask.CountValidBits();
+    if (numValid < 0 || numValid > (int64_t)INT_MAX)
+      return false;
+
+    m_headerInfo.numValidPixel = (int)numValid;
   }
   else
   {
@@ -256,7 +261,14 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   {
     // add the min max ranges behind the mask and before the main data;
     // so we do not write it if no valid pixel or all same value const
-    m_headerInfo.blobSize += 2 * nDepth * sizeof(T);
+
+    size_t currBlobSize = m_headerInfo.blobSize;
+    currBlobSize += sizeof(T) * nDepth * 2;
+
+    if (currBlobSize > (size_t)INT_MAX)  // limit Lerc blob size per band to 2 GB
+      return 0;
+
+    m_headerInfo.blobSize = (int)currBlobSize;
 
     bool minMaxEqual = false;
     if (!CheckMinMaxRanges(minMaxEqual))
@@ -267,7 +279,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   }
 
   // data
-  if (!WriteTiles(arr, &ptr, nBytesTiling))
+  if (!WriteTiles(arr, &ptr, nBytesTiling) || nBytesTiling < 0)
     return 0;
 
   m_imageEncodeMode = IEM_Tiling;
@@ -278,6 +290,9 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   {
     ImageEncodeMode huffmanEncMode;
     ComputeHuffmanCodes(arr, nBytesHuffman, huffmanEncMode, m_huffmanCodes);    // save Huffman codes for later use
+
+    if (nBytesHuffman < 0)
+      nBytesHuffman = INT_MAX;
 
     if (!m_huffmanCodes.empty() && nBytesHuffman < nBytesTiling)
     {
@@ -294,12 +309,15 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
     bool rv = m_lfpc.ComputeHuffmanCodesFlt(arr, (m_headerInfo.dt == DT_Double),
       m_headerInfo.nCols, m_headerInfo.nRows, m_headerInfo.nDepth);
 
-    if (!rv)    // remove this check before next release to fall back to regular Lerc instead of fail
+    if (!rv)
       return 0;
 
     if (rv)
     {
       nBytesHuffman = m_lfpc.compressedLength();
+
+      if (nBytesHuffman < 0)
+        nBytesHuffman = INT_MAX;
 
       if (nBytesHuffman < nBytesTiling * 0.9)    // demand at least 10% better than not Huffman
       {
@@ -310,19 +328,19 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   }
 
   m_writeDataOneSweep = false;
-  int nBytesDataOneSweep = (int)(numValid * nDepth * sizeof(T));
+  size_t nBytesDataOneSweep = sizeof(T) * nDepth * numValid;
 
   {
     // try with double block size to reduce block header overhead, if
     if (((size_t)nBytesTiling * 8 < (size_t)numTotal * nDepth * 1.5)    // resulting bit rate < x (2 bpp)
-      && (nBytesTiling < 4 * nBytesDataOneSweep)     // bit stuffing is effective
-      && (nBytesHuffman == 0 || nBytesTiling < 2 * nBytesHuffman)    // not much worse than huffman (otherwise huffman wins anyway)
+      && ((size_t)nBytesTiling < 4 * nBytesDataOneSweep)     // bit stuffing is effective
+      && (nBytesHuffman == 0 || (size_t)nBytesTiling < (size_t)2 * nBytesHuffman)    // not much worse than huffman (otherwise huffman wins anyway)
       && (m_headerInfo.nRows > m_microBlockSize || m_headerInfo.nCols > m_microBlockSize))
     {
       m_headerInfo.microBlockSize = m_microBlockSize * 2;
 
       int nBytes2 = 0;
-      if (!WriteTiles(arr, &ptr, nBytes2))    // no huffman in here anymore
+      if (!WriteTiles(arr, &ptr, nBytes2) || nBytes2 < 0)    // no huffman in here anymore
         return 0;
 
       if (nBytes2 <= nBytesData)
@@ -341,16 +359,23 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
   if (m_headerInfo.TryHuffmanInt() || m_headerInfo.TryHuffmanFlt())
     nBytesData += 1;    // flag for image encode mode
 
-  if (nBytesDataOneSweep <= nBytesData)
+  size_t totalBlobSize = m_headerInfo.blobSize;
+
+  if (nBytesDataOneSweep <= (size_t)nBytesData)
   {
     m_writeDataOneSweep = true;    // fallback: write data binary uncompressed in one sweep
-    m_headerInfo.blobSize += 1 + nBytesDataOneSweep;    // header, mask, min max ranges, flag, data one sweep
+    totalBlobSize += 1 + nBytesDataOneSweep;  // header, mask, min max ranges, flag, data one sweep
   }
   else
   {
     m_writeDataOneSweep = false;
-    m_headerInfo.blobSize += 1 + nBytesData;    // header, mask, min max ranges, flag(s), data
+    totalBlobSize += 1 + nBytesData;  // header, mask, min max ranges, flag(s), data
   }
+
+  if (totalBlobSize > (size_t)INT_MAX)  // limit Lerc blob size per band to 2 GB
+    return 0;
+
+  m_headerInfo.blobSize = (int)totalBlobSize;
 
   return m_headerInfo.blobSize;
 }
@@ -442,7 +467,7 @@ bool Lerc2::Encode(const T* arr, Byte** ppByte)
     }
 
     int numBytes = 0;
-    if (!WriteTiles(arr, ppByte, numBytes))
+    if (!WriteTiles(arr, ppByte, numBytes) || numBytes < 0)
       return false;
   }
   else
@@ -871,9 +896,20 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   hd.noDataVal      = (hd.version >= 6) ? dblVec[i++] : 0;
   hd.noDataValOrig  = (hd.version >= 6) ? dblVec[i++] : 0;
 
-  size_t numPixel = (size_t)hd.nRows * hd.nCols;
+  // here we guard against bogus input parameters and dimensions:
+  // we limit the size of input data per band to 2 GB, so any product [height * width * depth * sizeof(data element)] <= INT_MAX;
+  // the size of a compressed binary Lerc blob per band is <= 2 GB;
+  // the total size of a compressed binary Lerc blob over all bands is <= 4 GB (current Lerc API limitation);
+  // (see the corresponding size and dimension checks in Lerc::CheckDimensions(...));
 
-  if (numPixel > (size_t)INT_MAX || (size_t)hd.numValidPixel > numPixel)
+  const uint64_t numPixel = (uint64_t)hd.nRows * hd.nCols;
+  const uint64_t maxint32 = (uint64_t)INT_MAX;
+  const uint64_t nbpp = GetDataTypeSize(hd.dt);
+
+  if (numPixel > maxint32 || (uint64_t)hd.numValidPixel > numPixel)
+    return false;
+
+  if (hd.microBlockSize > 128 || nbpp * hd.nDepth > maxint32 || nbpp * hd.nDepth * numPixel > maxint32)
     return false;
 
   *ppByte = ptr;
@@ -1050,7 +1086,7 @@ bool Lerc2::TryBitPlaneCompression(const T* data, double eps, double& newMaxZErr
   if (hd.numValidPixel < minCnt)    // not enough data for good stats
     return false;
 
-  std::vector<int> cntDiffVec(nDepth * maxShift, 0);
+  std::vector<int> cntDiffVec((size_t)nDepth * maxShift, 0);
   int cnt = 0;
 
   if (nDepth == 1 && hd.numValidPixel == hd.nCols * hd.nRows)    // special but common case
@@ -1340,9 +1376,13 @@ bool Lerc2::ReadDataOneSweep(const Byte** ppByte, size_t& nBytesRemaining, T* da
   const Byte* ptr = (*ppByte);
   const HeaderInfo& hd = m_headerInfo;
   int nDepth = hd.nDepth;
-  int len = nDepth * sizeof(T);
+  size_t len = sizeof(T) * nDepth;
 
-  size_t nValidPix = (size_t)m_bitMask.CountValidBits();
+  int64_t numValid = m_bitMask.CountValidBits();
+  if (numValid < 0 || numValid >(int64_t)INT_MAX)
+    return false;
+
+  size_t nValidPix = (size_t)numValid;
 
   if (nBytesRemaining < nValidPix * len)
     return false;
@@ -1449,7 +1489,7 @@ bool Lerc2::WriteTiles(const T* data, Byte** ppByte, int& numBytes) const
   int mbSize = hd.microBlockSize;
   int nDepth = hd.nDepth;
 
-  std::vector<T> dataVec(mbSize * mbSize, 0);
+  std::vector<T> dataVec((size_t)mbSize * mbSize, 0);
   T* dataBuf = &dataVec[0];
 
   const bool bDtInt = (hd.dt < DT_Float);
@@ -2100,7 +2140,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
     }
     else
     {
-      size_t maxElementCount = (i1 - i0) * (j1 - j0);
+      size_t maxElementCount = size_t(i1 - i0) * (j1 - j0);
       if (!m_bitStuffer2.Decode(&ptr, nBytesRemaining, bufferVec, maxElementCount, hd.version))
         return false;
 

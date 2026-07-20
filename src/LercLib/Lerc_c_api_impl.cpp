@@ -269,7 +269,10 @@ lerc_status lerc_decodeToDouble_4D(const unsigned char* pLercBlob, unsigned int 
     return (lerc_status)errCode;
 
   Lerc::DataType dt = lercInfo.dt;
-  if (dt > Lerc::DT_Double)
+  if (dt < 0 || dt > Lerc::DT_Double)
+    return (lerc_status)ErrCode::Failed;
+
+  if (lercInfo.nDepth != nDepth || lercInfo.nCols != nCols || lercInfo.nRows != nRows || lercInfo.nBands != nBands)
     return (lerc_status)ErrCode::Failed;
 
   if (dt == Lerc::DT_Double)
@@ -284,7 +287,7 @@ lerc_status lerc_decodeToDouble_4D(const unsigned char* pLercBlob, unsigned int 
   {
     // use the buffer passed for in place decode and convert
     int sizeofDt[] = { 1, 1, 2, 2, 4, 4, 4, 8 };
-    size_t nDataValues = nDepth * nCols * nRows * nBands;
+    size_t nDataValues = (size_t)nDepth * nCols * nRows * nBands;  // can be > 4 GB
     void* ptrDec = (Byte*)pData + nDataValues * (sizeof(double) - sizeofDt[dt]);
 
     if ((errCode = Lerc::Decode(pLercBlob, blobSize, nMasks, pValidBytes,

@@ -21,6 +21,7 @@ http://github.com/Esri/lerc/
 Contributors:  Thomas Maurer
 */
 
+#include <climits>
 #include <cstring>
 #include <algorithm>
 #include "CntZImage.h"
@@ -48,7 +49,7 @@ bool CntZImage::resizeFill0(int width, int height)
   if (!resize(width, height))
     return false;
 
-  memset(getData(), 0, width * height * sizeof(CntZ));
+  memset(getData(), 0, sizeof(CntZ) * width * height);
   return true;
 }
 
@@ -114,6 +115,9 @@ bool CntZImage::read(const Byte** ppByte, const Byte* bArr_end, double maxZError
   if (height < 0 || width < 0 || height > 40000 || width > 40000)  // guard against bogus numbers; size limitation for old Lerc1
     return false;
 
+  if (sizeof(CntZ) * height * width > (size_t)INT_MAX)
+    return false;
+
   if (maxZErrorInFile > maxZError)
     return false;
 
@@ -177,7 +181,7 @@ bool CntZImage::read(const Byte** ppByte, const Byte* bArr_end, double maxZError
         // decompress to bit mask
         BitMask bitMask(width_, height_);
         RLE rle;
-        if (!rle.decompress(bArr, width_ * height_ * 2, (Byte*)bitMask.Bits(), bitMask.Size()))
+        if (!rle.decompress(bArr, (size_t)width_ * height_ * 2, (Byte*)bitMask.Bits(), bitMask.Size()))
           return false;
 
         CntZ* dstPtr = getData();

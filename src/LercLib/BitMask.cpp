@@ -77,7 +77,7 @@ bool BitMask::SetSize(int nCols, int nRows)
 
     try
     {
-      size_t nPix = (size_t)nCols * (size_t)nRows;
+      size_t nPix = (size_t)nCols * nRows;
       m_pBits = new Byte[(nPix + 7) >> 3];
     }
     catch (...)
@@ -97,11 +97,11 @@ bool BitMask::SetSize(int nCols, int nRows)
 
 // -------------------------------------------------------------------------- ;
 
-int BitMask::CountValidBits() const
+int64_t BitMask::CountValidBits() const
 {
   const Byte numBitsHB[16] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
   const Byte* ptr = m_pBits;
-  int sum = 0;
+  int64_t sum = 0;
   size_t i = Size();
   while (i--)
   {
@@ -110,7 +110,8 @@ int BitMask::CountValidBits() const
   }
 
   // subtract undefined bits potentially contained in the last byte
-  for (int k = m_nCols * m_nRows; k < Size() * 8; k++)
+  int64_t sizeX8 = (int64_t)(Size() * 8);
+  for (int64_t k = (int64_t)m_nCols * m_nRows; k < sizeX8; k++)
     if (IsValid(k))
       sum--;
 
