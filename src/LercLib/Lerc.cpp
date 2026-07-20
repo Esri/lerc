@@ -1420,7 +1420,7 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
   // check for NaN or noData in valid pixels
   for (int k = 0, i = 0; i < nRows; i++)
   {
-    T* rowArr = &(dataBuffer[i * nCols * nDepth]);
+    T* rowArr = &(dataBuffer[(size_t)i * nCols * nDepth]);
 
     for (int n = 0, j = 0; j < nCols; j++, k++, n += nDepth)
       if (maskBuffer[k])
