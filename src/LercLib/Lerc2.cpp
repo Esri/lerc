@@ -501,7 +501,7 @@ bool Lerc2::GetHeaderInfo(const Byte* pByte, size_t nBytesRemaining, struct Head
     return false;
 
   int numBytesMask(0);
-  if (nBytesRemaining < sizeof(int) || !memcpy(&numBytesMask, pByte, sizeof(int)))
+  if (nBytesRemaining < sizeof(int) || !memcpy(&numBytesMask, pByte, sizeof(int)) || numBytesMask < 0)
     return false;
 
   bHasMask = numBytesMask > 0;
@@ -673,8 +673,6 @@ bool Lerc2::Decode(const Byte** ppByte, size_t& nBytesRemaining, T* arr, Byte* p
         }
         else if (m_headerInfo.TryHuffmanFlt() && m_imageEncodeMode == IEM_DeltaDeltaHuffman)
         {
-          //return DecodeHuffmanFlt(ppByte, nBytesRemaining, arr);    // done.
-          // return false;  // not impl yet
           return LosslessFPCompression::DecodeHuffmanFlt(ppByte, nBytesRemaining, arr,
             (m_headerInfo.dt == DT_Double), m_headerInfo.nCols, m_headerInfo.nRows, m_headerInfo.nDepth);
         }
@@ -909,7 +907,7 @@ bool Lerc2::ReadHeader(const Byte** ppByte, size_t& nBytesRemainingInOut, struct
   if (numPixel > maxint32 || (uint64_t)hd.numValidPixel > numPixel)
     return false;
 
-  if (hd.microBlockSize > 128 || nbpp * hd.nDepth > maxint32 || nbpp * hd.nDepth * numPixel > maxint32)
+  if (hd.microBlockSize > 32 || nbpp * hd.nDepth > maxint32 || nbpp * hd.nDepth * numPixel > maxint32)
     return false;
 
   *ppByte = ptr;
@@ -1683,7 +1681,7 @@ bool Lerc2::ReadTiles(const Byte** ppByte, size_t& nBytesRemaining, T* data) con
   int mbSize = hd.microBlockSize;
   int nDepth = hd.nDepth;
 
-  if (mbSize > 32)  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
+  if (mbSize > 32)
     return false;
 
   int numTilesVert = (hd.nRows + mbSize - 1) / mbSize;
