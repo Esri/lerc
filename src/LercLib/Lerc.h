@@ -103,9 +103,9 @@ NAMESPACE_LERC_START
         nCols,            // number of columns
         nRows,            // number of rows
         numValidPixel,    // number of valid pixels
-        nBands,           // number of bands
-        blobSize,         // total blob size in bytes
-        nMasks,           // number of masks (0, 1, or nBands)
+        nBands;           // number of bands
+      unsigned int blobSize;  // total blob size in bytes, <= 4 GB
+      int nMasks,         // number of masks (0, 1, or nBands)
         nUsesNoDataValue; // 0 - no noData value used, nBands - noData value used in 1 or more bands (only possible for nDepth > 1)
       DataType dt;        // data type (float only for old Lerc1)
       double zMin,        // min pixel value, over all data values
@@ -282,5 +282,7 @@ NAMESPACE_LERC_START
 
     template<class T>
     static bool FindNewNoDataBelowValidMin(double minVal, double maxZErr, bool bAllInt, double lowIntLimit, T& newNoDataVal);
+
+    static bool CheckDimensions(int nDepth, int nCols, int nRows, size_t sizeOfDataElement);
   };
 NAMESPACE_LERC_END

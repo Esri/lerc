@@ -37,8 +37,8 @@ extern "C" {
 /* LERC version numbers and related macros added in 3.0.0 */
 
 #define LERC_VERSION_MAJOR 4
-#define LERC_VERSION_MINOR 1
-#define LERC_VERSION_PATCH 1
+#define LERC_VERSION_MINOR 2
+#define LERC_VERSION_PATCH 0
 
 /* Macro to compute a LERC version number from its components */
 #define LERC_COMPUTE_VERSION(maj,min,patch) ((maj)*10000+(min)*100+(patch))
@@ -66,6 +66,25 @@ extern "C" {
 #endif
 
   //! C-API for LERC library
+
+
+  //! Added in version 4.2:
+  //!
+  //! Lerc is mainly used as an image tile compression format, usually not to compress an entire large
+  //! image into one single compressed binary file. While this is possible, it would not be optimal in
+  //! both compression and read / write access.
+  //!
+  //! Now we put some well defined size limitations in place. We don't expect this to have any
+  //! implications for typical usage scenarios when encoding image tiles. The main goal is improved
+  //! security and protection, both against accidental integer overflows thanks to wrong or too large
+  //! dimensions as well as bogus dimensions or parameters planted by an attacker into the binary Lerc
+  //! header of the compressed Lerc blob.
+  //!
+  //! - 1) The size of input data (to be encoded) is limited to 2 GB per band.
+  //! - 2) The size of the compressed binary Lerc blob is also limited to 2 GB per band.
+  //! - 3) The size of the entire compressed binary Lerc blob (over all bands) is limited to 4 GB.
+  //! - 4) The size of the entire input data (to be encoded, over all bands) is NOT limited, as long
+  //!      as the above conditions are met.
 
 
   //! Added in version 4.0: 

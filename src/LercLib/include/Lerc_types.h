@@ -15,7 +15,8 @@ namespace LercNS
     WrongParam,
     BufferTooSmall,
     NaN,
-    HasNoData
+    HasNoData,
+    DimensionsTooLarge
   };
 
   enum class DataType : int

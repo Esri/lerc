@@ -100,12 +100,15 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
 
   if (Lerc2::GetHeaderInfo(pLercBlob, numBytesBlob, lerc2Info, bHasMask))
   {
+    if (lerc2Info.blobSize < 0)
+      return ErrCode::Failed;
+
     lercInfo.version = lerc2Info.version;
     lercInfo.nDepth = lerc2Info.nDepth;
     lercInfo.nCols = lerc2Info.nCols;
     lercInfo.nRows = lerc2Info.nRows;
     lercInfo.numValidPixel = lerc2Info.numValidPixel;    // for 1st band
-    lercInfo.blobSize = lerc2Info.blobSize;
+    lercInfo.blobSize = (unsigned int)lerc2Info.blobSize;  // blob size per band is in [0 .. 2 GB]
     lercInfo.dt = (DataType)lerc2Info.dt;
     lercInfo.zMin = lerc2Info.zMin;
     lercInfo.zMax = lerc2Info.zMax;
@@ -126,16 +129,17 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
 
     lercInfo.nBands = 1;
 
-    if (lercInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
-      return ErrCode::BufferTooSmall;
+    if (lercInfo.blobSize > numBytesBlob)    // truncated blob, we won't be able to read this band
+      return ErrCode::Failed;
 
     struct Lerc2::HeaderInfo hdInfo;
     while (bTryNextBlob && Lerc2::GetHeaderInfo(pLercBlob + lercInfo.blobSize, numBytesBlob - lercInfo.blobSize, hdInfo, bHasMask))
     {
       if (hdInfo.nDepth != lercInfo.nDepth
-       || hdInfo.nCols != lercInfo.nCols
-       || hdInfo.nRows != lercInfo.nRows
-       || (int)hdInfo.dt != (int)lercInfo.dt)
+        || hdInfo.nCols != lercInfo.nCols
+        || hdInfo.nRows != lercInfo.nRows
+        || (int)hdInfo.dt != (int)lercInfo.dt
+        || hdInfo.blobSize < 0)
       {
         return ErrCode::Failed;
       }
@@ -148,11 +152,11 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
       if (bHasMask || hdInfo.numValidPixel != lercInfo.numValidPixel)    // support mask per band
         nMasks = 2;
 
-      if (lercInfo.blobSize > std::numeric_limits<int>::max() - hdInfo.blobSize)    // guard against overflow
+      if ((size_t)lercInfo.blobSize > (size_t)UINT_MAX - hdInfo.blobSize)    // guard against overflow
         return ErrCode::Failed;
 
-      if (lercInfo.blobSize + hdInfo.blobSize > (int)numBytesBlob)    // truncated blob, we won't be able to read this band
-        return ErrCode::BufferTooSmall;
+      if ((size_t)lercInfo.blobSize + hdInfo.blobSize > (size_t)numBytesBlob)    // truncated blob, we won't be able to read this band
+        return ErrCode::Failed;
 
       lercInfo.zMin = min(lercInfo.zMin, hdInfo.zMin);
       lercInfo.zMax = max(lercInfo.zMax, hdInfo.zMax);
@@ -206,6 +210,9 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
     memcpy(&maxZErrorInFile, ptr, sizeof(double));
 
     if (height < 0 || width < 0 || height > 40000 || width > 40000)  // guard against bogus numbers; size limitation for old Lerc1
+      return ErrCode::Failed;
+
+    if (sizeof(CntZ) * height * width > (size_t)INT_MAX)
       return ErrCode::Failed;
 
     lercInfo.nDepth = 1;
@@ -324,6 +331,9 @@ ErrCode Lerc::ComputeCompressedSizeTempl(const T* pData, int version, int nDepth
   if (!(nMasks == 0 || nMasks == 1 || nMasks == nBands) || (nMasks > 0 && !pValidBytes))
     return ErrCode::WrongParam;
 
+  if (!CheckDimensions(nDepth, nCols, nRows, sizeof(T)))
+    return ErrCode::DimensionsTooLarge;
+
   unsigned int numBytesWritten = 0;
 
   if (version >= 0 && version <= 5)
@@ -358,6 +368,9 @@ ErrCode Lerc::EncodeTempl(const T* pData, int version, int nDepth, int nCols, in
   if (!(nMasks == 0 || nMasks == 1 || nMasks == nBands) || (nMasks > 0 && !pValidBytes))
     return ErrCode::WrongParam;
 
+  if (!CheckDimensions(nDepth, nCols, nRows, sizeof(T)))
+    return ErrCode::DimensionsTooLarge;
+
   memset(pBuffer, 0, (size_t)numBytesBuffer);
 
   unsigned int numBytesNeeded = 0;
@@ -391,6 +404,9 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
 
   if (!(nMasks == 0 || nMasks == 1 || nMasks == nBands) || (nMasks > 0 && !pValidBytes))
     return ErrCode::WrongParam;
+
+  if (!CheckDimensions(nDepth, nCols, nRows, sizeof(T)))
+    return ErrCode::DimensionsTooLarge;
 
   const Byte* pByte = pLercBlob;
   Lerc2::HeaderInfo hdInfo;
@@ -436,11 +452,11 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
     {
       if (((size_t)(pByte - pLercBlob) < numBytesBlob) && Lerc2::GetHeaderInfo(pByte, nBytesRemaining, hdInfo, bHasMask))
       {
-        if (hdInfo.nDepth != nDepth || hdInfo.nCols != nCols || hdInfo.nRows != nRows)
+        if (hdInfo.nDepth != nDepth || hdInfo.nCols != nCols || hdInfo.nRows != nRows || hdInfo.blobSize < 0)
           return ErrCode::Failed;
 
-        if ((pByte - pLercBlob) + (size_t)hdInfo.blobSize > numBytesBlob)
-          return ErrCode::BufferTooSmall;
+        if ((pByte - pLercBlob) + (size_t)hdInfo.blobSize > numBytesBlob)  // corrupted blob
+          return ErrCode::Failed;
 
         size_t nPix = (size_t)iBand * nRows * nCols;
         T* arr = pData + nPix * nDepth;
@@ -479,8 +495,8 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
     for (int iBand = 0; iBand < nBands; iBand++)
     {
       unsigned int numBytesHeader = iBand == 0 ? numBytesHeaderBand0 : numBytesHeaderBand1;
-      if ((size_t)(pByte1 - pLercBlob) + numBytesHeader > numBytesBlob)
-        return ErrCode::BufferTooSmall;
+      if ((size_t)(pByte1 - pLercBlob) + numBytesHeader > numBytesBlob)  // corrupted blob or wrong nBands
+        return ErrCode::Failed;
 
       bool onlyZPart = iBand > 0;
       if (!zImg.read(&pByte1, pLercBlob + numBytesBlob, 1e12, false, onlyZPart))
@@ -587,6 +603,9 @@ ErrCode Lerc::EncodeInternal_v5(const T* pData, int version, int nDepth, int nCo
     unsigned int nBytes = lerc2.ComputeNumBytesNeededToWrite(arr, maxZErr, bEncMsk);
     if (nBytes <= 0)
       return ErrCode::Failed;
+
+    if ((size_t)numBytesNeeded + nBytes > (size_t)UINT_MAX)  // keep total blob size (over all bands) <= 4 GB
+      return ErrCode::DimensionsTooLarge;
 
     numBytesNeeded += nBytes;
 
@@ -734,6 +753,9 @@ ErrCode Lerc::EncodeInternal(const T* pData, int version, int nDepth, int nCols,
     unsigned int nBytes = lerc2.ComputeNumBytesNeededToWrite(arrL, maxZErrL, bEncMsk);
     if (nBytes <= 0)
       return ErrCode::Failed;
+
+    if ((size_t)numBytesNeeded + nBytes > (size_t)UINT_MAX)  // keep total blob size (over all bands) <= 4 GB
+      return ErrCode::DimensionsTooLarge;
 
     numBytesNeeded += nBytes;
 
@@ -1248,7 +1270,7 @@ ErrCode Lerc::FilterNoData(std::vector<T>& dataBuffer, std::vector<Byte>& maskBu
   // check for noData in valid pixels
   for (int k = 0, i = 0; i < nRows; i++)
   {
-    T* rowArr = &(dataBuffer[i * nCols * nDepth]);
+    T* rowArr = &(dataBuffer[(size_t)i * nCols * nDepth]);
 
     for (int n = 0, j = 0; j < nCols; j++, k++, n += nDepth)
       if (maskBuffer[k])
@@ -1332,7 +1354,7 @@ ErrCode Lerc::FilterNoData(std::vector<T>& dataBuffer, std::vector<Byte>& maskBu
     {
       for (int k = 0, i = 0; i < nRows; i++)
       {
-        T* rowArr = &(dataBuffer[i * nCols * nDepth]);
+        T* rowArr = &(dataBuffer[(size_t)i * nCols * nDepth]);
 
         for (int n = 0, j = 0; j < nCols; j++, k++, n += nDepth)
           if (maskBuffer[k])
@@ -1505,7 +1527,7 @@ ErrCode Lerc::FilterNoDataAndNaN(std::vector<T>& dataBuffer, std::vector<Byte>& 
       {
         for (int k = 0, i = 0; i < nRows; i++)
         {
-          T* rowArr = &(dataBuffer[i * nCols * nDepth]);
+          T* rowArr = &(dataBuffer[(size_t)i * nCols * nDepth]);
 
           for (int n = 0, j = 0; j < nCols; j++, k++, n += nDepth)
             if (maskBuffer[k])
@@ -1597,3 +1619,23 @@ bool Lerc::FindNewNoDataBelowValidMin(double minVal, double maxZErr, bool bAllIn
 
 // -------------------------------------------------------------------------- ;
 
+bool Lerc::CheckDimensions(int nDepth, int nCols, int nRows, size_t sizeOfDataElement)
+{
+  // here we guard against too large input dimensions that might cause a possible int32 overflow later;
+  // we limit the size of input data per band to 2 GB, so any product [height * width * depth * sizeof(data element)] <= INT_MAX;
+  // (see the corresponding size and dimension checks in Lerc2::ReadHeader(...));
+
+  if (nDepth <= 0 || nCols <= 0 || nRows <= 0)
+    return false;
+
+  const uint64_t numPixel = (uint64_t)nRows * nCols;
+  const uint64_t maxint32 = (uint64_t)INT_MAX;
+  const uint64_t nbpp = sizeOfDataElement;
+
+  if (numPixel > maxint32 || nbpp > maxint32 || nbpp * nDepth > maxint32 || nbpp * nDepth * numPixel > maxint32)
+    return false;
+
+  return true;
+}
+
+// -------------------------------------------------------------------------- ;
