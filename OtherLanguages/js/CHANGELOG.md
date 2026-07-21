@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [4.1.2][HEAD]
+## [4.2.0][HEAD]
+* Updated to support lerc blobs produced by v4.2 encoder
+* Pick up security fixes in c++ decoder
+
+## [4.1.2]
 * Pick up miscellaneous fixes in c++ decoder
 * Include validPixelCount in decode result
 * Ensure min/max statistics is 0 when result has no valid pixels
