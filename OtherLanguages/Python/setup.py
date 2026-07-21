@@ -40,7 +40,7 @@ for platform in PLATFORMS:
 
 setuptools.setup(
     name="pylerc",
-    version="4.1.1",
+    version="4.2.0",
     author="esri",
     author_email="python@esri.com",
     description="Limited Error Raster Compression",
