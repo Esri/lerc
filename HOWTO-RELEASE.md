@@ -4,7 +4,7 @@ Update version numbers in src/LercLib/include/Lerc_c_api.h and CMakeLists.txt
 
 ### npm release
 
-- Config build environment. For 4.1.2 release: Node.js v24.11.1 LTS, npm 11.6.2
+- Config build environment. For 4.2.0 release: Node.js v24.11.1 LTS, npm 11.6.2
 - Update the following files in OtherLanguages/js
   - Run npm version xxx to update version numbers in package.json
   - Update CHANGELOG.md
