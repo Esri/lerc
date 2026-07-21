@@ -2,6 +2,13 @@
 
 LERC is an open-source raster format which supports rapid encoding and decoding for any pixel type, with user-set maximum compression error per pixel.
 
+# What's new in Lerc 4.2?
+
+Lerc 4.2 adds stricter size limits for improved safety:
+- Input data to encode is limited to 2 GB per band.
+- Compressed Lerc blob size is limited to 2 GB per band.
+- Total compressed Lerc blob size is limited to 4 GB across all bands.
+
 # What's new in Lerc 4.0?
 
 ## Option 1, uses numpy masked array
