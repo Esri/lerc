@@ -49,6 +49,7 @@ jobs:
 
       - name: Build C++ Binaries (Windows & macOS Native)
         if: matrix.os != 'ubuntu-latest'
+        shell: bash
         env:
           MACOSX_DEPLOYMENT_TARGET: '11.0'
         run: |
