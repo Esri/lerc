@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+## [4.2.0](https://github.com/Esri/lerc/releases/tag/v4.2.0) - 2026-07-23
+
 * Added explicit size checks for the input data volume and the output compressed binary Lerc blob. The maximum data volume to encode is 2 GB per band. The maximum size of a compressed binary Lerc blob is set also to 2 GB per band, and 4 GB over all bands. The data volume over all bands is not limited as long as it can be compressed into 4 GB or less.
 
 * Coverity fixes and overflow checks.
