@@ -23,7 +23,7 @@ Contributors:  Thomas Maurer
 
 #include "Defines.h"
 #include "BitMask.h"
-#include <cstring>
+#include <new>
 
 USING_NAMESPACE_LERC
 
@@ -51,19 +51,7 @@ BitMask& BitMask::operator= (const BitMask& src)
 
 // -------------------------------------------------------------------------- ;
 
-void BitMask::SetAllValid() const
-{
-  memset(m_pBits, 255, Size());
-}
-
-void BitMask::SetAllInvalid() const
-{
-  memset(m_pBits, 0, Size());
-}
-
-// -------------------------------------------------------------------------- ;
-
-bool BitMask::SetSize(int nCols, int nRows)
+bool BitMask::SetSize(int nCols, int nRows) noexcept
 {
   if (nCols <= 0 || nRows <= 0)
   {
@@ -75,18 +63,12 @@ bool BitMask::SetSize(int nCols, int nRows)
   {
     Clear();
 
-    try
-    {
-      size_t nPix = (size_t)nCols * nRows;
-      m_pBits = new Byte[(nPix + 7) >> 3];
-    }
-    catch (...)
-    {
-      return false;
-    }
-
+    size_t nPix = (size_t)nCols * nRows;
+    m_pBits = new(std::nothrow) Byte[(nPix + 7) >> 3];
     if (!m_pBits)
       return false;
+
+    memset(m_pBits, 0, Size());  // init
 
     m_nCols = nCols;
     m_nRows = nRows;
