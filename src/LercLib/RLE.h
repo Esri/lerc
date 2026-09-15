@@ -50,11 +50,11 @@ public:
   // when done, call
   // delete[] *arrRLE;
   bool compress(const Byte* arr, size_t numBytes,
-    Byte** arrRLE, size_t& numBytesRLE, bool verify = false) const;
+    Byte** arrRLE, size_t& numBytesRLE, bool verify = false) const noexcept;
 
   // when done, call
   // delete[] *arr;
-  static bool decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte** arr, size_t& numBytes);
+  static bool decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte** arr, size_t& numBytes) noexcept;
 
   // arr already allocated, just fill
   static bool decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte* arr, size_t arrSize);

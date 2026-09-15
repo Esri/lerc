@@ -27,6 +27,7 @@ Contributors:  Thomas Maurer
 #include "Defines.h"
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 NAMESPACE_LERC_START
 
@@ -37,7 +38,7 @@ NAMESPACE_LERC_START
 class BitMask
 {
 public:
-  BitMask() : m_pBits(nullptr), m_nCols(0), m_nRows(0)  {}
+  BitMask() : m_pBits(nullptr), m_nCols(0), m_nRows(0) {}
   BitMask(int nCols, int nRows) : m_pBits(nullptr), m_nCols(0), m_nRows(0) { SetSize(nCols, nRows); }
   BitMask(const BitMask& src);
   ~BitMask()                                { Clear(); }
@@ -54,10 +55,10 @@ public:
   void SetInvalid(int64_t k) const          { m_pBits[k >> 3] &= ~Bit(k); }
   void SetInvalid(int row, int col) const   { SetInvalid((int64_t)row * m_nCols + col); }
 
-  void SetAllValid() const;
-  void SetAllInvalid() const;
+  void SetAllValid() const                  { memset(m_pBits, 255, Size()); }
+  void SetAllInvalid() const                { memset(m_pBits, 0, Size()); }
 
-  bool SetSize(int nCols, int nRows);
+  bool SetSize(int nCols, int nRows) noexcept;
 
   int GetWidth() const                      { return m_nCols; }
   int GetHeight() const                     { return m_nRows; }

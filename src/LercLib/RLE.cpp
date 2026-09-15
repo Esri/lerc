@@ -24,6 +24,7 @@ Contributors:  Thomas Maurer
 #include "Defines.h"
 #include "RLE.h"
 #include <cstring>
+#include <new>
 
 USING_NAMESPACE_LERC
 
@@ -121,16 +122,18 @@ size_t RLE::computeNumBytesRLE(const Byte* arr, size_t numBytes) const
 // -------------------------------------------------------------------------- ;
 
 bool RLE::compress(const Byte* arr, size_t numBytes,
-                   Byte** arrRLE, size_t& numBytesRLE, bool verify) const
+                   Byte** arrRLE, size_t& numBytesRLE, bool verify) const noexcept
 {
   if (arr == nullptr || numBytes == 0)
     return false;
 
   numBytesRLE = computeNumBytesRLE(arr, numBytes);
 
-  *arrRLE = new Byte[numBytesRLE];
+  *arrRLE = new(std::nothrow) Byte[numBytesRLE];
   if (!*arrRLE)
     return false;
+
+  std::memset(*arrRLE, 0, numBytesRLE);
 
   const Byte* srcPtr = arr;
   Byte* cntPtr = *arrRLE;
@@ -253,7 +256,7 @@ bool RLE::compress(const Byte* arr, size_t numBytes,
 
 // -------------------------------------------------------------------------- ;
 
-bool RLE::decompress(const Byte* arrRLE, size_t nBytesRemainingIn, Byte** arr, size_t& numBytes)
+bool RLE::decompress(const Byte* arrRLE, size_t nBytesRemainingIn, Byte** arr, size_t& numBytes) noexcept
 {
   if (!arrRLE || nBytesRemainingIn < 2)
     return false;
@@ -286,9 +289,11 @@ bool RLE::decompress(const Byte* arrRLE, size_t nBytesRemainingIn, Byte** arr, s
     return false;
   }
 
-  *arr = new Byte[numBytes];
+  *arr = new(std::nothrow) Byte[numBytes];
   if (!*arr)
     return false;
+
+  memset(*arr, 0, numBytes);
 
   return decompress(arrRLE, nBytesRemainingIn, *arr, numBytes);
 }
@@ -308,7 +313,7 @@ bool RLE::decompress(const Byte* arrRLE, size_t nBytesRemaining, Byte* arr, size
   while (cnt != -32768)
   {
     int i = (cnt <= 0) ? -cnt : cnt;
-    size_t m = (cnt <= 0) ? 1 : (size_t)i;  // <= not < to fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
+    size_t m = (cnt <= 0) ? 1 : (size_t)i;
 
     if (nBytesRemaining < m + 2 || arrIdx + i > arrSize)
       return false;
