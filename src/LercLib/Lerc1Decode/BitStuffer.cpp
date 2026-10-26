@@ -22,6 +22,7 @@ Contributors:  Thomas Maurer
 */
 
 #include <cstring>
+#include <cstdint>
 #include "BitStuffer.h"
 
 using namespace std;
@@ -29,40 +30,61 @@ using namespace LercNS;
 
 // -------------------------------------------------------------------------- ;
 
-bool BitStuffer::read(const Byte** ppByte, vector<unsigned int>& dataVec) const
+bool BitStuffer::read(const Byte** ppByte, size_t& nBytesRemaining, vector<unsigned int>& dataVec, size_t maxElementCount) const
 {
-  if (!ppByte)
+  if (!ppByte || nBytesRemaining < 1)
     return false;
 
   Byte numBitsByte = **ppByte;
   (*ppByte)++;
+  nBytesRemaining--;
 
   int bits67 = numBitsByte >> 6;
   int n = (bits67 == 0) ? 4 : 3 - bits67;
 
   numBitsByte &= 63;    // bits 0-5;
 
-  unsigned int numElements = 0;
-  if (!readUInt(ppByte, numElements, n))
-    return false;
-
   if (numBitsByte >= 32)
     return false;
 
+  unsigned int numElements = 0;
+  if (!readUInt(ppByte, nBytesRemaining, numElements, n) || numElements > maxElementCount)
+    return false;
+
   int numBits = numBitsByte;
-  unsigned int numUInts = (numElements * numBits + 31) / 32;
+  uint64_t numUIntsLL = ((uint64_t)numElements * numBits + 31) / 32;
+  uint64_t numBytesLL = ((uint64_t)numElements * numBits + 7) / 8;
+
+  size_t numUInts = (size_t)numUIntsLL;
+  size_t numBytes = (size_t)numBytesLL;    // could theoretically overflow on 32 bit system
+
+  if (numBytes != numBytesLL)
+    return false;
+
   dataVec.resize(numElements, 0);    // init with 0
 
   if (numUInts > 0)    // numBits can be 0
   {
-    m_tmpBitStuffVec.resize(numUInts);
-    m_tmpBitStuffVec[numUInts - 1] = 0;    // set last uint to 0
+    if (nBytesRemaining < numBytes)
+      return false;
 
-    unsigned int nBytesToCopy = (numElements * numBits + 7) / 8;
-    memcpy(&m_tmpBitStuffVec[0], *ppByte, nBytesToCopy);
+    try
+    {
+      m_tmpBitStuffVec.resize(numUInts);
+      m_tmpBitStuffVec[numUInts - 1] = 0;  // set last uint to 0
+    }
+    catch (const std::exception&)
+    {
+      return false;
+    }
+
+    if (!memcpy(&m_tmpBitStuffVec[0], *ppByte, numBytes))
+      return false;
+
 
     unsigned int* arr = &m_tmpBitStuffVec[0];
     unsigned int* srcPtr = arr;
+
     for (unsigned int i = 0; i < numUInts; i++)
     {
       SWAP_4(*srcPtr);
@@ -73,6 +95,9 @@ bool BitStuffer::read(const Byte** ppByte, vector<unsigned int>& dataVec) const
     unsigned int n = numTailBytesNotNeeded(numElements, numBits);
     while (n--)
       *pLastULong <<= 8;
+
+    if (dataVec.empty())
+      return false;
 
     // do the un-stuffing
     srcPtr = arr;
@@ -108,7 +133,8 @@ bool BitStuffer::read(const Byte** ppByte, vector<unsigned int>& dataVec) const
       }
     }
 
-    *ppByte += nBytesToCopy;
+    *ppByte += numBytes;
+    nBytesRemaining -= numBytes;
   }
 
   return true;
@@ -117,8 +143,11 @@ bool BitStuffer::read(const Byte** ppByte, vector<unsigned int>& dataVec) const
 // -------------------------------------------------------------------------- ;
 // -------------------------------------------------------------------------- ;
 
-bool BitStuffer::readUInt(const Byte** ppByte, unsigned int& k, int numBytes)
+bool BitStuffer::readUInt(const Byte** ppByte, size_t& nBytesRemaining, unsigned int& k, int numBytes)
 {
+  if (numBytes <= 0 || nBytesRemaining < (size_t)numBytes)
+    return false;
+
   const Byte* ptr = *ppByte;
 
   if (numBytes == 1)
@@ -141,6 +170,7 @@ bool BitStuffer::readUInt(const Byte** ppByte, unsigned int& k, int numBytes)
     return false;
 
   *ppByte = ptr + numBytes;
+  nBytesRemaining -= numBytes;
   return true;
 }
 

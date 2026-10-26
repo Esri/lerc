@@ -34,50 +34,49 @@ USING_NAMESPACE_LERC
 
 void lerc_assert(bool v);
 
-bool decodePackBits (const unsigned char *ptr, const size_t size, size_t expected, unsigned char **output)
+bool decodePackBits(const unsigned char* ptr, const size_t size, size_t expected, unsigned char** output)
 {
-    unsigned char *out = NULL;
+  unsigned char* out = NULL;
 
-    if (*output == NULL)
+  if (*output == NULL)
+  {
+    out = (unsigned char*)malloc(expected);  // max possible
+    *output = out;
+  }
+  else
+  {
+    out = *output;
+  }
+
+  size_t curr = 0;
+
+  for (size_t i = 0; i < size; )
+  {
+    int b = ptr[i++];  // read header byte
+
+    if (b <= 127)
     {
-        out = (unsigned char *)malloc (expected); // max possible
+      if (curr + b >= expected)
+        return false;
 
-        *output = out;
+      int b1 = b + 1;
+      memcpy(&out[curr], &ptr[i], b1);
+      curr += b1;
+      i += b1;
     }
     else
     {
-        out = *output;
+      if (curr + b - 127 >= expected)
+        return false;
+
+      int b1 = b - 127 + 1;
+      memset(&out[curr], ptr[i], b1);
+      curr += b1;
+      i++;
     }
+  }
 
-    size_t curr = 0;
-
-    for (size_t i = 0; i < size; )
-    {
-      int b = ptr[i++];  // read header byte
-
-      if (b <= 127)
-      {
-        if (curr + b >= expected)
-          return false;
-
-        int b1 = b + 1;
-        memcpy(&out[curr], &ptr[i], b1);
-        curr += b1;
-        i += b1;
-      }
-      else
-      {
-        if (curr + b - 127 >= expected)
-          return false;
-
-        int b1 = b - 127 + 1;
-        memset(&out[curr], ptr[i], b1);
-        curr += b1;
-        i++;
-      }
-    }
-
-    return (curr == expected);
+  return (curr == expected);
 }
 
 long encodePackBits (const unsigned char *ptr, const size_t size, unsigned char **output)
@@ -450,111 +449,85 @@ int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigne
     return ret;
 }
 
-bool fpl_EsriHuffman::DecodeHuffman(const unsigned char* inBytes, const size_t inCount, size_t& nBytesRemainingInOut, unsigned char** output)
+bool fpl_EsriHuffman::DecodeHuffman(const unsigned char* inBytes, const size_t inCount, size_t expected_output_size, unsigned char** output)
 {
-    const unsigned char* ppByte = (const unsigned char *)inBytes;
+  const unsigned char* ppByte = (const unsigned char*)inBytes;
 
-    if (!ppByte)
-    {
-        //fprintf (stderr, "bad input: null pointer\n");
-        return false;
-    }
+  if (!ppByte || inCount < 1)
+    return false;
 
-    // check for RLE flag
+  if (ppByte[0] == HUFFMAN_RLE)  // RLE flag
+  {
+    if (inCount < 6)
+      return false;
 
-    if (ppByte[0] == HUFFMAN_RLE)
-    {
-        unsigned char s = ppByte[1];
-        uint32_t rle_size = 0;
+    unsigned char s = ppByte[1];
+    uint32_t rle_size = 0;
 
-        memcpy (&rle_size, ppByte + 2, 4);
+    memcpy(&rle_size, ppByte + 2, 4);
 
-        if (rle_size != nBytesRemainingInOut)
-        {
-            assert (0);
-        }
+    if (rle_size != expected_output_size)
+      return false;
 
-        unsigned char *data = (unsigned char *)malloc (nBytesRemainingInOut);
-        *output = data;
-
-        if (data == NULL)
-        {
-            //fprintf (stderr, "malloc() failed\n");
-            return false;
-        }
-
-        memset (data, s, nBytesRemainingInOut);
-
-        return true;
-    }
-
-    if (ppByte[0] == HUFFMAN_NO_ENCODING) // "as is flag"
-    {
-        unsigned char *data = (unsigned char *)malloc (nBytesRemainingInOut);
-        *output = data;
-
-        if (data == NULL)
-        {
-            //printf ("malloc 2 fail\n");
-            return false;
-        }
-
-        memcpy (data, ppByte + 1, nBytesRemainingInOut);
-
-        return true;
-    }
-
-    if (ppByte[0] == HUFFMAN_PACKBITS)
-    {
-        unsigned char *unpacked = NULL;
-
-        lerc_assert (true == decodePackBits (ppByte + 1, inCount - 1, nBytesRemainingInOut, &unpacked));
-
-        *output = unpacked;
-
-        return true;
-    }
-
-    assert (ppByte[0] == HUFFMAN_NORMAL); // "normal" huffman flag.
-
-    ppByte++;
-
-    size_t expected_output_len = nBytesRemainingInOut;
-
-    Huffman huffman;
-    if (!huffman.ReadCodeTable(&ppByte, nBytesRemainingInOut, 5))    // header and code table
-    {
-        return false;
-    }
-
-    int numBitsLUT = 0;
-    if (!huffman.BuildTreeFromCodes(numBitsLUT))
-    {
-        return false;
-    }
-
-    unsigned char *data = (unsigned char *)malloc (expected_output_len);
+    unsigned char* data = (unsigned char*)malloc(expected_output_size);
     *output = data;
-
     if (!data)
-    {
-        return false;
-    }
+      return false;
 
-    int offset = 0;
-    int bitPos = 0;
-    size_t nBytesRemaining = nBytesRemainingInOut;
-
-    for (size_t m = 0; m < expected_output_len; m++)
-    {
-        int val = 0;
-        if (!huffman.DecodeOneValue(&ppByte, nBytesRemaining, bitPos, numBitsLUT, val))
-        {
-            return false;
-        }
-
-        data[m] = (unsigned char)(val - offset);
-    }
-
+    memset(data, s, expected_output_size);
     return true;
+  }
+
+  if (ppByte[0] == HUFFMAN_NO_ENCODING)  // "as is flag"
+  {
+    if (inCount < 1 + expected_output_size)
+      return false;
+
+    unsigned char* data = (unsigned char*)malloc(expected_output_size);
+    *output = data;
+    if (!data)
+      return false;
+
+    memcpy(data, ppByte + 1, expected_output_size);
+    return true;
+  }
+
+  if (ppByte[0] == HUFFMAN_PACKBITS)
+  {
+    unsigned char* unpacked = NULL;
+    bool rv = decodePackBits(ppByte + 1, inCount - 1, expected_output_size, &unpacked);
+    lerc_assert(rv);
+    *output = unpacked;
+    return rv;
+  }
+
+  assert(ppByte[0] == HUFFMAN_NORMAL);  // "normal" huffman flag.
+
+  ppByte++;
+  size_t nBytesRemainingLoc = inCount - 1;
+
+  Huffman huffman;
+  if (!huffman.ReadCodeTable(&ppByte, nBytesRemainingLoc, 5))  // header and code table
+    return false;
+
+  int numBitsLUT(0);
+  if (!huffman.BuildTreeFromCodes(numBitsLUT))
+    return false;
+
+  unsigned char* data = (unsigned char*)malloc(expected_output_size);
+  *output = data;
+  if (!data)
+    return false;
+
+  int bitPos(0);
+  for (size_t m = 0; m < expected_output_size; m++)
+  {
+    int val(0);
+    if (!huffman.DecodeOneValue(&ppByte, nBytesRemainingLoc, bitPos, numBitsLUT, val))
+      return false;
+
+    data[m] = (unsigned char)val;
+  }
+
+  return true;
 }

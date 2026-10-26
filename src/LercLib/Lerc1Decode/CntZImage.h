@@ -65,10 +65,11 @@ protected:
     float maxZInImg;
   };
 
-  bool readTiles(bool zPart, double maxZErrorInFile, int numTilesVert, int numTilesHori, float maxValInImg, const Byte* bArr);
+  bool readTiles(bool zPart, double maxZErrorInFile, int numTilesVert, int numTilesHori, float maxValInImg,
+    const Byte* bArr, size_t& nBytesRemaining);
 
-  bool readCntTile(const Byte** ppByte, int i0, int i1, int j0, int j1);
-  bool readZTile(const Byte** ppByte, int i0, int i1, int j0, int j1, double maxZErrorInFile, float maxZInImg);
+  bool readCntTile(const Byte** ppByte, size_t& nBytesRemaining, int i0, int i1, int j0, int j1);
+  bool readZTile(const Byte** ppByte, size_t& nBytesRemaining, int i0, int i1, int j0, int j1, double maxZErrorInFile, float maxZInImg);
 
   static int numBytesFlt(float z);    // returns 1, 2, or 4
   static bool readFlt(const Byte** ppByte, float& z, int numBytes);

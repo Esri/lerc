@@ -36,21 +36,22 @@ static const bool use_rle = true;
 
 size_t fpl_Compression::extract_buffer(const char* data, size_t size, size_t uncompressed_size, char** output)
 {
-    if (use_esri_huffman)
+  if (use_esri_huffman)
+  {
+    size_t expected_size = uncompressed_size;
+
+    if (!fpl_EsriHuffman::DecodeHuffman((const unsigned char*)data, size, expected_size, (unsigned char**)output))
     {
-        size_t expected_size = uncompressed_size;
+      if (*output)
+        free(*output);
 
-        bool ret = fpl_EsriHuffman::DecodeHuffman((const unsigned char*)data, size, expected_size, (unsigned char**)output);
-
-        //if (!ret)
-        //  printf("input size %zu, expected out %zu\n", size, uncompressed_size);
-
-        assert(ret);
-        return uncompressed_size;
+      return 0;
     }
 
-    assert(0);
-    return 0;
+    return uncompressed_size;
+  }
+
+  return 0;
 }
 
 size_t fpl_Compression::compress_buffer(const char* data, size_t size, char** output, bool fast)
