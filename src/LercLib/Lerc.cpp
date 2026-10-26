@@ -256,6 +256,9 @@ ErrCode Lerc::GetLercInfo(const Byte* pLercBlob, unsigned int numBytesBlob, stru
 
       if (pMins && pMaxs)
       {
+        if ((size_t)lercInfo.nBands >= nElem)
+          return ErrCode::BufferTooSmall;
+
         pMins[lercInfo.nBands] = zMin;
         pMaxs[lercInfo.nBands] = zMax;
       }

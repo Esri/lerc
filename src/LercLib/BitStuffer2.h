@@ -26,6 +26,7 @@ Contributors:  Thomas Maurer
 
 #include <vector>
 #include <cstring>
+#include <cstdint>
 #include <utility>
 #include "Defines.h"
 
@@ -38,7 +39,7 @@ NAMESPACE_LERC_START
 class BitStuffer2
 {
 public:
-  BitStuffer2()           {}
+  BitStuffer2()  {}
   ~BitStuffer2()  {}
 
   // dst buffer is already allocated. byte ptr is moved like a file pointer.
@@ -99,7 +100,7 @@ inline bool BitStuffer2::EncodeUInt(Byte** ppByte, unsigned int k, int numBytes)
 
 inline bool BitStuffer2::DecodeUInt(const Byte** ppByte, size_t& nBytesRemaining, unsigned int& k, int numBytes)
 {
-  if (nBytesRemaining < (size_t)numBytes)
+  if (numBytes <= 0 || nBytesRemaining < (size_t)numBytes)
     return false;
 
   const Byte* ptr = *ppByte;
@@ -126,7 +127,7 @@ inline bool BitStuffer2::DecodeUInt(const Byte** ppByte, size_t& nBytesRemaining
 
 inline unsigned int BitStuffer2::NumTailBytesNotNeeded(unsigned int numElem, int numBits)
 {
-  int numBitsTail = ((unsigned long long)numElem * numBits) & 31;
+  int numBitsTail = ((uint64_t)numElem * numBits) & 31;  // numBits in [0..31]
   int numBytesTail = (numBitsTail + 7) >> 3;
   return (numBytesTail > 0) ? 4 - numBytesTail : 0;
 }

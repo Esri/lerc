@@ -319,7 +319,7 @@ unsigned int Lerc2::ComputeNumBytesNeededToWrite(const T* arr, double maxZError,
       if (nBytesHuffman < 0)
         nBytesHuffman = INT_MAX;
 
-      if (nBytesHuffman < nBytesTiling * 0.9)    // demand at least 10% better than not Huffman
+      if (nBytesHuffman < nBytesTiling * 0.9)  // demand at least 10% better than not Huffman
       {
         nBytesData = nBytesHuffman;
         m_imageEncodeMode = IEM_DeltaDeltaHuffman;
@@ -970,7 +970,7 @@ bool Lerc2::ReadMask(const Byte** ppByte, size_t& nBytesRemainingInOut)
   const Byte* ptr = *ppByte;
   size_t nBytesRemaining = nBytesRemainingInOut;
 
-  int numBytesMask;
+  int numBytesMask(0);
   if (nBytesRemaining < sizeof(int) || !memcpy(&numBytesMask, ptr, sizeof(int)) || numBytesMask < 0)
     return false;
 
@@ -2174,6 +2174,8 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
       {
         if (hd.version > 2)
         {
+          size_t nElemLeft = bufferVec.size();
+
           for (int i = i0; i < i1; i++)
           {
             int k = i * nCols + j0;
@@ -2184,6 +2186,9 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
               for (int j = j0; j < j1; j++, k++, m += nDepth)
                 if (m_bitMask.IsValid(k))
                 {
+                  if (!nElemLeft--)
+                    return false;
+
                   double z = offset + *srcPtr++ * invScale;
                   data[m] = (T)std::min(z, zMax);    // make sure we stay in the orig range
                 }
@@ -2193,13 +2198,16 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
               for (int j = j0; j < j1; j++, k++, m += nDepth)
                 if (m_bitMask.IsValid(k))
                 {
+                  if (!nElemLeft--)
+                    return false;
+
                   double z = offset + *srcPtr++ * invScale + data[m - 1];
                   data[m] = (T)std::min(z, zMax);
                 }
             }
           }
         }
-        else  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
+        else
         {
           size_t bufferVecIdx = 0;
 
@@ -2211,7 +2219,7 @@ bool Lerc2::ReadTile(const Byte** ppByte, size_t& nBytesRemainingInOut, T* data,
             for (int j = j0; j < j1; j++, k++, m += nDepth)
               if (m_bitMask.IsValid(k))
               {
-                if (bufferVecIdx == bufferVec.size())  // fail gracefully in case of corrupted blob for old version <= 2 which had no checksum
+                if (bufferVecIdx == bufferVec.size())
                   return false;
 
                 double z = offset + bufferVec[bufferVecIdx] * invScale;

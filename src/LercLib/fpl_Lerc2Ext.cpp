@@ -25,6 +25,7 @@ Original coding 2021 Yuriy Yakimenko
 #include "fpl_Lerc2Ext.h"
 #include "fpl_Compression.h"
 #include <assert.h>
+#include <climits>
 #include <cmath>
 #include <cstring>
 #include <stdint.h>
@@ -725,19 +726,28 @@ bool restoreByteOrder(std::vector<std::pair<int, char*> >& output_buffers,
 bool LosslessFPCompression::DecodeHuffmanFlt(const unsigned char** ppByte, size_t& nBytesRemainingInOut,
   void* pData, bool bIsDouble, int iWidth, int iHeight, int iDepth)
 {
+  if (!ppByte || !(*ppByte) || !pData || iWidth <= 0 || iHeight <= 0 || iDepth <= 0)
+    return false;
+
   if (iDepth == 1)
   {
-    return DecodeHuffmanFltSlice (ppByte, nBytesRemainingInOut, pData, bIsDouble, iWidth, iHeight);
+    return DecodeHuffmanFltSlice(ppByte, nBytesRemainingInOut, pData, bIsDouble, iWidth, iHeight);
   }
   else
   {
+    if ((size_t)iWidth * iHeight >= (size_t)INT_MAX)
+      return false;
+
     return DecodeHuffmanFltSlice(ppByte, nBytesRemainingInOut, pData, bIsDouble, iDepth, iWidth * iHeight);
   }
 }
 
-bool LosslessFPCompression::DecodeHuffmanFltSlice (const unsigned char** ppByte, size_t& nBytesRemainingInOut,
-          void * pData, bool bIsDouble, int iWidth, int iHeight)
+bool LosslessFPCompression::DecodeHuffmanFltSlice(const unsigned char** ppByte, size_t& nBytesRemainingInOut,
+          void* pData, bool bIsDouble, int iWidth, int iHeight)
 {
+  if (!ppByte || !*ppByte || nBytesRemainingInOut < 1 || !pData || iWidth <= 0 || iHeight <= 0)
+    return false;
+
   unsigned char* ptr = (unsigned char *)(*ppByte);
 
   UnitType unit_type = bIsDouble ? UNIT_TYPE_DOUBLE : UNIT_TYPE_FLOAT;
@@ -747,10 +757,11 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice (const unsigned char** ppByte,
   size_t expected_size = ((size_t)iWidth * iHeight);
 
   std::vector<std::pair<int, char*> >output_buffers;
+  std::vector<bool> seen_byte_indices(bytes, false);
 
-  unsigned char pred_code = 0;
-
-  memcpy(&pred_code, ptr, sizeof(pred_code));
+  unsigned char pred_code(0);
+  memcpy(&pred_code, ptr++, 1);
+  nBytesRemainingInOut--;
 
   if (pred_code > 2) // down the road, upper 6 bits can contain compression method.
                      // we support only Huffman in this version for now.
@@ -758,30 +769,24 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice (const unsigned char** ppByte,
     return false;
   }
 
-  ptr += sizeof(pred_code);
-
-  nBytesRemainingInOut -= sizeof(pred_code);
-
   for (size_t byte = 0; byte < bytes; byte++)
   {
     unsigned char byte_index = 0, best_level = 0;
-
     uint32_t compressed_size = 0;
 
     if (nBytesRemainingInOut < 6)
       return false;
 
-    memcpy(&byte_index, ptr, sizeof(byte_index));
+    memcpy(&byte_index, ptr++, 1);
+    nBytesRemainingInOut--;
 
-    if (byte_index >= bytes)
+    if (byte_index >= bytes || seen_byte_indices[byte_index])
       return false;
 
-    ptr += sizeof(byte_index);
-    nBytesRemainingInOut -= sizeof(byte_index);
+    seen_byte_indices[byte_index] = true;
 
-    memcpy(&best_level, ptr, sizeof(best_level));
-    ptr += sizeof(best_level);
-    nBytesRemainingInOut -= sizeof(best_level);
+    memcpy(&best_level, ptr++, 1);
+    nBytesRemainingInOut--;
 
     if (best_level > MAX_DELTA)
       return false;
@@ -794,23 +799,22 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice (const unsigned char** ppByte,
       return false;
 
     unsigned char* compressed = (unsigned char *)malloc(compressed_size);
-
     if (!compressed)
       return false;
 
     memcpy(compressed, ptr, compressed_size);
     ptr += compressed_size;
-
     nBytesRemainingInOut -= compressed_size;
 
     char* uncompressed = NULL;
-
     size_t extracted_size = fpl_Compression::extract_buffer((const char *)compressed, compressed_size, expected_size, &uncompressed);
-
     lerc_assert(expected_size == extracted_size);
 
     free(compressed);
     compressed = NULL;
+
+    if (extracted_size == 0 || extracted_size != expected_size)
+      return false;
 
     int byte_delta = best_level;
 
@@ -819,7 +823,6 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice (const unsigned char** ppByte,
     output_buffers.push_back(std::make_pair(byte_index, (char*)restored));
   }
 
- // nBytesRemainingInOut -= (ptr - *ppByte); => done above.
   *ppByte = ptr;
 
   PredictorType predictor = Predictor::getType(pred_code);
@@ -855,12 +858,11 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice (const unsigned char** ppByte,
 
   output_buffers.clear();
 
-  if (output_block_data) // ret is already set to false if memory was not allocated.
+  if (output_block_data)  // ret is already set to false if memory was not allocated.
   {
     memcpy(pData, output_block_data, bytes * iWidth * iHeight);
-
     free(output_block_data);
   }
 
-  return (ret);
+  return ret;
 }

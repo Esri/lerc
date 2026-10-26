@@ -35,7 +35,7 @@ class fpl_EsriHuffman
 public:
   static int EncodeHuffman(const char* input, size_t input_len, unsigned char** ppByte, bool use_rle);
 
-  static bool DecodeHuffman(const unsigned char* inBytes, const size_t inCount, size_t& nBytesRemainingInOut, unsigned char** output);
+  static bool DecodeHuffman(const unsigned char* inBytes, const size_t inCount, size_t expected_output_size, unsigned char** output);
 
   static int getCompressedSize(const char* input, size_t input_len);
 };

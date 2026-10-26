@@ -23,6 +23,7 @@ Contributors:  Thomas Maurer
 
 #include <algorithm>
 #include <queue>
+#include <climits>
 #include "Defines.h"
 #include "Huffman.h"
 #include "BitStuffer2.h"
@@ -91,21 +92,26 @@ bool Huffman::ComputeCompressedSize(const std::vector<int>& histo, int& numBytes
   if (!ComputeNumBytesCodeTable(numBytes))    // header and code table
     return false;
 
-  int numBits = 0, numElem = 0;
-  int size = (int)histo.size();
-  for (int i = 0; i < size; i++)
+  int64_t numBits = 0, numElem = 0;
+  size_t size = histo.size();
+  for (size_t i = 0; i < size; i++)
     if (histo[i] > 0)
     {
-      numBits += histo[i] * m_codeTable[i].first;
-      numElem += histo[i];
+      numBits += (int64_t)histo[i] * m_codeTable[i].first;
+      numElem += (int64_t)histo[i];
     }
 
   if (numElem == 0)
     return false;
 
-  int numUInts = ((((numBits + 7) >> 3) + 3) >> 2) + 1;    // add one more as the decode LUT can read ahead
-  numBytes += 4 * numUInts;    // data huffman coded
-  avgBpp = 8 * numBytes / (double)numElem;
+  int64_t numUInts = ((((numBits + 7) >> 3) + 3) >> 2) + 1;  // add one more as the decode LUT can read ahead
+  int64_t nBytes = 4 * numUInts + numBytes;  // data huffman coded
+
+  if (nBytes > (int64_t)INT_MAX)
+    return false;
+
+  numBytes = (int)nBytes;
+  avgBpp = 8 * nBytes / (double)numElem;
 
   return true;
 }
@@ -460,8 +466,7 @@ bool Huffman::BitStuffCodes(Byte** ppByte, int i0, int i1) const
     }
   }
 
-  size_t numUInts = (bitPos > 0 ? 1 : 0);
-  *ppByte += numUInts * sizeof(unsigned int);
+  *ppByte += bitPos > 0 ? sizeof(unsigned int) : 0;
 
   return true;
 }
