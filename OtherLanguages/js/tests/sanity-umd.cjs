@@ -56,6 +56,7 @@ function log(pass, message) {
     console.log("\x1b[32m%s\x1b[0m", `$PASS ${message}`);
   } else {
     console.error("\x1b[41m%s\x1b[0m", `$FAIL ${message}`);
+    process.exitCode = 1;
   }
 }
 
