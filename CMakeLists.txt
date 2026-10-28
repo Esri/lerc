@@ -18,6 +18,11 @@ file(GLOB SOURCES
 # Make an option, defaulting to shared libs, but allow -DBUILD_SHARED_LIBS=OFF
 option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
 
+if(WIN32 AND BUILD_SHARED_LIBS)
+    enable_language(RC)
+    list(APPEND SOURCES "build/windows/MS_VS2026/Lerc/Lerc.rc")
+endif()
+
 # If no SHARED or STATIC is specified explicitly, add_library will honor BUILD_SHARED_LIBS
 add_library(Lerc ${SOURCES})
 

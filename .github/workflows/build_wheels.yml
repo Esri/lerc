@@ -6,6 +6,8 @@ on:
     paths:
       - 'OtherLanguages/Python/**'
       - 'src/**'
+      - 'CMakeLists.txt'
+      - 'build/windows/**'
       - 'build/conda/**'
       - '.github/workflows/build_wheels.yml'
     tags:
@@ -14,6 +16,8 @@ on:
     paths:
       - 'OtherLanguages/Python/**'
       - 'src/**'
+      - 'CMakeLists.txt'
+      - 'build/windows/**'
       - 'build/conda/**'
       - '.github/workflows/build_wheels.yml'
   workflow_dispatch:
@@ -35,7 +39,7 @@ jobs:
 
       - name: Build C++ Binaries (Linux Container Compatibility)
         if: matrix.os == 'ubuntu-latest'
-        uses: addnab/docker-run-action@v3
+        uses: addnab/docker-run-action@4f65fabd2431ebc8d299f8e5a018d79a769ae185 # v3
         with:
           image: rockylinux:8
           options: -v ${{ github.workspace }}:/workspace
@@ -92,6 +96,33 @@ jobs:
           python setup.py build
           python -m build --wheel
 
+      - name: Verify Windows DLL Version Info
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $version = Select-String -Path cmake_build/CMakeCache.txt -Pattern '^CMAKE_PROJECT_VERSION:STATIC=(.+)$'
+          if (-not $version) { throw "CMake project version not found" }
+          $expected = "$($version.Matches[0].Groups[1].Value).0"
+
+          $wheels = @(Get-ChildItem OtherLanguages/Python/dist -Filter '*win_amd64.whl')
+          if ($wheels.Count -ne 1) { throw "Expected exactly one Windows wheel" }
+          $unpacked = Join-Path $env:RUNNER_TEMP 'pylerc-wheel-version-check'
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::ExtractToDirectory($wheels[0].FullName, $unpacked)
+          $dlls = @(Get-ChildItem $unpacked -Filter Lerc.dll -Recurse)
+          if ($dlls.Count -ne 1) { throw "Expected exactly one Lerc.dll in the wheel" }
+
+          foreach ($path in @('bin/windows/Lerc.dll', $dlls[0].FullName)) {
+            $info = (Get-Item $path).VersionInfo
+            Write-Host "${path}: FileVersion=$($info.FileVersion), ProductVersion=$($info.ProductVersion)"
+            if ($info.FileVersion -ne $expected -or $info.ProductVersion -ne $expected) {
+              throw "Expected Windows DLL version $expected"
+            }
+          }
+          if ((Get-FileHash bin/windows/Lerc.dll).Hash -ne (Get-FileHash $dlls[0].FullName).Hash) {
+            throw "The wheel does not contain the staged Windows DLL"
+          }
+
       - name: Standardize Wheel Platform Labels
         shell: bash
         run: |
@@ -139,7 +170,7 @@ jobs:
           path: bin/
 
       - name: Setup Miniconda Environment
-        uses: conda-incubator/setup-miniconda@v4
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4
         with:
           auto-update-conda: true
           auto-activate: true
