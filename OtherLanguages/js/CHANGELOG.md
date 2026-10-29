@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [4.2.0][HEAD]
+## [4.3.0][HEAD]
+* Updated wasm to v4.3
+
+## [4.2.0]
 * Updated to support lerc blobs produced by v4.2 encoder
 * Pick up security fixes in c++ decoder
 

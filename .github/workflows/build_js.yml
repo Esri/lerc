@@ -1,0 +1,43 @@
+name: Build LERC JS
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'OtherLanguages/js/**'
+      - '.github/workflows/build_js.yml'
+  pull_request:
+    paths:
+      - 'OtherLanguages/js/**'
+      - '.github/workflows/build_js.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_js:
+    name: Build and Test LERC JS
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: OtherLanguages/js
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: OtherLanguages/js/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build JavaScript Distribution
+        run: npm run build
+
+      - name: Test UMD Distribution
+        run: npm run tests:sanity:umd

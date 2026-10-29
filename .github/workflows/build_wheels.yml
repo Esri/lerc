@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build C++ Binaries (Linux Container Compatibility)
         if: matrix.os == 'ubuntu-latest'
@@ -83,7 +83,7 @@ jobs:
           fi
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -132,13 +132,13 @@ jobs:
           fi
 
       - name: Upload Platform Wheel Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pylerc-wheels-${{ matrix.os }}
           path: OtherLanguages/Python/dist/*.whl
 
       - name: Upload Binary Snippets for Conda
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: compiled-binaries-${{ matrix.os }}
           path: bin/
@@ -149,22 +149,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download Windows Binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: compiled-binaries-windows-latest
           path: bin/
 
       - name: Download MacOS Binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: compiled-binaries-macos-latest
           path: bin/
 
       - name: Download Linux Binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: compiled-binaries-ubuntu-latest
           path: bin/
@@ -190,7 +190,7 @@ jobs:
           conda build build/conda/lerc/ --output-folder conda-out/
 
       - name: Upload Conda Distribution Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pylerc-conda-package
           path: conda-out/noarch/*.conda
