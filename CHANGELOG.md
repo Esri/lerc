@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 
+## [4.3.0](https://github.com/Esri/lerc/releases/tag/v4.3.0) - 2026-10-30
+
 * Added more security fixes. Most of them found by AI. Added or fixed byte counting for the decoder to prevent a possible buffer overrun.
 
 ## [4.2.0](https://github.com/Esri/lerc/releases/tag/v4.2.0) - 2026-07-23
