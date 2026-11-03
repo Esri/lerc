@@ -37,7 +37,7 @@ struct Predictor
 {
     static int getMaxByteDelta (const PredictorType p);
 
-    static PredictorType getType (const char code);
+    static PredictorType getType (const signed char code);
 
     static unsigned char getCode (const PredictorType p);
 

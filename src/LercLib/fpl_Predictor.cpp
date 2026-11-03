@@ -31,7 +31,7 @@ int Predictor::getMaxByteDelta (const PredictorType p)
     return MAX_DELTA - Predictor::getIntDelta (p);
 }
 
-PredictorType Predictor::getType (const char code)
+PredictorType Predictor::getType (const signed char code)
 {
     if (code == 0) return PREDICTOR_NONE;
     if (code == 1) return PREDICTOR_DELTA1;

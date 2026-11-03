@@ -39,7 +39,7 @@ private:
 
   struct outBlockBuffer
   {
-    char* compressed;
+    signed char* compressed;
     uint32_t compressed_size; // assuming that tile single byte-plane compressed size will not exceed 32 bits.
 
     unsigned char byte_index; // we store byte index in case we decide to parallelize processing

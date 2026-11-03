@@ -186,13 +186,13 @@ static size_t testBlocksSize(std::vector <TestBlock>& blocks, const UnitType uni
 
    // input_len += length * unit_size; //sizeof(uint32_t);
 
-    char* plane_buffer = (char*)malloc(length);
+    signed char* plane_buffer = (signed char*)malloc(length);
 
     assert(plane_buffer);
 
     for (int byte = 0; byte < (int)unit_size; byte++)
     {
-      char* ptr = (char*)(data + start);
+      signed char* ptr = (signed char*)(data + start);
 
       ptr += byte;
 
@@ -203,7 +203,7 @@ static size_t testBlocksSize(std::vector <TestBlock>& blocks, const UnitType uni
         ptr += unit_size;
       }
 
-      size_t plane_encoded = fpl_Compression::compress_buffer((const char*)plane_buffer, length, NULL, true);
+      size_t plane_encoded = fpl_Compression::compress_buffer((const signed char*)plane_buffer, length, NULL, true);
 
       // test with delta 1:
 
@@ -213,7 +213,7 @@ static size_t testBlocksSize(std::vector <TestBlock>& blocks, const UnitType uni
 
         setDerivativePrime((unsigned char*)plane_buffer, length);
 
-        size_t plane_encoded2 = fpl_Compression::compress_buffer((const char*)plane_buffer, length, NULL, true);
+        size_t plane_encoded2 = fpl_Compression::compress_buffer((const signed char*)plane_buffer, length, NULL, true);
 
         ret += (std::min)(plane_encoded, plane_encoded2);
       }
@@ -300,7 +300,7 @@ int getBestLevel2(const unsigned char* ptr, size_t size, const int max_delta_ord
       size_t start = snippets[i].first;
       int len = snippets[i].second;
 
-      comp += fpl_Compression::compress_buffer((const char*)copy + start, len, NULL, true);
+      comp += fpl_Compression::compress_buffer((const signed char*)copy + start, len, NULL, true);
     }
 
     if (comp < best_comp || l == 0)
@@ -574,9 +574,9 @@ bool LosslessFPCompression::ComputeHuffmanCodesFltSlice (const void* pInput, boo
 
     setDerivative(block_buff, block_size, bestLevel);
 
-    char* compressed = NULL;
+    signed char* compressed = NULL;
 
-    size_t ret = fpl_Compression::compress_buffer((const char*)block_buff, block_size, &compressed);
+    size_t ret = fpl_Compression::compress_buffer((const signed char*)block_buff, block_size, &compressed);
 
     if (ret > UINT32_MAX) // cannot store compressed size in 32 bits. should not happen.
     {
@@ -610,7 +610,7 @@ bool LosslessFPCompression::ComputeHuffmanCodesFltSlice (const void* pInput, boo
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool restoreCrossBytes(std::vector<std::pair<int, char*> >& output_buffers, const size_t input_in_bytes,
+bool restoreCrossBytes(std::vector<std::pair<int, signed char*> >& output_buffers, const size_t input_in_bytes,
   const size_t cols, const size_t rows, const PredictorType predictor,
   //FILE* output,
   const UnitType unit_type, uint8_t** output_block)
@@ -667,7 +667,7 @@ bool restoreCrossBytes(std::vector<std::pair<int, char*> >& output_buffers, cons
   return true;
 }
 
-bool restoreByteOrder(std::vector<std::pair<int, char*> >& output_buffers,
+bool restoreByteOrder(std::vector<std::pair<int, signed char*> >& output_buffers,
   const size_t cols, const size_t rows, const PredictorType predictor, //FILE* output,
   const UnitType unit_type, uint8_t** output_block)
 {
@@ -756,7 +756,7 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice(const unsigned char** ppByte, 
 
   size_t expected_size = ((size_t)iWidth * iHeight);
 
-  std::vector<std::pair<int, char*> >output_buffers;
+  std::vector<std::pair<int, signed char*> >output_buffers;
   std::vector<bool> seen_byte_indices(bytes, false);
 
   unsigned char pred_code(0);
@@ -806,8 +806,8 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice(const unsigned char** ppByte, 
     ptr += compressed_size;
     nBytesRemainingInOut -= compressed_size;
 
-    char* uncompressed = NULL;
-    size_t extracted_size = fpl_Compression::extract_buffer((const char *)compressed, compressed_size, expected_size, &uncompressed);
+    signed char* uncompressed = NULL;
+    size_t extracted_size = fpl_Compression::extract_buffer((const signed char *)compressed, compressed_size, expected_size, &uncompressed);
     lerc_assert(expected_size == extracted_size);
 
     free(compressed);
@@ -820,7 +820,7 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice(const unsigned char** ppByte, 
 
     unsigned char* restored = restoreSequence((unsigned char*)uncompressed, extracted_size, byte_delta, false);
 
-    output_buffers.push_back(std::make_pair(byte_index, (char*)restored));
+    output_buffers.push_back(std::make_pair(byte_index, (signed char*)restored));
   }
 
   *ppByte = ptr;
