@@ -35,7 +35,7 @@ USING_NAMESPACE_LERC
 static const bool use_esri_huffman = true;
 static const bool use_rle = true;
 
-size_t fpl_Compression::extract_buffer(const char* data, size_t size, size_t uncompressed_size, char** output)
+size_t fpl_Compression::extract_buffer(const signed char* data, size_t size, size_t uncompressed_size, signed char** output)
 {
   if (use_esri_huffman)
   {
@@ -55,7 +55,7 @@ size_t fpl_Compression::extract_buffer(const char* data, size_t size, size_t unc
   return 0;
 }
 
-size_t fpl_Compression::compress_buffer(const char* data, size_t size, char** output, bool fast)
+size_t fpl_Compression::compress_buffer(const signed char* data, size_t size, signed char** output, bool fast)
 {
     if (use_esri_huffman)
     {

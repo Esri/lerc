@@ -33,11 +33,11 @@ NAMESPACE_LERC_START
 class fpl_EsriHuffman
 {
 public:
-  static int EncodeHuffman(const char* input, size_t input_len, unsigned char** ppByte, bool use_rle);
+  static int EncodeHuffman(const signed char* input, size_t input_len, unsigned char** ppByte, bool use_rle);
 
   static bool DecodeHuffman(const unsigned char* inBytes, const size_t inCount, size_t expected_output_size, unsigned char** output);
 
-  static int getCompressedSize(const char* input, size_t input_len);
+  static int getCompressedSize(const signed char* input, size_t input_len);
 };
 
 NAMESPACE_LERC_END

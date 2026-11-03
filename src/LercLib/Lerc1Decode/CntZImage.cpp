@@ -497,7 +497,7 @@ bool CntZImage::readZTile(const Byte** ppByte, size_t& nBytesRemaining, int i0, 
 int CntZImage::numBytesFlt(float z)
 {
   short s = (short)z;
-  char c = (char)s;
+  signed char c = (signed char)s;
   return ((float)c == z) ? 1 : ((float)s == z) ? 2 : 4;
 }
 
@@ -509,19 +509,20 @@ bool CntZImage::readFlt(const Byte** ppByte, float& z, int numBytes)
 
   if (numBytes == 1)
   {
-    char c = *((char*)ptr);
-    z = c;
+    signed char sc(0);
+    memcpy(&sc, ptr, numBytes);
+    z = static_cast<float>(sc);
   }
   else if (numBytes == 2)
   {
-    short s;
-    memcpy(&s, ptr, sizeof(short));
-    SWAP_2(s);
-    z = s;
+    short sh(0);
+    memcpy(&sh, ptr, numBytes);
+    SWAP_2(sh);
+    z = static_cast<float>(sh);
   }
   else if (numBytes == 4)
   {
-    memcpy(&z, ptr, sizeof(float));
+    memcpy(&z, ptr, numBytes);
     SWAP_4(z);
   }
   else

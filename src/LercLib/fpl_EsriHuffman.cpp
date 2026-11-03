@@ -292,7 +292,7 @@ void ComputeHuffmanCodes(const unsigned char* data, size_t len, int& numBytes, s
     numBytes = nBytes;
 }
 
-int fpl_EsriHuffman::getCompressedSize (const char *input, size_t input_len)
+int fpl_EsriHuffman::getCompressedSize (const signed char *input, size_t input_len)
 {
     int numBytes = 0;
     std::vector<std::pair<unsigned short, unsigned int> > m_huffmanCodes;
@@ -315,7 +315,7 @@ int fpl_EsriHuffman::getCompressedSize (const char *input, size_t input_len)
 //  output buffer, its length. If output len isn't sufficient, returns 0.
 //////////////////////////////////////////////////////////////////////////////////
 
-int fpl_EsriHuffman::EncodeHuffman (const char *input, size_t input_len, unsigned char ** ppByte, bool use_rle)
+int fpl_EsriHuffman::EncodeHuffman (const signed char *input, size_t input_len, unsigned char ** ppByte, bool use_rle)
 {
     int numBytes = 0;
     std::vector<std::pair<unsigned short, unsigned int> > m_huffmanCodes;

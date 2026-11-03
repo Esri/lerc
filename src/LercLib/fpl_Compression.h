@@ -35,8 +35,8 @@ NAMESPACE_LERC_START
 class fpl_Compression
 {
 public:
-  static size_t compress_buffer(const char* data, size_t size, char** output, bool fast = false);
-  static size_t extract_buffer(const char* data, const size_t size, size_t uncompressed_size, char** output = 0);
+  static size_t compress_buffer(const signed char* data, size_t size, signed char** output, bool fast = false);
+  static size_t extract_buffer(const signed char* data, const size_t size, size_t uncompressed_size, signed char** output = 0);
 
 private:
   static long getEntropySize(const unsigned char* ptr, const size_t size);
