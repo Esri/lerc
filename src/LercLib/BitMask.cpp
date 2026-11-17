@@ -63,12 +63,13 @@ bool BitMask::SetSize(int nCols, int nRows) noexcept
   {
     Clear();
 
-    size_t nPix = (size_t)nCols * nRows;
-    m_pBits = new(std::nothrow) Byte[(nPix + 7) >> 3];
+    uint64_t nPix = (uint64_t)nCols * nRows;
+    uint64_t nBytes = (nPix + 7) >> 3;
+    m_pBits = new(std::nothrow) Byte[nBytes];
     if (!m_pBits)
       return false;
 
-    memset(m_pBits, 0, Size());  // init
+    memset(m_pBits, 0, nBytes);  // init
 
     m_nCols = nCols;
     m_nRows = nRows;
