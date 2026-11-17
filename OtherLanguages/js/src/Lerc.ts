@@ -59,11 +59,21 @@ interface LercHeaderInfo {
 
 interface DecodeOptions {
   inputOffset?: number;
+  /**
+   * For n-depth LERC only.
+   * When true, return depth values pixel-interleaved as [p1_dep1, p1_dep2, ..., p1_depN, p2_dep1, ...].
+   * Default is not interleaved, values are returned as [p1_dep1, p2_dep1, ..., p1_dep2, p2_dep2, ...].
+   */
   returnInterleaved?: boolean;
   /**
    * deprecated, will be removed in next release. use returnInterleaved instead
    */
   returnPixelInterleavedDims?: boolean;
+  /**
+   * Value assigned to masked noData pixels. Does not replace internally encoded noData values in other pixels for n-depth LERC.
+   *
+   * Note: Mask is the preferred way to check noData pixels. Use this option only if necessary, as the specified noDataValue may collide with actual pixel values.
+   */
   noDataValue?: number;
 }
 
@@ -488,7 +498,8 @@ export function decode(input: ArrayBuffer | Uint8Array, options: DecodeOptions =
       const bsq = swapDepthValuesOrder(band, numPixels, depthCount, pixelTypeInfo.ctor, true);
       pixels.push(bsq);
     }
-    masks.push(maskData.subarray(i * numElementsPerBand, (i + 1) * numElementsPerBand));
+    // mask size is not impacted by depth count
+    masks.push(maskData.subarray(i * numPixels, (i + 1) * numPixels));
   }
 
   // get unified mask
@@ -514,10 +525,18 @@ export function decode(input: ArrayBuffer | Uint8Array, options: DecodeOptions =
       if (validPixelCount === 0) {
         band.fill(noDataValue);
       } else {
-        const bandMask = masks[i] || mask;
+        const bandMask = masks[maskCount === 1 ? 0 : i];
         for (let j = 0; j < numPixels; j++) {
           if (bandMask[j] === 0) {
-            band[j] = noDataValue;
+            if (depthCount > 1) {
+              // user provided noDataValue only replaces masked pixels, not internal encoded noData values.
+              for (let k = 0; k < depthCount; k++) {
+                const index = swap ? j * depthCount + k : k * numPixels + j;
+                band[index] = noDataValue;
+              }
+            } else {
+              band[j] = noDataValue;
+            }
           }
         }
       }

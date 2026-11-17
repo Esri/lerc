@@ -39,7 +39,17 @@ export interface LercHeaderInfo {
 
 export interface DecodeOptions {
   inputOffset?: number;
+  /**
+   * For n-depth LERC only.
+   * When true, return depth values pixel-interleaved as [p1_dep1, p1_dep2, ..., p1_depN, p2_dep1, ...].
+   * Default is not interleaved, values are returned as [p1_dep1, p2_dep1, ..., p1_dep2, p2_dep2, ...].
+   */
   returnInterleaved?: boolean;
+  /**
+   * Value assigned to masked noData pixels. Does not replace internally encoded noData values in other pixels for n-depth LERC.
+   *
+   * Note: Mask is the preferred way to check noData pixels. Use this option only if necessary, as the specified noDataValue may collide with actual pixel values.
+   */
   noDataValue?: number;
 }
 
