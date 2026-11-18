@@ -121,7 +121,7 @@ const pixelTypeInfoMap: PixelTypeInfo[] = [
     pixelType: "U16",
     size: 2,
     ctor: Uint16Array,
-    range: [0, 65536]
+    range: [0, 65535]
   },
   {
     pixelType: "S32",
@@ -133,7 +133,7 @@ const pixelTypeInfoMap: PixelTypeInfo[] = [
     pixelType: "U32",
     size: 4,
     ctor: Uint32Array,
-    range: [0, 4294967296]
+    range: [0, 4294967295]
   },
   {
     pixelType: "F32",
