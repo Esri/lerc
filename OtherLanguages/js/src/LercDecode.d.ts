@@ -38,6 +38,7 @@ export interface LercHeaderInfo {
 }
 
 export interface DecodeOptions {
+  /** The number of bytes to skip in the input byte stream. A valid LERC stream is expected at that position. */
   inputOffset?: number;
   /**
    * For n-depth LERC only.
@@ -54,16 +55,27 @@ export interface DecodeOptions {
 }
 
 export interface LercData {
+  /** Width of decoded image. */
   width: number;
+  /** Height of decoded image. */
   height: number;
+  /** The type of pixels represented in the output. */
   pixelType: LercPixelType;
+  /** [statistics_band1, statistics_band2, ...] Each element is a statistics object representing min and max values. */
   statistics: BandStats[];
+  /** [band1, band2, ...] Each band is a typed array of width * height * depthCount. */
   pixels: PixelTypedArray[];
+  /** Per-pixel mask with a size of width * height, or null if all pixels are valid. */
   mask: Uint8Array<ArrayBuffer> | null;
+  /** @deprecated Use depthCount instead. */
   dimCount: number;
+  /** Depth count. */
   depthCount: number;
+  /** Number of valid pixels. */
   validPixelCount: number;
+  /** Available when each band has a distinct mask. Each mask has a size of width * height. */
   bandMasks: Uint8Array<ArrayBuffer>[] | null;
+  /** For n-depth 4D data only. Per-band noData values from metadata when present in the blob. */
   noDataValues: (number | null)[] | null;
 }
 

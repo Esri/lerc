@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [4.3.0][HEAD]
+## [4.3.1][HEAD]
+* Fixed band mask extraction for n-band n-depth blobs
+* Addressed potential memory leak in case of wasm exception.
+* Fixed optional masked pixel noDataValue replacement for n-depth images and prevented potential overflow.
+
+## [4.3.0]
 * Updated wasm to v4.3
 
 ## [4.2.0]
