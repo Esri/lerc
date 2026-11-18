@@ -27,7 +27,7 @@ Original coding 2021 Yuriy Yakimenko
 #include <assert.h>
 #include <cstdlib>
 #include <stdint.h>
-#include <limits>
+#include <climits>
 #include <algorithm>
 
 USING_NAMESPACE_LERC
