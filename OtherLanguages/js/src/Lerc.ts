@@ -204,6 +204,9 @@ function initLercLib(lercFactory: LercFactory): void {
     const lens = byteLengths.map((len) => normalizeByteLength(len));
     const byteLength = lens.reduce((a, b) => a + b);
     const ret = _malloc(byteLength);
+    if (ret === 0) {
+      throw new Error("Lerc WASM memory allocation failed");
+    }
     heapU8 = new Uint8Array(memory.buffer);
     let prev = lens[0];
     lens[0] = ret;
@@ -222,130 +225,115 @@ function initLercLib(lercFactory: LercFactory): void {
     const infoArr = new Uint8Array(infoArrSize * 4);
     const rangeArr = new Uint8Array(rangeArrSize * 8);
     const [ptr, ptr_info, ptr_range] = mallocMultiple([blob.length, infoArr.length, rangeArr.length]);
-    heapU8.set(blob, ptr);
-    heapU8.set(infoArr, ptr_info);
-    heapU8.set(rangeArr, ptr_range);
+    let ptr_stats = 0;
+    try {
+      heapU8.set(blob, ptr);
+      heapU8.set(infoArr, ptr_info);
+      heapU8.set(rangeArr, ptr_range);
 
-    // decode
-    let hr = _lerc_getBlobInfo(ptr, blob.length, ptr_info, ptr_range, infoArrSize, rangeArrSize);
-    if (hr) {
-      _free(ptr);
-      throw new Error(`lerc-getBlobInfo: error code is ${hr}`);
-    }
-
-    heapU8 = new Uint8Array(memory.buffer);
-    copyBytesFromWasm(heapU8, ptr_info, infoArr);
-    copyBytesFromWasm(heapU8, ptr_range, rangeArr);
-    const lercInfoArr = new Uint32Array(infoArr.buffer);
-    const statsArr = new Float64Array(rangeArr.buffer);
-    const [
-      version,
-      dataType,
-      dimCount,
-      width,
-      height,
-      bandCount,
-      validPixelCount,
-      blobSize,
-      maskCount,
-      depthCount,
-      bandCountWithNoData
-    ] = lercInfoArr;
-    // lerc1 encodes initial min/max value (3.4028234663852886e+38), not aligned with values in pixel array
-    const isAllNoData = validPixelCount === 0;
-    const headerInfo: LercHeaderInfo = {
-      version,
-      dimCount,
-      width,
-      height,
-      validPixelCount,
-      bandCount,
-      blobSize,
-      maskCount,
-      depthCount,
-      dataType,
-      minValue: statsArr[0],
-      maxValue: statsArr[1],
-      maxZerror: statsArr[2],
-      statistics: [],
-      bandCountWithNoData
-    };
-
-    if (bandCountWithNoData && depthCount > 1) {
-      _free(ptr);
-      return headerInfo;
-    }
-
-    if (depthCount === 1 && bandCount === 1) {
-      _free(ptr);
-      // lerc1 data could reach here, needs special handling of min/max values
-      const minValue = isAllNoData ? 0 : statsArr[0];
-      const maxValue = isAllNoData ? 0 : statsArr[1];
-      headerInfo.statistics.push({ minValue, maxValue });
-      return headerInfo;
-    }
-
-    // get data ranges for nband / ndim blob
-    // to reuse blob ptr we need to handle dynamic memory allocation
-    const numStatsBytes = depthCount * bandCount * 8;
-    const bandStatsMinArr = new Uint8Array(numStatsBytes);
-    const bandStatsMaxArr = new Uint8Array(numStatsBytes);
-    let ptr_blob = ptr;
-    let ptr_min = 0;
-    let ptr_max = 0;
-    let blob_freed = false;
-    if (heapU8.byteLength < ptr + numStatsBytes * 2) {
-      _free(ptr);
-      blob_freed = true;
-      [ptr_blob, ptr_min, ptr_max] = mallocMultiple([blob.length, numStatsBytes, numStatsBytes]);
-      heapU8.set(blob, ptr_blob);
-    } else {
-      [ptr_min, ptr_max] = mallocMultiple([numStatsBytes, numStatsBytes]);
-    }
-    heapU8.set(bandStatsMinArr, ptr_min);
-    heapU8.set(bandStatsMaxArr, ptr_max);
-    hr = _lerc_getDataRanges(ptr_blob, blob.length, depthCount, bandCount, ptr_min, ptr_max);
-    if (hr) {
-      _free(ptr_blob);
-      if (!blob_freed) {
-        // we have two pointers in two wasm function calls
-        _free(ptr_min);
+      // decode
+      let hr = _lerc_getBlobInfo(ptr, blob.length, ptr_info, ptr_range, infoArrSize, rangeArrSize);
+      if (hr) {
+        throw new Error(`lerc-getBlobInfo: error code is ${hr}`);
       }
-      throw new Error(`lerc-getDataRanges: error code is ${hr}`);
-    }
-    heapU8 = new Uint8Array(memory.buffer);
-    copyBytesFromWasm(heapU8, ptr_min, bandStatsMinArr);
-    copyBytesFromWasm(heapU8, ptr_max, bandStatsMaxArr);
 
-    // update statistics array
-    const allMinValues = new Float64Array(bandStatsMinArr.buffer);
-    const allMaxValues = new Float64Array(bandStatsMaxArr.buffer);
-    const statistics = headerInfo.statistics;
-    for (let i = 0; i < bandCount; i++) {
-      if (depthCount > 1) {
-        const minValues = allMinValues.slice(i * depthCount, (i + 1) * depthCount);
-        const maxValues = allMaxValues.slice(i * depthCount, (i + 1) * depthCount);
-        const minValue = isAllNoData ? 0 : Math.min.apply(null, minValues as unknown as number[]);
-        const maxValue = isAllNoData ? 0 : Math.max.apply(null, maxValues as unknown as number[]);
-        statistics.push({
-          minValue,
-          maxValue,
-          dimStats: { minValues, maxValues },
-          depthStats: { minValues, maxValues }
-        });
-      } else {
-        statistics.push({
-          minValue: isAllNoData ? 0 : allMinValues[i],
-          maxValue: isAllNoData ? 0 : allMaxValues[i]
-        });
+      heapU8 = new Uint8Array(memory.buffer);
+      copyBytesFromWasm(heapU8, ptr_info, infoArr);
+      copyBytesFromWasm(heapU8, ptr_range, rangeArr);
+      const lercInfoArr = new Uint32Array(infoArr.buffer);
+      const statsArr = new Float64Array(rangeArr.buffer);
+      const [
+        version,
+        dataType,
+        dimCount,
+        width,
+        height,
+        bandCount,
+        validPixelCount,
+        blobSize,
+        maskCount,
+        depthCount,
+        bandCountWithNoData
+      ] = lercInfoArr;
+      // lerc1 encodes initial min/max value (3.4028234663852886e+38), not aligned with values in pixel array
+      const isAllNoData = validPixelCount === 0;
+      const headerInfo: LercHeaderInfo = {
+        version,
+        dimCount,
+        width,
+        height,
+        validPixelCount,
+        bandCount,
+        blobSize,
+        maskCount,
+        depthCount,
+        dataType,
+        minValue: statsArr[0],
+        maxValue: statsArr[1],
+        maxZerror: statsArr[2],
+        statistics: [],
+        bandCountWithNoData
+      };
+
+      if (bandCountWithNoData && depthCount > 1) {
+        return headerInfo;
+      }
+
+      if (depthCount === 1 && bandCount === 1) {
+        // lerc1 data could reach here, needs special handling of min/max values
+        const minValue = isAllNoData ? 0 : statsArr[0];
+        const maxValue = isAllNoData ? 0 : statsArr[1];
+        headerInfo.statistics.push({ minValue, maxValue });
+        return headerInfo;
+      }
+
+      // get data ranges for nband / ndim blob
+      // heap growth preserves blob pointer ; mallocMultiple refreshes heapU8 view.
+      const numStatsBytes = depthCount * bandCount * 8;
+      const bandStatsMinArr = new Uint8Array(numStatsBytes);
+      const bandStatsMaxArr = new Uint8Array(numStatsBytes);
+      const [ptr_min, ptr_max] = mallocMultiple([numStatsBytes, numStatsBytes]);
+      ptr_stats = ptr_min;
+      heapU8.set(bandStatsMinArr, ptr_min);
+      heapU8.set(bandStatsMaxArr, ptr_max);
+      hr = _lerc_getDataRanges(ptr, blob.length, depthCount, bandCount, ptr_min, ptr_max);
+      if (hr) {
+        throw new Error(`lerc-getDataRanges: error code is ${hr}`);
+      }
+      heapU8 = new Uint8Array(memory.buffer);
+      copyBytesFromWasm(heapU8, ptr_min, bandStatsMinArr);
+      copyBytesFromWasm(heapU8, ptr_max, bandStatsMaxArr);
+
+      // update statistics array
+      const allMinValues = new Float64Array(bandStatsMinArr.buffer);
+      const allMaxValues = new Float64Array(bandStatsMaxArr.buffer);
+      const statistics = headerInfo.statistics;
+      for (let i = 0; i < bandCount; i++) {
+        if (depthCount > 1) {
+          const minValues = allMinValues.slice(i * depthCount, (i + 1) * depthCount);
+          const maxValues = allMaxValues.slice(i * depthCount, (i + 1) * depthCount);
+          const minValue = isAllNoData ? 0 : Math.min.apply(null, minValues as unknown as number[]);
+          const maxValue = isAllNoData ? 0 : Math.max.apply(null, maxValues as unknown as number[]);
+          statistics.push({
+            minValue,
+            maxValue,
+            dimStats: { minValues, maxValues },
+            depthStats: { minValues, maxValues }
+          });
+        } else {
+          statistics.push({
+            minValue: isAllNoData ? 0 : allMinValues[i],
+            maxValue: isAllNoData ? 0 : allMaxValues[i]
+          });
+        }
+      }
+      return headerInfo;
+    } finally {
+      _free(ptr);
+      if (ptr_stats) {
+        _free(ptr_stats);
       }
     }
-    _free(ptr_blob);
-    if (!blob_freed) {
-      // we have two pointers in two wasm function calls
-      _free(ptr_min);
-    }
-    return headerInfo;
   };
   lercLib.decode = (blob: Uint8Array, blobInfo: LercHeaderInfo) => {
     const { maskCount, depthCount, bandCount, width, height, dataType, bandCountWithNoData, validPixelCount } =
@@ -376,50 +364,52 @@ function initLercLib(lercFactory: LercFactory): void {
       useNoDataArr.length,
       noDataArr.length
     ]);
-    heapU8.set(blob, ptr);
-    heapU8.set(maskData, ptr_mask);
-    heapU8.set(data, ptr_data);
-    heapU8.set(useNoDataArr, ptr_useNoData);
-    heapU8.set(noDataArr, ptr_noData);
+    try {
+      heapU8.set(blob, ptr);
+      heapU8.set(maskData, ptr_mask);
+      heapU8.set(data, ptr_data);
+      heapU8.set(useNoDataArr, ptr_useNoData);
+      heapU8.set(noDataArr, ptr_noData);
 
-    const hr = _lerc_decode_4D(
-      ptr,
-      blob.length,
-      maskCount,
-      ptr_mask,
-      depthCount,
-      width,
-      height,
-      bandCount,
-      dataType,
-      ptr_data,
-      ptr_useNoData,
-      ptr_noData
-    );
-    if (hr) {
-      _free(ptr);
-      throw new Error(`lerc-decode: error code is ${hr}`);
-    }
-    heapU8 = new Uint8Array(memory.buffer);
-    copyBytesFromWasm(heapU8, ptr_data, data);
-    copyBytesFromWasm(heapU8, ptr_mask, maskData);
-    let noDataValues: (number | null)[] | null = null;
-    if (bandCountWithNoData) {
-      copyBytesFromWasm(heapU8, ptr_useNoData, useNoDataArr);
-      copyBytesFromWasm(heapU8, ptr_noData, noDataArr);
-      noDataValues = [];
-      const noDataArr64 = new Float64Array(noDataArr.buffer);
-      for (let i = 0; i < useNoDataArr.length; i++) {
-        noDataValues.push(useNoDataArr[i] ? noDataArr64[i] : null);
+      const hr = _lerc_decode_4D(
+        ptr,
+        blob.length,
+        maskCount,
+        ptr_mask,
+        depthCount,
+        width,
+        height,
+        bandCount,
+        dataType,
+        ptr_data,
+        ptr_useNoData,
+        ptr_noData
+      );
+      if (hr) {
+        throw new Error(`lerc-decode: error code is ${hr}`);
       }
-    }
+      heapU8 = new Uint8Array(memory.buffer);
+      copyBytesFromWasm(heapU8, ptr_data, data);
+      copyBytesFromWasm(heapU8, ptr_mask, maskData);
+      let noDataValues: (number | null)[] | null = null;
+      if (bandCountWithNoData) {
+        copyBytesFromWasm(heapU8, ptr_useNoData, useNoDataArr);
+        copyBytesFromWasm(heapU8, ptr_noData, noDataArr);
+        noDataValues = [];
+        const noDataArr64 = new Float64Array(noDataArr.buffer);
+        for (let i = 0; i < useNoDataArr.length; i++) {
+          noDataValues.push(useNoDataArr[i] ? noDataArr64[i] : null);
+        }
+      }
 
-    _free(ptr);
-    return {
-      data,
-      maskData,
-      noDataValues
-    };
+      return {
+        data,
+        maskData,
+        noDataValues
+      };
+    } finally {
+      _free(ptr);
+    }
   };
 }
 
