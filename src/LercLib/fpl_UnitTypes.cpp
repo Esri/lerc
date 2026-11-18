@@ -154,29 +154,28 @@ uint64_t ADD64_BIT_DBL(const uint64_t& a, const uint64_t& b)
   return ret;
 }
 
-size_t UnitTypes::size (const UnitType type)
+size_t UnitTypes::size(const UnitType type)
 {
-    switch (type)
-    {
+  switch (type)
+  {
 #ifndef FLT_TYPES_ONLY
-        case UNIT_TYPE_BYTE:
-            return 1;
-        case UNIT_TYPE_SHORT:
-            return 2;
-        case UNIT_TYPE_LONG:
-            return 4;
-        case UNIT_TYPE_64_BIT:
-            return 8;
+  case UNIT_TYPE_BYTE:
+    return 1;
+  case UNIT_TYPE_SHORT:
+    return 2;
+  case UNIT_TYPE_LONG:
+    return 4;
+  case UNIT_TYPE_64_BIT:
+    return 8;
 #endif
-        case UNIT_TYPE_FLOAT:
-            return 4;
-        case UNIT_TYPE_DOUBLE:
-            assert(sizeof(double) == 8);
-            return 8;
-        default:
-            assert(0);
-            return 0;
-    }
+  case UNIT_TYPE_FLOAT:
+    return 4;
+  case UNIT_TYPE_DOUBLE:
+    return 8;
+  default:
+    assert(0);
+    return 0;
+  }
 }
 
 /////////////////////////////////////////////////////////
@@ -204,7 +203,7 @@ UnitType UnitTypes::type (int iBytes, bool bFloatType)
         return UNIT_TYPE_64_BIT;
     }
 
-    assert (0);
+    assert(0);
 
     return UNIT_TYPE_UNKNOWN;
 }
@@ -216,7 +215,7 @@ unsigned char UnitTypes::unitCode (const UnitType type)
     if (type >= UNIT_TYPE_BYTE && type <= UNIT_TYPE_DOUBLE)
         return (unsigned char)type;
 
-    assert (0);
+    assert(0);
 
     return 0;
 }
@@ -259,7 +258,7 @@ void setDerivativeGeneric (T * pData, const size_t count, const int nLevel, cons
 
 void UnitTypes::setDerivative (const UnitType type, void *pData, const size_t nCount, const int nLevel, const int start_level)
 {
-    assert (nCount > 0);
+    assert(nCount > 0);
 
     if (nLevel == 0) return;
 
@@ -287,13 +286,13 @@ void UnitTypes::setDerivative (const UnitType type, void *pData, const size_t nC
 #endif
     else if (type == UNIT_TYPE_DOUBLE)
     {
-      //  assert (0); // TODO
+        // assert(0);  // TODO
         setDerivativeDouble ((uint64_t *)pData, nCount, nLevel, start_level);
     }
     else
     {
         //printf ("Unknown unit type: %d\n", type);
-        assert (0);
+        assert(0);
     }
 }
 
@@ -301,9 +300,8 @@ void UnitTypes::setDerivative (const UnitType type, void *pData, const size_t nC
 
 void setRowsDerivativeFloat (uint32_t *pData, const size_t nCols, const size_t nRows, const int nLevel, int phase)
 {
-    assert (nCols > 0 && nRows > 0);
-
-    assert (nLevel >= 2) ;
+    assert(nCols > 0 && nRows > 0);
+    assert(nLevel >= 2);
 
     uint32_t * row_data = pData;
 
@@ -329,9 +327,8 @@ void setRowsDerivativeFloat (uint32_t *pData, const size_t nCols, const size_t n
 
 void setRowsDerivativeDouble (uint64_t *pData, const size_t nCols, const size_t nRows, const int nLevel, int phase)
 {
-    assert (nCols > 0 && nRows > 0);
-
-    assert (nLevel >= 2) ;
+    assert(nCols > 0 && nRows > 0);
+    assert(nLevel >= 2);
 
     uint64_t * row_data = pData;
 
@@ -359,9 +356,8 @@ void setRowsDerivativeDouble (uint64_t *pData, const size_t nCols, const size_t 
 template <typename T>
 void setRowsDerivativeGeneric (T * pData, const size_t nCols, const size_t nRows, const int nLevel, int phase)
 {
-    assert (nCols > 0 && nRows > 0);
-
-    assert (nLevel >= 2) ;
+    assert(nCols > 0 && nRows > 0);
+    assert(nLevel >= 2);
 
     T * row_data = pData;
 
@@ -394,9 +390,8 @@ void setRowsDerivativeGeneric (T * pData, const size_t nCols, const size_t nRows
 
 void UnitTypes::setRowsDerivative (const UnitType type, void *pData, const size_t nCols, const size_t nRows, const int nLevel, int phase)
 {
-    assert (nCols > 0 && nRows > 0);
-
-    assert (nLevel >= 2) ;
+    assert(nCols > 0 && nRows > 0);
+    assert(nLevel >= 2);
 
     if (type == UNIT_TYPE_FLOAT )
     {
@@ -426,7 +421,7 @@ void UnitTypes::setRowsDerivative (const UnitType type, void *pData, const size_
     }
     else
     {
-        assert (0);
+        assert(0);
     }
 
 }
@@ -435,9 +430,8 @@ void UnitTypes::setRowsDerivative (const UnitType type, void *pData, const size_
 
 void setCrossDerivativeFloat (uint32_t *pData, const size_t nCols, const size_t nRows, const int nLevel, int phase)
 {
-    assert (nCols > 0 && nRows > 0);
-
-    assert (nLevel >= 2) ;
+    assert(nCols > 0 && nRows > 0);
+    assert(nLevel >= 2);
 
     uint32_t * row_data = pData;
 
@@ -476,9 +470,8 @@ void setCrossDerivativeFloat (uint32_t *pData, const size_t nCols, const size_t 
 
 void setCrossDerivativeDouble (uint64_t *pData, const size_t nCols, const size_t nRows, const int nLevel, int phase)
 {
-    assert (nCols > 0 && nRows > 0);
-
-    assert (nLevel >= 2) ;
+    assert(nCols > 0 && nRows > 0);
+    assert(nLevel >= 2);
 
     uint64_t * row_data = pData;
 
@@ -519,9 +512,8 @@ void setCrossDerivativeDouble (uint64_t *pData, const size_t nCols, const size_t
 template <typename T>
 void setCrossDerivativeGeneric (T *pData, const size_t nCols, const size_t nRows, const int nLevel, int phase)
 {
-    assert (nCols > 0 && nRows > 0);
-
-    assert (nLevel >= 2) ;
+    assert(nCols > 0 && nRows > 0);
+    assert(nLevel >= 2);
 
     T * row_data = pData;
 
@@ -563,9 +555,8 @@ void setCrossDerivativeGeneric (T *pData, const size_t nCols, const size_t nRows
 
 void UnitTypes::setCrossDerivative (const UnitType type, void *pData, const size_t nCols, const size_t nRows, const int nLevel, int phase)
 {
-    assert (nCols > 0 && nRows > 0);
-
-    assert (nLevel >= 2) ;
+    assert(nCols > 0 && nRows > 0);
+    assert(nLevel >= 2);
 
     if (type == UNIT_TYPE_FLOAT )
     {
@@ -596,9 +587,8 @@ void UnitTypes::setCrossDerivative (const UnitType type, void *pData, const size
     }
     else
     {
-        assert (0);
+        assert(0);
     }
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -616,7 +606,7 @@ void UnitTypes::setBlockDerivative (const UnitType type, void *pData, const size
     else if (start_level == 2 && level == 2)
         phase = 2;
 
-    assert (phase >= 0);
+    assert(phase >= 0);
 
     setRowsDerivative (type, pData, nCols, nRows, 2, phase);
 }
@@ -766,7 +756,7 @@ void UnitTypes::restoreBlockSequence (const int delta, void *pData, const size_t
     }
     else
     {
-        assert (0);
+        assert(0);
     }
 }
 
@@ -919,8 +909,6 @@ void UnitTypes::restoreCrossBytes (const int delta, void *pData, const size_t nC
     }
     else
     {
-        assert (0);
+        assert(0);
     }
-
 }
-

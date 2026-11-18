@@ -57,31 +57,24 @@ size_t fpl_Compression::extract_buffer(const signed char* data, size_t size, siz
 
 size_t fpl_Compression::compress_buffer(const signed char* data, size_t size, signed char** output, bool fast)
 {
-    if (use_esri_huffman)
+  if (use_esri_huffman)
+  {
+    if (fast && !output)
     {
-        if (fast && !output)
-        {
-            //  return getCompressedSize (data, size);
-
-            return getEntropySize((unsigned char*)data, size);  // this is approximate but fastest
-        }
-
-        assert(size > 0);
-
-        int ret = fpl_EsriHuffman::EncodeHuffman(data, size, (unsigned char**)output, use_rle);
-
-        if (ret < 0)
-        {
-#ifdef _DEBUG
-          //  fprintf(stderr, "Huffman failed. Input size: %zd. Code: %d\n", size, ret);
-#endif
-          return (size_t)UINT_MAX + 1;
-        }
-
-        return ret;
+      // return getCompressedSize (data, size);
+      return getEntropySize((unsigned char*)data, size);  // this is approximate but fastest
     }
 
-    return 0;
+    assert(size > 0);
+
+    int ret = fpl_EsriHuffman::EncodeHuffman(data, size, (unsigned char**)output, use_rle);
+    if (ret < 0)
+      return (size_t)UINT_MAX + 1;
+
+    return ret;
+  }
+
+  return 0;
 }
 
 long fpl_Compression::getEntropySize(const unsigned char* ptr, const size_t size)

@@ -27,12 +27,10 @@ Original coding 2021 Yuriy Yakimenko
 #include <assert.h>
 #include <cstdlib>
 #include <stdint.h>
-#include <limits>
+#include <climits>
 #include <algorithm>
 
 USING_NAMESPACE_LERC
-
-void lerc_assert(bool v);
 
 bool decodePackBits(const unsigned char* ptr, const size_t size, size_t expected, unsigned char** output)
 {
@@ -174,7 +172,7 @@ long getPackBitsSize (const unsigned char *ptr, const size_t size, long * limit)
 
     int literal_len_pos = -1;
 
-    long m_limit = *limit ? *limit : (std::numeric_limits<long>::max)();
+    long m_limit = *limit ? *limit : INT_MAX;
 
     for (size_t i = 0; i <= size; )
     {
@@ -229,9 +227,7 @@ long getPackBitsSize (const unsigned char *ptr, const size_t size, long * limit)
             {
                 curr += 2;
             }
-
         }
-
     }
 
     return curr;
@@ -320,7 +316,7 @@ int fpl_EsriHuffman::EncodeHuffman (const signed char *input, size_t input_len, 
     int numBytes = 0;
     std::vector<std::pair<unsigned short, unsigned int> > m_huffmanCodes;
 
-    ComputeHuffmanCodes ((const unsigned char *)input, input_len, numBytes, m_huffmanCodes);
+    ComputeHuffmanCodes((const unsigned char *)input, input_len, numBytes, m_huffmanCodes);
 
     if (numBytes == -1)
     {
@@ -336,11 +332,11 @@ int fpl_EsriHuffman::EncodeHuffman (const signed char *input, size_t input_len, 
         ptr[0] = HUFFMAN_RLE; // RLE flag
         ptr[1] = input[0];
 
-        lerc_assert(input_len <= 0xffffffff);
+        assert(input_len <= 0xffffffff);
 
         uint32_t len = (uint32_t)input_len;
 
-        memcpy (ptr + 2, &len, 4);
+        memcpy(ptr + 2, &len, 4);
 
         return 6;
     }
@@ -352,18 +348,12 @@ int fpl_EsriHuffman::EncodeHuffman (const signed char *input, size_t input_len, 
 
     if (use_rle)
     {
-        long limit = (std::min) (numBytes, (int)input_len);
+        long limit = (std::min)(numBytes, (int)input_len);
 
-        long rle_len = getPackBitsSize ((unsigned char *)input, input_len, &limit);
+        long rle_len = getPackBitsSize((unsigned char *)input, input_len, &limit);
         if (rle_len > 0 && (rle_len < numBytes) && (rle_len < (long)input_len))
         {
-            if ((rle_len + 1) <= 0) // rle_len is maximum long value, so adding 1 results in overflow.
-            {
-              return HUFF_UNEXPECTED; // this should not normally happen.
-            }
-
-            *ppByte = (unsigned char *)malloc (rle_len + 1);
-
+            *ppByte = (unsigned char *)malloc(rle_len + 1);
             if (*ppByte == NULL)
               return MEMORY_ALLOC_FAIL;
 
@@ -379,8 +369,7 @@ int fpl_EsriHuffman::EncodeHuffman (const signed char *input, size_t input_len, 
 
     if (numBytes >= (int)input_len) // huffman will take more space than uncompressed. Don't encode.
     {
-        *ppByte = (unsigned char *)malloc (input_len + 1);
-
+        *ppByte = (unsigned char *)malloc(input_len + 1);
         if (*ppByte == NULL)
           return MEMORY_ALLOC_FAIL;
 
@@ -391,7 +380,7 @@ int fpl_EsriHuffman::EncodeHuffman (const signed char *input, size_t input_len, 
         return (int)input_len + 1;
     }
 
-    *ppByte = (unsigned char *)malloc (numBytes + 1);
+    *ppByte = (unsigned char *)malloc(numBytes + 1);
 
     if (*ppByte == NULL)
       return MEMORY_ALLOC_FAIL;
@@ -496,7 +485,6 @@ bool fpl_EsriHuffman::DecodeHuffman(const unsigned char* inBytes, const size_t i
   {
     unsigned char* unpacked = NULL;
     bool rv = decodePackBits(ppByte + 1, inCount - 1, expected_output_size, &unpacked);
-    lerc_assert(rv);
     *output = unpacked;
     return rv;
   }

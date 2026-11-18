@@ -33,12 +33,6 @@ Original coding 2021 Yuriy Yakimenko
 
 USING_NAMESPACE_LERC
 
-void lerc_assert(bool v)
-{
-  if (v == false)
-    throw "Assertion failed";
-}
-
 template<typename T>
 size_t getMinIndex(const T* array, size_t size)
 {
@@ -66,7 +60,7 @@ static void generateListOfTestBlocks(const int width, const int height, std::vec
 {
   size_t size = (size_t)width * height;
 
-  lerc_assert(size > 0);
+  assert(size > 0);
 
   const int block_target_size = 8 * 1024;
 
@@ -615,11 +609,11 @@ bool restoreCrossBytes(std::vector<std::pair<int, signed char*> >& output_buffer
   //FILE* output,
   const UnitType unit_type, uint8_t** output_block)
 {
-  lerc_assert(predictor == PREDICTOR_NONE || predictor == PREDICTOR_ROWS_COLS);
+  assert(predictor == PREDICTOR_NONE || predictor == PREDICTOR_ROWS_COLS);
 
   size_t unit_size = output_buffers.size();
 
-  lerc_assert(unit_size == UnitTypes::size(unit_type));
+  assert(unit_size == UnitTypes::size(unit_type));
 
   const int delta = Predictor::getIntDelta(predictor);
 
@@ -671,11 +665,11 @@ bool restoreByteOrder(std::vector<std::pair<int, signed char*> >& output_buffers
   const size_t cols, const size_t rows, const PredictorType predictor, //FILE* output,
   const UnitType unit_type, uint8_t** output_block)
 {
-  lerc_assert(predictor == PREDICTOR_NONE || predictor == PREDICTOR_DELTA1);
+  assert(predictor == PREDICTOR_NONE || predictor == PREDICTOR_DELTA1);
 
   size_t unit_size = output_buffers.size();
 
-  lerc_assert(unit_size == UnitTypes::size(unit_type));
+  assert(unit_size == UnitTypes::size(unit_type));
 
   const int delta = Predictor::getIntDelta(predictor);
 
@@ -808,7 +802,6 @@ bool LosslessFPCompression::DecodeHuffmanFltSlice(const unsigned char** ppByte, 
 
     signed char* uncompressed = NULL;
     size_t extracted_size = fpl_Compression::extract_buffer((const signed char *)compressed, compressed_size, expected_size, &uncompressed);
-    lerc_assert(expected_size == extracted_size);
 
     free(compressed);
     compressed = NULL;

@@ -339,20 +339,27 @@ ErrCode Lerc::ComputeCompressedSizeTempl(const T* pData, int version, int nDepth
 
   unsigned int numBytesWritten = 0;
 
-  if (version >= 0 && version <= 5)
+  try
   {
-    if (pUsesNoData)
-      for (int i = 0; i < nBands; i++)
-        if (pUsesNoData[i])
-          return ErrCode::WrongParam;
+    if (version >= 0 && version <= 5)
+    {
+      if (pUsesNoData)
+        for (int i = 0; i < nBands; i++)
+          if (pUsesNoData[i])
+            return ErrCode::WrongParam;
 
-    return EncodeInternal_v5(pData, version, nDepth, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
-      numBytesNeeded, nullptr, 0, numBytesWritten);
+      return EncodeInternal_v5(pData, version, nDepth, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
+        numBytesNeeded, nullptr, 0, numBytesWritten);
+    }
+    else
+    {
+      return EncodeInternal(pData, version, nDepth, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
+        numBytesNeeded, nullptr, 0, numBytesWritten, pUsesNoData, noDataValues);
+    }
   }
-  else
+  catch (...)  // catch any throw that might happen below here
   {
-    return EncodeInternal(pData, version, nDepth, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
-      numBytesNeeded, nullptr, 0, numBytesWritten, pUsesNoData, noDataValues);
+    return ErrCode::Failed;
   }
 }
 
@@ -378,20 +385,27 @@ ErrCode Lerc::EncodeTempl(const T* pData, int version, int nDepth, int nCols, in
 
   unsigned int numBytesNeeded = 0;
 
-  if (version >= 0 && version <= 5)
+  try
   {
-    if (pUsesNoData)
-      for (int i = 0; i < nBands; i++)
-        if (pUsesNoData[i])
-          return ErrCode::WrongParam;
+    if (version >= 0 && version <= 5)
+    {
+      if (pUsesNoData)
+        for (int i = 0; i < nBands; i++)
+          if (pUsesNoData[i])
+            return ErrCode::WrongParam;
 
-    return EncodeInternal_v5(pData, version, nDepth, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
-      numBytesNeeded, pBuffer, numBytesBuffer, numBytesWritten);
+      return EncodeInternal_v5(pData, version, nDepth, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
+        numBytesNeeded, pBuffer, numBytesBuffer, numBytesWritten);
+    }
+    else
+    {
+      return EncodeInternal(pData, version, nDepth, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
+        numBytesNeeded, pBuffer, numBytesBuffer, numBytesWritten, pUsesNoData, noDataValues);
+    }
   }
-  else
+  catch (...)  // catch any throw that might happen below here
   {
-    return EncodeInternal(pData, version, nDepth, nCols, nRows, nBands, nMasks, pValidBytes, maxZErr,
-      numBytesNeeded, pBuffer, numBytesBuffer, numBytesWritten, pUsesNoData, noDataValues);
+    return ErrCode::Failed;
   }
 }
 
@@ -415,109 +429,117 @@ ErrCode Lerc::DecodeTempl(T* pData, const Byte* pLercBlob, unsigned int numBytes
   Lerc2::HeaderInfo hdInfo;
   bool bHasMask = false;
 
-  if (Lerc2::GetHeaderInfo(pByte, numBytesBlob, hdInfo, bHasMask) && hdInfo.version >= 1)    // if Lerc2
+  try
   {
-    LercInfo lercInfo;
-    ErrCode errCode = GetLercInfo(pLercBlob, numBytesBlob, lercInfo);    // fast for Lerc2, does most checks
-    if (errCode != ErrCode::Ok)
-      return errCode;
-
-    // caller must provide enough space for the masks that are there (e.g., if they differ between bands)
-    if (nMasks < lercInfo.nMasks)    // 0, 1, or nBands
-      return ErrCode::WrongParam;
-
-    // caller cannot ask for more bands than are there
-    if (nBands > lercInfo.nBands)
-      return ErrCode::WrongParam;
-
-    // if Lerc blob has noData values not covered by the mask, caller must get it (make sure caller cannot miss it)
-    if (lercInfo.nUsesNoDataValue && nDepth > 1)
+    if (Lerc2::GetHeaderInfo(pByte, numBytesBlob, hdInfo, bHasMask) && hdInfo.version >= 1)    // if Lerc2
     {
-      if (!pUsesNoData || !noDataValues)
-        return ErrCode::HasNoData;
+      LercInfo lercInfo;
+      ErrCode errCode = GetLercInfo(pLercBlob, numBytesBlob, lercInfo);    // fast for Lerc2, does most checks
+      if (errCode != ErrCode::Ok)
+        return errCode;
 
-      try
+      // caller must provide enough space for the masks that are there (e.g., if they differ between bands)
+      if (nMasks < lercInfo.nMasks)    // 0, 1, or nBands
+        return ErrCode::WrongParam;
+
+      // caller cannot ask for more bands than are there
+      if (nBands > lercInfo.nBands)
+        return ErrCode::WrongParam;
+
+      // if Lerc blob has noData values not covered by the mask, caller must get it (make sure caller cannot miss it)
+      if (lercInfo.nUsesNoDataValue && nDepth > 1)
       {
-        memset(pUsesNoData, 0, nBands);
-        memset(noDataValues, 0, nBands * sizeof(double));
+        if (!pUsesNoData || !noDataValues)
+          return ErrCode::HasNoData;
+
+        try
+        {
+          memset(pUsesNoData, 0, nBands);
+          memset(noDataValues, 0, nBands * sizeof(double));
+        }
+        catch (...)
+        {
+          return ErrCode::HasNoData;
+        }
       }
-      catch (...)
+
+      size_t nBytesRemaining = numBytesBlob;
+      Lerc2 lerc2;
+      BitMask bitMask;
+      Lerc2::DataType dt0 = hdInfo.dt;
+
+      for (int iBand = 0; iBand < nBands; iBand++)
       {
-        return ErrCode::HasNoData;
-      }
-    }
+        if (((size_t)(pByte - pLercBlob) < numBytesBlob) && Lerc2::GetHeaderInfo(pByte, nBytesRemaining, hdInfo, bHasMask))
+        {
+          if (hdInfo.nDepth != nDepth || hdInfo.nCols != nCols || hdInfo.nRows != nRows || hdInfo.dt != dt0 || hdInfo.blobSize < 0)
+            return ErrCode::Failed;
 
-    size_t nBytesRemaining = numBytesBlob;
-    Lerc2 lerc2;
-    BitMask bitMask;
+          if ((pByte - pLercBlob) + (size_t)hdInfo.blobSize > numBytesBlob)  // corrupted blob
+            return ErrCode::Failed;
 
-    for (int iBand = 0; iBand < nBands; iBand++)
+          size_t nPix = (size_t)iBand * nRows * nCols;
+          T* arr = pData + nPix * nDepth;
+
+          bool bGetMask = iBand < nMasks;
+
+          if (bGetMask && !bitMask.SetSize(nCols, nRows))
+            return ErrCode::Failed;
+
+          if (!lerc2.Decode(&pByte, nBytesRemaining, arr, bGetMask ? bitMask.Bits() : nullptr))
+            return ErrCode::Failed;
+
+          if (lercInfo.nUsesNoDataValue && nDepth > 1)
+          {
+            pUsesNoData[iBand] = hdInfo.bPassNoDataValues ? 1 : 0;
+            noDataValues[iBand] = hdInfo.noDataValOrig;
+
+            if (hdInfo.bPassNoDataValues && !RemapNoData(arr, bitMask, hdInfo))
+              return ErrCode::Failed;
+          }
+
+          if (bGetMask && !Convert(bitMask, pValidBytes + nPix))
+            return ErrCode::Failed;
+        }
+      }  // iBand
+    }  // Lerc2
+
+    else    // might be old Lerc1
     {
-      if (((size_t)(pByte - pLercBlob) < numBytesBlob) && Lerc2::GetHeaderInfo(pByte, nBytesRemaining, hdInfo, bHasMask))
+#ifdef HAVE_LERC1_DECODE
+      unsigned int numBytesHeaderBand0 = CntZImage::computeNumBytesNeededToReadHeader(false);
+      unsigned int numBytesHeaderBand1 = CntZImage::computeNumBytesNeededToReadHeader(true);
+      const Byte* pByte1 = pLercBlob;
+      CntZImage zImg;
+
+      for (int iBand = 0; iBand < nBands; iBand++)
       {
-        if (hdInfo.nDepth != nDepth || hdInfo.nCols != nCols || hdInfo.nRows != nRows || hdInfo.blobSize < 0)
+        unsigned int numBytesHeader = iBand == 0 ? numBytesHeaderBand0 : numBytesHeaderBand1;
+        if ((size_t)(pByte1 - pLercBlob) + numBytesHeader > numBytesBlob)  // corrupted blob or wrong nBands
           return ErrCode::Failed;
 
-        if ((pByte - pLercBlob) + (size_t)hdInfo.blobSize > numBytesBlob)  // corrupted blob
+        bool onlyZPart = iBand > 0;
+        if (!zImg.read(&pByte1, pLercBlob + numBytesBlob, 1e12, false, onlyZPart))
+          return ErrCode::Failed;
+
+        if (zImg.getWidth() != nCols || zImg.getHeight() != nRows)
           return ErrCode::Failed;
 
         size_t nPix = (size_t)iBand * nRows * nCols;
-        T* arr = pData + nPix * nDepth;
+        T* arr = pData + nPix;
+        Byte* pDst = iBand < nMasks ? pValidBytes + nPix : nullptr;
 
-        bool bGetMask = iBand < nMasks;
-
-        if (bGetMask && !bitMask.SetSize(nCols, nRows))
-          return ErrCode::Failed;
-
-        if (!lerc2.Decode(&pByte, nBytesRemaining, arr, bGetMask ? bitMask.Bits() : nullptr))
-          return ErrCode::Failed;
-
-        if (lercInfo.nUsesNoDataValue && nDepth > 1)
-        {
-          pUsesNoData[iBand] = hdInfo.bPassNoDataValues ? 1 : 0;
-          noDataValues[iBand] = hdInfo.noDataValOrig;
-
-          if (hdInfo.bPassNoDataValues && !RemapNoData(arr, bitMask, hdInfo))
-            return ErrCode::Failed;
-        }
-
-        if (bGetMask && !Convert(bitMask, pValidBytes + nPix))
+        if (!Convert(zImg, arr, pDst, iBand == 0))
           return ErrCode::Failed;
       }
-    }  // iBand
-  }  // Lerc2
-
-  else    // might be old Lerc1
-  {
-#ifdef HAVE_LERC1_DECODE
-    unsigned int numBytesHeaderBand0 = CntZImage::computeNumBytesNeededToReadHeader(false);
-    unsigned int numBytesHeaderBand1 = CntZImage::computeNumBytesNeededToReadHeader(true);
-    const Byte* pByte1 = pLercBlob;
-    CntZImage zImg;
-
-    for (int iBand = 0; iBand < nBands; iBand++)
-    {
-      unsigned int numBytesHeader = iBand == 0 ? numBytesHeaderBand0 : numBytesHeaderBand1;
-      if ((size_t)(pByte1 - pLercBlob) + numBytesHeader > numBytesBlob)  // corrupted blob or wrong nBands
-        return ErrCode::Failed;
-
-      bool onlyZPart = iBand > 0;
-      if (!zImg.read(&pByte1, pLercBlob + numBytesBlob, 1e12, false, onlyZPart))
-        return ErrCode::Failed;
-
-      if (zImg.getWidth() != nCols || zImg.getHeight() != nRows)
-        return ErrCode::Failed;
-
-      size_t nPix = (size_t)iBand * nRows * nCols;
-      T* arr = pData + nPix;
-      Byte* pDst = iBand < nMasks ? pValidBytes + nPix : nullptr;
-
-      if (!Convert(zImg, arr, pDst, iBand == 0))
-        return ErrCode::Failed;
-    }
 #else
-    return ErrCode::Failed;
+      return ErrCode::Failed;
 #endif
+    }
+  }
+  catch (...)  // catch any throw that might happen below here
+  {
+    return ErrCode::Failed;
   }
 
   return ErrCode::Ok;
